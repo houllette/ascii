@@ -121,16 +121,21 @@
           #
           {Credo.Check.Refactor.Apply, []},
           {Credo.Check.Refactor.CondStatements, []},
-          {Credo.Check.Refactor.CyclomaticComplexity, []},
+          # The pieces are line-for-line ports of upstream's TypeScript, and
+          # JSMath of fdlibm's C. Keeping their branching and nesting as the
+          # originals have it is what lets a reviewer check one against the
+          # other, which matters more in this project than the default limits
+          # (complexity 9, nesting 2, arity 8). The limits stay, raised.
+          {Credo.Check.Refactor.CyclomaticComplexity, [max_complexity: 20]},
           {Credo.Check.Refactor.FilterCount, []},
           {Credo.Check.Refactor.FilterFilter, []},
-          {Credo.Check.Refactor.FunctionArity, []},
+          {Credo.Check.Refactor.FunctionArity, [max_arity: 10]},
           {Credo.Check.Refactor.LongQuoteBlocks, []},
           {Credo.Check.Refactor.MapJoin, []},
           {Credo.Check.Refactor.MatchInCondition, []},
           {Credo.Check.Refactor.NegatedConditionsInUnless, []},
           {Credo.Check.Refactor.NegatedConditionsWithElse, []},
-          {Credo.Check.Refactor.Nesting, []},
+          {Credo.Check.Refactor.Nesting, [max_nesting: 4]},
           {Credo.Check.Refactor.RedundantWithClauseResult, []},
           {Credo.Check.Refactor.RejectReject, []},
           {Credo.Check.Refactor.UnlessWithElse, []},
