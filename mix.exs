@@ -6,6 +6,8 @@ defmodule AsciiArt.MixProject do
       app: :ascii_art,
       version: "0.1.0",
       elixir: "~> 1.20",
+      elixirc_paths: elixirc_paths(Mix.env()),
+      test_ignore_filters: [&String.starts_with?(&1, "test/fixtures/")],
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       aliases: aliases(),
@@ -13,13 +15,111 @@ defmodule AsciiArt.MixProject do
         plt_file: {:no_warn, "priv/plts/dialyzer.plt"},
         plt_add_apps: [:ex_unit, :mix]
       ],
-      usage_rules: [file: "AGENTS.md", usage_rules: :all]
+      usage_rules: [file: "AGENTS.md", usage_rules: :all],
+      name: "AsciiArt",
+      description: "Animated ASCII art for Elixir: an exact port of ascii.rest",
+      source_url: "https://github.com/houllette/ascii_art",
+      package: package(),
+      docs: docs()
     ]
+  end
+
+  defp package do
+    [
+      licenses: ["MIT"],
+      links: %{
+        "GitHub" => "https://github.com/houllette/ascii_art",
+        "ascii.rest" => "https://ascii.rest"
+      },
+      files:
+        ~w(lib priv/static/ascii_art_hook.js mix.exs README.md LICENSE THIRD_PARTY_NOTICES.md PORTING.md)
+    ]
+  end
+
+  defp docs do
+    [
+      main: "readme",
+      extras: [
+        "README.md",
+        "guides/getting-started.md",
+        "guides/phoenix.md",
+        "guides/terminal.md",
+        "guides/ex_ratatui.md",
+        "guides/livebook.md",
+        "guides/nerves.md",
+        "guides/custom-rendering.md",
+        "guides/writing-pieces.md",
+        "PORTING.md",
+        "PORT_STATUS.md",
+        "UPSTREAM.md",
+        "THIRD_PARTY_NOTICES.md",
+        "LICENSE"
+      ],
+      groups_for_extras: [
+        Guides: ~r"^guides/",
+        "About the port": ~w(PORTING.md PORT_STATUS.md UPSTREAM.md THIRD_PARTY_NOTICES.md LICENSE)
+      ],
+      groups_for_modules:
+        [
+          Core: [
+            AsciiArt,
+            AsciiArt.Piece,
+            AsciiArt.Meta,
+            AsciiArt.Env,
+            AsciiArt.Frame,
+            AsciiArt.Animation,
+            AsciiArt.Options
+          ],
+          Renderers: [
+            AsciiArt.Render.Text,
+            AsciiArt.Render.ANSI,
+            AsciiArt.Render.HTML,
+            AsciiArt.Player
+          ],
+          Phoenix: [
+            AsciiArt.Phoenix,
+            AsciiArt.Phoenix.Components,
+            AsciiArt.Phoenix.PlayerLive,
+            AsciiArt.Phoenix.PlayerComponent
+          ],
+          ExRatatui: [AsciiArt.ExRatatui, AsciiArt.ExRatatui.Viewer]
+        ] ++
+          piece_groups() ++
+          [Internals: [AsciiArt.JSMath, AsciiArt.Int32, AsciiArt.Registry, ~r/^AsciiArt\.Kit\./]],
+      nest_modules_by_prefix: [
+        AsciiArt.Pieces,
+        AsciiArt.Kit,
+        AsciiArt.Render,
+        AsciiArt.Phoenix,
+        AsciiArt.ExRatatui
+      ]
+    ]
+  end
+
+  # One group of pieces a category, in upstream's order, read from each
+  # piece's meta in its source.
+  @categories ~w(scenes shapes space physics nature creatures objects generative effects ui data type logos distros)
+  defp piece_groups do
+    pieces =
+      for file <- Path.wildcard("lib/ascii_art/pieces/*.ex"),
+          source = File.read!(file),
+          [_, mod] <- [Regex.run(~r/defmodule ([\w.]+) do/, source)],
+          [_, category] <- [Regex.run(~r/category: :(\w+)/, source)],
+          do: {category, Module.concat([mod])}
+
+    by_category = Enum.group_by(pieces, &elem(&1, 0), &elem(&1, 1))
+
+    for category <- @categories, mods = Map.get(by_category, category, []), mods != [] do
+      {:"Pieces: #{category}", Enum.sort(mods)}
+    end
   end
 
   def cli do
     [preferred_envs: [precommit: :test]]
   end
+
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_), do: ["lib"]
 
   # Run "mix help compile.app" to learn about applications.
   def application do
@@ -37,7 +137,11 @@ defmodule AsciiArt.MixProject do
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.40", only: [:dev, :test], runtime: false},
-      {:usage_rules, "~> 1.2", only: [:dev, :test], runtime: false}
+      {:usage_rules, "~> 1.2", only: [:dev, :test], runtime: false},
+      {:stream_data, "~> 1.1", only: [:dev, :test]},
+      {:phoenix_live_view, "~> 1.1", optional: true},
+      {:ex_ratatui, "~> 0.17", optional: true},
+      {:lazy_html, ">= 0.1.0", only: :test}
     ]
   end
 

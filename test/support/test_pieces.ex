@@ -1,0 +1,214 @@
+defmodule AsciiArt.TestPieces.Blink do
+  @moduledoc false
+  # A piece of our own, not in the registry: a dot that blinks twice a second.
+  @behaviour AsciiArt.Piece
+
+  @impl true
+  def meta do
+    %AsciiArt.Meta{
+      name: "blink",
+      category: :ui,
+      note: "a dot that blinks",
+      cols: 3,
+      rows: 1,
+      fps: 20,
+      options: %{dot: "*"}
+    }
+  end
+
+  @impl true
+  def init(%{dot: dot}), do: dot |> String.codepoints() |> List.first("*")
+
+  @impl true
+  def frame(dot, t, _env) do
+    text = if rem(floor(t * 2), 2) == 0, do: [" ", dot, " "], else: "   "
+    {text, nil, dot}
+  end
+end
+
+defmodule AsciiArt.TestPieces.Gated do
+  @moduledoc false
+  # A piece whose setup waits to be let go with `send(player, :go)`, as a
+  # scene's takes a while on a small board. Set up before the player has
+  # started, it is never let go and raises.
+  @behaviour AsciiArt.Piece
+
+  @impl true
+  def meta,
+    do: %AsciiArt.Meta{
+      name: "gated",
+      category: :ui,
+      note: "waits to start",
+      cols: 1,
+      rows: 1,
+      fps: 20
+    }
+
+  @impl true
+  def init(_options) do
+    receive do
+      :go -> nil
+    after
+      2000 -> raise "set up before the player started"
+    end
+  end
+
+  @impl true
+  def frame(state, _t, _env), do: {"g", nil, state}
+end
+
+defmodule AsciiArt.TestPieces.Waltz do
+  @moduledoc false
+  # Counts to three every three quarters of a second: a loop that is not a
+  # whole number of frames at its rate (7.5 at 10 fps).
+  @behaviour AsciiArt.Piece
+
+  @impl true
+  def meta,
+    do: %AsciiArt.Meta{
+      name: "waltz",
+      category: :ui,
+      note: "one two three",
+      cols: 1,
+      rows: 1,
+      fps: 10,
+      loop: 0.75
+    }
+
+  @impl true
+  def init(_options), do: nil
+
+  @impl true
+  def frame(state, t, _env), do: {Integer.to_string(rem(floor(t / 0.25), 3) + 1), nil, state}
+end
+
+defmodule AsciiArt.TestPieces.Static do
+  @moduledoc false
+  # Noise that repeats every two seconds: a loop far too big to send, 200×100
+  # cells a frame that hardly compress.
+  @behaviour AsciiArt.Piece
+
+  @impl true
+  def meta,
+    do: %AsciiArt.Meta{
+      name: "static",
+      category: :effects,
+      note: "noise",
+      cols: 200,
+      rows: 100,
+      fps: 30,
+      loop: 2
+    }
+
+  @impl true
+  def init(_options), do: nil
+
+  @impl true
+  def frame(state, t, _env) do
+    i = rem(round(t * 30), 60)
+
+    text =
+      Enum.map_join(0..99, "\n", fn y ->
+        for x <- 0..199,
+            into: "",
+            do: <<Enum.at(~c"!#$%&*+=?@0123456789", :erlang.phash2({i, x, y}, 20))>>
+      end)
+
+    {text, nil, state}
+  end
+end
+
+defmodule AsciiArt.TestPieces.Counted do
+  @moduledoc false
+  # Counts to ten twice a second, a loop of ten frames at its 20 fps, and
+  # tells the process registered as :loop_watch each time it is drawn.
+  @behaviour AsciiArt.Piece
+
+  @impl true
+  def meta,
+    do: %AsciiArt.Meta{
+      name: "counted",
+      category: :ui,
+      note: "counts",
+      cols: 1,
+      rows: 1,
+      fps: 20,
+      loop: 0.5
+    }
+
+  @impl true
+  def init(_options), do: nil
+
+  @impl true
+  def frame(state, t, _env) do
+    if pid = Process.whereis(:loop_watch), do: send(pid, {:drawn, t})
+    {Integer.to_string(rem(floor(t * 20 + 1.0e-9), 10)), nil, state}
+  end
+end
+
+defmodule AsciiArt.TestPieces.Bar do
+  @moduledoc false
+  # A bar `width` cells wide, `value` percent full: its size follows its
+  # options, and it counts the updates it has taken, to show its state
+  # carries over. `marks` (a list of numbers) shows how shapes check lists.
+  @behaviour AsciiArt.Piece
+
+  @impl true
+  def meta,
+    do: %AsciiArt.Meta{
+      name: "bar",
+      category: :ui,
+      note: "a bar",
+      cols: 10,
+      rows: 1,
+      fps: 10,
+      options: %{width: 10, value: 0, marks: []},
+      bounds: %{width: {1, 80}, value: {0, 100}},
+      shapes: %{marks: [0.0]}
+    }
+
+  @impl true
+  def size(%{width: width}), do: {width, 1}
+
+  @impl true
+  def init(options), do: Map.put(options, :updates, 0)
+
+  @impl true
+  def update(state, options), do: Map.put(options, :updates, state.updates + 1)
+
+  @impl true
+  def frame(%{width: width, value: value} = state, _t, _env) do
+    full = round(width * value / 100)
+    {[String.duplicate("#", full), String.duplicate(".", width - full)], nil, state}
+  end
+end
+
+defmodule AsciiArt.TestPieces.Noted do
+  @moduledoc false
+  # Sends :init to the process setting it up, if that process has put
+  # :init_watch in its dictionary, to show when a still is drawn and when it
+  # is kept. A flag of the test's own, rather than a registered name, so
+  # tests that run at once do not see each other's.
+  @behaviour AsciiArt.Piece
+
+  @impl true
+  def meta,
+    do: %AsciiArt.Meta{
+      name: "noted",
+      category: :ui,
+      note: "noted",
+      cols: 2,
+      rows: 1,
+      fps: 10,
+      options: %{mark: "#"}
+    }
+
+  @impl true
+  def init(%{mark: mark}) do
+    if Process.get(:init_watch), do: send(self(), :init)
+    String.slice(mark <> " ", 0, 1)
+  end
+
+  @impl true
+  def frame(mark, t, _env), do: {[mark, Integer.to_string(rem(floor(t), 10))], nil, mark}
+end

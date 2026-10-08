@@ -116,6 +116,52 @@ jobs:
         if: needs.detect.outputs.has_local_cluster == 'true'
         run: mix test.distributed
 
+  # The pinned versions above are the project's own (.tool-versions, the one
+  # place to bump them). This checks the library on the latest Elixir 1.20
+  # with each recent OTP as well, since users pick their own. Tests only: the
+  # golden fixtures are committed, so nothing here needs Node.
+  compat:
+    name: Test (Elixir ${{ matrix.elixir }}, OTP ${{ matrix.otp }})
+    runs-on: ubuntu-latest
+    needs: detect
+    if: needs.detect.outputs.has_project == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - elixir: "1.20"
+            otp: "28"
+          - elixir: "1.20"
+            otp: "29"
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up BEAM
+        id: beam
+        uses: erlef/setup-beam@v1
+        with:
+          elixir-version: ${{ matrix.elixir }}
+          otp-version: ${{ matrix.otp }}
+
+      - name: Cache deps and build
+        uses: actions/cache@v6
+        with:
+          path: |
+            deps
+            _build
+          key: mix-${{ runner.os }}-${{ steps.beam.outputs.otp-version }}-${{ steps.beam.outputs.elixir-version }}-${{ hashFiles('mix.lock') }}
+          restore-keys: |
+            mix-${{ runner.os }}-${{ steps.beam.outputs.otp-version }}-${{ steps.beam.outputs.elixir-version }}-
+
+      - name: Install dependencies
+        run: mix deps.get
+
+      - name: Compile (warnings as errors)
+        run: mix compile --warnings-as-errors
+
+      - name: Run tests
+        run: mix test --warnings-as-errors
+
   # Dependency and application security live in their own job so a red build
   # here reads as "audit this", not "your code is broken".
   security:
