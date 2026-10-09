@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.JuliaSetTest do
+defmodule Ascii.Pieces.JuliaSetTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.JuliaSet
-  use AsciiArt.GoldenCase, slug: "julia-set", piece: AsciiArt.Pieces.JuliaSet
+  use Ascii.ContractCase, piece: Ascii.Pieces.JuliaSet
+  use Ascii.GoldenCase, slug: "julia-set", piece: Ascii.Pieces.JuliaSet
 end

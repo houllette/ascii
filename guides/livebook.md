@@ -8,13 +8,13 @@ written against Kino 0.19.
 # needs: a notebook's setup cell
 Mix.install([
   {:kino, "~> 0.19"},
-  {:ascii_art, "~> 0.2"}
+  {:ascii, "~> 0.3.0"}
 ])
 ```
 
 ## A helper
 
-`AsciiArt.Render.HTML` gives the inside of a `<pre>`, escaped, with coloured
+`Ascii.Render.HTML` gives the inside of a `<pre>`, escaped, with coloured
 pieces as spans of their palette; wrap it and hand it to `Kino.HTML`:
 
 ```elixir
@@ -22,9 +22,9 @@ pieces as spans of their palette; wrap it and hand it to `Kino.HTML`:
 defmodule Art do
   @style "margin:0;line-height:1.2;letter-spacing:0;white-space:pre;font-family:monospace;font-size:12px"
 
-  def kino(%AsciiArt.Frame{} = frame) do
+  def kino(%Ascii.Frame{} = frame) do
     ground = if frame.colors && frame.ground, do: ";background:" <> frame.ground, else: ""
-    html = ["<pre style=\"", @style, ground, "\">", AsciiArt.Render.HTML.render(frame), "</pre>"]
+    html = ["<pre style=\"", @style, ground, "\">", Ascii.Render.HTML.render(frame), "</pre>"]
     Kino.HTML.new(IO.iodata_to_binary(html))
   end
 end
@@ -34,7 +34,7 @@ end
 
 ```elixir
 # needs: kino
-AsciiArt.new!("elixir") |> AsciiArt.frame(0.0) |> elem(0) |> Art.kino()
+Ascii.new!("elixir") |> Ascii.frame(0.0) |> elem(0) |> Art.kino()
 ```
 
 ## Playing
@@ -45,11 +45,11 @@ state, so pieces with state between frames play correctly:
 
 ```elixir
 # needs: kino
-{:ok, anim} = AsciiArt.new("donut")
+{:ok, anim} = Ascii.new("donut")
 interval = round(1000 / anim.fps)
 
 Kino.animate(interval, anim, fn i, anim ->
-  {frame, anim} = AsciiArt.frame(anim, i * interval / 1000)
+  {frame, anim} = Ascii.frame(anim, i * interval / 1000)
   {:cont, Art.kino(frame), anim}
 end)
 ```
@@ -61,20 +61,20 @@ ticks.
 
 The UI and data pieces draw your own data (see
 [Live data](getting-started.md#live-data)). Take new readings up with
-`AsciiArt.put_options!/2` as the animation plays, here once a second, and
+`Ascii.put_options!/2` as the animation plays, here once a second, and
 the gauge's needle swings to each:
 
 ```elixir
 # needs: kino
-{:ok, anim} = AsciiArt.new("gauge", options: %{label: "run queue", max: 20, value: 0})
+{:ok, anim} = Ascii.new("gauge", options: %{label: "run queue", max: 20, value: 0})
 
 Kino.animate(100, anim, fn i, anim ->
   anim =
     if rem(i, 10) == 0,
-      do: AsciiArt.put_options!(anim, value: :erlang.statistics(:total_run_queue_lengths)),
+      do: Ascii.put_options!(anim, value: :erlang.statistics(:total_run_queue_lengths)),
       else: anim
 
-  {frame, anim} = AsciiArt.frame(anim, i * 0.1)
+  {frame, anim} = Ascii.frame(anim, i * 0.1)
   {:cont, Art.kino(frame), anim}
 end)
 ```
@@ -87,17 +87,17 @@ than a crash:
 
 ```elixir
 # needs: kino
-piece = Kino.Input.select("piece", Enum.map(AsciiArt.pieces(category: :logos), &{&1, &1}))
+piece = Kino.Input.select("piece", Enum.map(Ascii.pieces(category: :logos), &{&1, &1}))
 paper = Kino.Input.checkbox("paper")
 Kino.Layout.grid([piece, paper], columns: 2)
 ```
 
 ```elixir
 # needs: kino, and the cell above
-{:ok, anim} = AsciiArt.new(Kino.Input.read(piece), paper: Kino.Input.read(paper))
+{:ok, anim} = Ascii.new(Kino.Input.read(piece), paper: Kino.Input.read(paper))
 
 Kino.animate(33, anim, fn i, anim ->
-  {frame, anim} = AsciiArt.frame(anim, i * 0.033)
+  {frame, anim} = Ascii.frame(anim, i * 0.033)
   {:cont, Art.kino(frame), anim}
 end)
 ```
@@ -105,15 +105,15 @@ end)
 ## Text and terminal output
 
 For a text piece, `Kino.Text` is enough, and with `terminal: true` it renders
-ANSI escapes, so `AsciiArt.Render.ANSI` works too (in 256 colours, to be
+ANSI escapes, so `Ascii.Render.ANSI` works too (in 256 colours, to be
 safe):
 
 ```elixir
 # needs: kino
-{frame, _} = AsciiArt.new!("arch-linux") |> AsciiArt.frame(0.0)
-frame |> AsciiArt.Render.ANSI.render(mode: :ansi256) |> IO.iodata_to_binary() |> Kino.Text.new(terminal: true)
+{frame, _} = Ascii.new!("arch-linux") |> Ascii.frame(0.0)
+frame |> Ascii.Render.ANSI.render(mode: :ansi256) |> IO.iodata_to_binary() |> Kino.Text.new(terminal: true)
 ```
 
 Scenes are 200×100 cells: at a small font size they fit a notebook's width.
-They take a moment to set up (`AsciiArt.new/2`), so make the animation once
+They take a moment to set up (`Ascii.new/2`), so make the animation once
 and keep it in a variable.

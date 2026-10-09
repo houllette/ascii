@@ -1,10 +1,10 @@
-defmodule AsciiArt.MixProject do
+defmodule Ascii.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :ascii_art,
-      version: "0.2.2",
+      app: :ascii,
+      version: "0.3.0",
       elixir: "~> 1.18",
       elixirc_paths: elixirc_paths(Mix.env()),
       test_ignore_filters: [&String.starts_with?(&1, "test/fixtures/")],
@@ -16,10 +16,10 @@ defmodule AsciiArt.MixProject do
         plt_add_apps: [:ex_unit, :mix]
       ],
       usage_rules: [file: "AGENTS.md", usage_rules: :all],
-      name: "AsciiArt",
+      name: "Ascii",
       description:
-        "ASCII-art UI components for Elixir: live-data widgets and animated art for " <>
-          "Phoenix LiveView, terminal UIs and Nerves. An exact port of ascii.rest.",
+        "ASCII-art components for Elixir: native diagrams, live-data widgets and " <>
+          "exact ascii.rest animations for Phoenix LiveView, terminal UIs and Nerves.",
       source_url: "https://github.com/houllette/ascii_art",
       package: package(),
       docs: docs()
@@ -34,7 +34,7 @@ defmodule AsciiArt.MixProject do
         "ascii.rest" => "https://ascii.rest"
       },
       files:
-        ~w(lib priv/static/ascii_art_hook.js mix.exs README.md LICENSE THIRD_PARTY_NOTICES.md PORTING.md)
+        ~w(lib priv/static/ascii_hook.js mix.exs README.md guides LICENSE THIRD_PARTY_NOTICES.md PORTING.md PORT_STATUS.md UPSTREAM.md)
     ]
   end
 
@@ -44,7 +44,9 @@ defmodule AsciiArt.MixProject do
       extras: [
         "README.md",
         "guides/getting-started.md",
+        "guides/migrating-to-ascii.md",
         "guides/components.md",
+        "guides/diagrams.md",
         "guides/phoenix.md",
         "guides/terminal.md",
         "guides/ex_ratatui.md",
@@ -65,41 +67,42 @@ defmodule AsciiArt.MixProject do
       groups_for_modules:
         [
           Core: [
-            AsciiArt,
-            AsciiArt.Piece,
-            AsciiArt.Meta,
-            AsciiArt.Env,
-            AsciiArt.Frame,
-            AsciiArt.Ink,
-            AsciiArt.Parts,
-            AsciiArt.Animation,
-            AsciiArt.Options
+            Ascii,
+            Ascii.Piece,
+            Ascii.Meta,
+            Ascii.Env,
+            Ascii.Frame,
+            Ascii.Ink,
+            Ascii.Parts,
+            Ascii.Animation,
+            Ascii.Options
           ],
           Renderers: [
-            AsciiArt.Render.Text,
-            AsciiArt.Render.ANSI,
-            AsciiArt.Render.HTML,
-            AsciiArt.Render.SVG,
-            AsciiArt.Compose,
-            AsciiArt.Player
+            Ascii.Render.Text,
+            Ascii.Render.ANSI,
+            Ascii.Render.HTML,
+            Ascii.Render.SVG,
+            Ascii.Compose,
+            Ascii.Player
           ],
-          "Live data": [AsciiArt.BEAM, AsciiArt.Telemetry],
+          "Live data": [Ascii.BEAM, Ascii.Telemetry],
+          Diagrams: [Ascii.Diagram, Ascii.Diagram.Layout, Ascii.Mermaid],
           Phoenix: [
-            AsciiArt.Phoenix,
-            AsciiArt.Phoenix.Components,
-            AsciiArt.Phoenix.PlayerLive,
-            AsciiArt.Phoenix.PlayerComponent
+            Ascii.Phoenix,
+            Ascii.Phoenix.Components,
+            Ascii.Phoenix.PlayerLive,
+            Ascii.Phoenix.PlayerComponent
           ],
-          ExRatatui: [AsciiArt.ExRatatui, AsciiArt.ExRatatui.Viewer]
+          ExRatatui: [Ascii.ExRatatui, Ascii.ExRatatui.Viewer]
         ] ++
           piece_groups() ++
-          [Internals: [AsciiArt.JSMath, AsciiArt.Int32, AsciiArt.Registry, ~r/^AsciiArt\.Kit\./]],
+          [Internals: [Ascii.JSMath, Ascii.Int32, Ascii.Registry, ~r/^Ascii\.Kit\./]],
       nest_modules_by_prefix: [
-        AsciiArt.Pieces,
-        AsciiArt.Kit,
-        AsciiArt.Render,
-        AsciiArt.Phoenix,
-        AsciiArt.ExRatatui
+        Ascii.Pieces,
+        Ascii.Kit,
+        Ascii.Render,
+        Ascii.Phoenix,
+        Ascii.ExRatatui
       ]
     ]
   end
@@ -109,7 +112,7 @@ defmodule AsciiArt.MixProject do
   @categories ~w(scenes shapes space physics nature creatures objects generative effects ui data type logos distros)
   defp piece_groups do
     pieces =
-      for file <- Path.wildcard("lib/ascii_art/pieces/*.ex"),
+      for file <- Path.wildcard("lib/ascii/pieces/*.ex"),
           source = File.read!(file),
           [_, mod] <- [Regex.run(~r/defmodule ([\w.]+) do/, source)],
           [_, category] <- [Regex.run(~r/category: :(\w+)/, source)],

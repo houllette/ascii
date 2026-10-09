@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.DoomFireTest do
+defmodule Ascii.Pieces.DoomFireTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.DoomFire
-  use AsciiArt.GoldenCase, slug: "doom-fire", piece: AsciiArt.Pieces.DoomFire
+  use Ascii.ContractCase, piece: Ascii.Pieces.DoomFire
+  use Ascii.GoldenCase, slug: "doom-fire", piece: Ascii.Pieces.DoomFire
 end

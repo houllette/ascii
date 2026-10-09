@@ -1,9 +1,9 @@
 // node tools/port_marks.mjs [upstream dir] [slug ...]
 //
-// Writes lib/ascii_art/pieces/<slug>.ex and test/pieces/<slug>_test.exs for
+// Writes lib/ascii/pieces/<slug>.ex and test/pieces/<slug>_test.exs for
 // upstream's logo and distro pieces. All 27 logos share one body of code and
 // all 22 distros another, differing only in meta, header and drawings, so
-// each port is that data around AsciiArt.Kit.Logo or AsciiArt.Kit.Distro.
+// each port is that data around Ascii.Kit.Logo or Ascii.Kit.Distro.
 // The meta comes from importing the piece; the header and the three drawings
 // (MONO, ART, INK) from its source. A dev tool, run once per upstream bump.
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -79,16 +79,16 @@ for (const slug of slugs) {
   const mod = camel(slug);
 
   writeFileSync(
-    `lib/ascii_art/pieces/${snake(slug)}.ex`,
-    `defmodule AsciiArt.Pieces.${mod} do
+    `lib/ascii/pieces/${snake(slug)}.ex`,
+    `defmodule Ascii.Pieces.${mod} do
   @moduledoc """
 ${doc.map((p) => wrap(p)).join("\n\n")}
   """
-  @behaviour AsciiArt.Piece
+  @behaviour Ascii.Piece
 
-  alias AsciiArt.Kit.${kit}
+  alias Ascii.Kit.${kit}
 
-  @meta %AsciiArt.Meta{
+  @meta %Ascii.Meta{
     name: ${str(meta.name)},
     category: :${meta.category},
     note: ${str(meta.note)},
@@ -126,10 +126,10 @@ end
 
   writeFileSync(
     `test/pieces/${snake(slug)}_test.exs`,
-    `defmodule AsciiArt.Pieces.${mod}Test do
+    `defmodule Ascii.Pieces.${mod}Test do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.${mod}
-  use AsciiArt.GoldenCase, slug: ${str(slug)}, piece: AsciiArt.Pieces.${mod}
+  use Ascii.ContractCase, piece: Ascii.Pieces.${mod}
+  use Ascii.GoldenCase, slug: ${str(slug)}, piece: Ascii.Pieces.${mod}
 end
 `,
   );

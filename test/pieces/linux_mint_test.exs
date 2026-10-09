@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.LinuxMintTest do
+defmodule Ascii.Pieces.LinuxMintTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.LinuxMint
-  use AsciiArt.GoldenCase, slug: "linux-mint", piece: AsciiArt.Pieces.LinuxMint
+  use Ascii.ContractCase, piece: Ascii.Pieces.LinuxMint
+  use Ascii.GoldenCase, slug: "linux-mint", piece: Ascii.Pieces.LinuxMint
 end

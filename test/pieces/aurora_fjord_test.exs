@@ -1,9 +1,9 @@
-defmodule AsciiArt.Pieces.AuroraFjordTest do
+defmodule Ascii.Pieces.AuroraFjordTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.AuroraFjord
-  use AsciiArt.GoldenCase, slug: "aurora-fjord", piece: AsciiArt.Pieces.AuroraFjord
+  use Ascii.ContractCase, piece: Ascii.Pieces.AuroraFjord
+  use Ascii.GoldenCase, slug: "aurora-fjord", piece: Ascii.Pieces.AuroraFjord
 
-  alias AsciiArt.Pieces.AuroraFjord
+  alias Ascii.Pieces.AuroraFjord
 
   # The frame's shortcuts (the fast powers and the margins that guard them,
   # the curtain terms skipped where they add exactly nothing, the water's
@@ -11,7 +11,7 @@ defmodule AsciiArt.Pieces.AuroraFjordTest do
   # time, in colour and in one ink.
   property "the shortcuts draw what the exact path draws" do
     state =
-      AsciiArt.TestCache.fetch({:init, AuroraFjord}, fn ->
+      Ascii.TestCache.fetch({:init, AuroraFjord}, fn ->
         AuroraFjord.init(AuroraFjord.meta().options)
       end)
 
@@ -20,7 +20,7 @@ defmodule AsciiArt.Pieces.AuroraFjordTest do
             max_runs: 20
           ) do
       for color? <- [true, false] do
-        env = %AsciiArt.Env{cols: 200, rows: 100, color?: color?}
+        env = %Ascii.Env{cols: 200, rows: 100, color?: color?}
 
         Enum.reduce(times, {state, %{state | exact?: true}}, fn t, {fast, exact} ->
           {text, colors, fast} = AuroraFjord.frame(fast, t, env)

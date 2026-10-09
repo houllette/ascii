@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.LangtonsAntTest do
+defmodule Ascii.Pieces.LangtonsAntTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.LangtonsAnt
-  use AsciiArt.GoldenCase, slug: "langtons-ant", piece: AsciiArt.Pieces.LangtonsAnt
+  use Ascii.ContractCase, piece: Ascii.Pieces.LangtonsAnt
+  use Ascii.GoldenCase, slug: "langtons-ant", piece: Ascii.Pieces.LangtonsAnt
 end

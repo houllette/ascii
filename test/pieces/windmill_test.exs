@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.WindmillTest do
+defmodule Ascii.Pieces.WindmillTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Windmill
-  use AsciiArt.GoldenCase, slug: "windmill", piece: AsciiArt.Pieces.Windmill
+  use Ascii.ContractCase, piece: Ascii.Pieces.Windmill
+  use Ascii.GoldenCase, slug: "windmill", piece: Ascii.Pieces.Windmill
 end

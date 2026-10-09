@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.ContourMapTest do
+defmodule Ascii.Pieces.ContourMapTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.ContourMap
-  use AsciiArt.GoldenCase, slug: "contour-map", piece: AsciiArt.Pieces.ContourMap
+  use Ascii.ContractCase, piece: Ascii.Pieces.ContourMap
+  use Ascii.GoldenCase, slug: "contour-map", piece: Ascii.Pieces.ContourMap
 end

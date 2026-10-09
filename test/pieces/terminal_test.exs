@@ -1,4 +1,4 @@
-defmodule AsciiArt.Pieces.TerminalTest do
+defmodule Ascii.Pieces.TerminalTest do
   use ExUnit.Case, async: true
 
   @history [
@@ -7,8 +7,8 @@ defmodule AsciiArt.Pieces.TerminalTest do
     %{command: "git status"}
   ]
 
-  use AsciiArt.ContractCase,
-    piece: AsciiArt.Pieces.Terminal,
+  use Ascii.ContractCase,
+    piece: Ascii.Pieces.Terminal,
     variants: [
       %{prompt: "[x]", title: ""},
       %{prompt: "", title: String.duplicate("t", 70)},
@@ -21,12 +21,12 @@ defmodule AsciiArt.Pieces.TerminalTest do
       %{cols: 30, rows: 8}
     ]
 
-  use AsciiArt.GoldenCase, slug: "terminal", piece: AsciiArt.Pieces.Terminal
+  use Ascii.GoldenCase, slug: "terminal", piece: Ascii.Pieces.Terminal
 
-  alias AsciiArt.Pieces.Terminal
+  alias Ascii.Pieces.Terminal
 
   defp lines(options, t \\ 0.0) do
-    {frame, _anim} = "terminal" |> AsciiArt.new!(options: options) |> AsciiArt.frame(t)
+    {frame, _anim} = "terminal" |> Ascii.new!(options: options) |> Ascii.frame(t)
     frame.lines
   end
 
@@ -93,20 +93,20 @@ defmodule AsciiArt.Pieces.TerminalTest do
 
     test "more history while typing: what is on screen stays, the new is typed from then" do
       typing = %{history: @history, typing: true}
-      {_frame, anim} = "terminal" |> AsciiArt.new!(options: typing) |> AsciiArt.frame(20.0)
+      {_frame, anim} = "terminal" |> Ascii.new!(options: typing) |> Ascii.frame(20.0)
       more = @history ++ [%{output: ["streaming 1", "streaming 2"]}]
-      anim = AsciiArt.put_options!(anim, history: more)
+      anim = Ascii.put_options!(anim, history: more)
 
-      {frame, anim} = AsciiArt.frame(anim, 20.0)
+      {frame, anim} = Ascii.frame(anim, 20.0)
       assert frame.lines |> shown() |> Enum.take(-2) == ["~/notes $ git status", "█"]
 
-      {frame, _anim} = AsciiArt.frame(anim, 20.5)
+      {frame, _anim} = Ascii.frame(anim, 20.5)
       assert frame.lines |> shown() |> Enum.take(-3) == ["streaming 1", "streaming 2", "█"]
 
       # The last command's output growing prints its new lines under it.
       grown = List.update_at(@history, -1, &Map.put(&1, :output, ["on branch main"]))
-      {_frame, anim} = "terminal" |> AsciiArt.new!(options: typing) |> AsciiArt.frame(20.0)
-      {frame, _anim} = anim |> AsciiArt.put_options!(history: grown) |> AsciiArt.frame(20.5)
+      {_frame, anim} = "terminal" |> Ascii.new!(options: typing) |> Ascii.frame(20.0)
+      {frame, _anim} = anim |> Ascii.put_options!(history: grown) |> Ascii.frame(20.5)
 
       assert frame.lines |> shown() |> Enum.take(-3) ==
                ["~/notes $ git status", "on branch main", "~/notes $ █"]
@@ -127,25 +127,25 @@ defmodule AsciiArt.Pieces.TerminalTest do
     end
 
     test "the commands, or the output, counted, the last told" do
-      assert AsciiArt.describe(AsciiArt.new!("terminal", options: %{history: @history})) ==
+      assert Ascii.describe(Ascii.new!("terminal", options: %{history: @history})) ==
                "terminal ~/notes: 3 commands, the last git status"
 
       log = %{history: [%{output: ["one", "two"]}], title: ""}
 
-      assert AsciiArt.describe(AsciiArt.new!("terminal", options: log)) ==
+      assert Ascii.describe(Ascii.new!("terminal", options: log)) ==
                "terminal: 2 lines of output, the last: two"
 
-      assert AsciiArt.describe(AsciiArt.new!("terminal", options: %{history: [%{output: []}]})) ==
+      assert Ascii.describe(Ascii.new!("terminal", options: %{history: [%{output: []}]})) ==
                "terminal ~/notes: empty"
     end
   end
 
   describe "parts" do
-    alias AsciiArt.{Frame, Parts}
-    alias AsciiArt.Pieces.Terminal
+    alias Ascii.{Frame, Parts}
+    alias Ascii.Pieces.Terminal
 
     defp parts(t, options \\ %{}) do
-      {frame, anim} = "terminal" |> AsciiArt.new!(options: options) |> AsciiArt.frame(t)
+      {frame, anim} = "terminal" |> Ascii.new!(options: options) |> Ascii.frame(t)
       {frame, Terminal.parts(frame, anim.options)}
     end
 
@@ -294,7 +294,7 @@ defmodule AsciiArt.Pieces.TerminalTest do
     end
 
     test "with parts: true, the prompt blue, the frame grey, the cursor yellow" do
-      {frame, _} = "terminal" |> AsciiArt.new!(parts: true) |> AsciiArt.frame(0.0)
+      {frame, _} = "terminal" |> Ascii.new!(parts: true) |> Ascii.frame(0.0)
       assert Frame.color_at(frame, 2, 1) == "#58a6ff"
       assert Frame.color_at(frame, 0, 0) == "#8b949e"
       assert Frame.color_at(frame, 3, 0) == nil

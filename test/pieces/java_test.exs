@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.JavaTest do
+defmodule Ascii.Pieces.JavaTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Java
-  use AsciiArt.GoldenCase, slug: "java", piece: AsciiArt.Pieces.Java
+  use Ascii.ContractCase, piece: Ascii.Pieces.Java
+  use Ascii.GoldenCase, slug: "java", piece: Ascii.Pieces.Java
 end

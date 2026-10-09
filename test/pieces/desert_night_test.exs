@@ -1,9 +1,9 @@
-defmodule AsciiArt.Pieces.DesertNightTest do
+defmodule Ascii.Pieces.DesertNightTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.DesertNight
-  use AsciiArt.GoldenCase, slug: "desert-night", piece: AsciiArt.Pieces.DesertNight
+  use Ascii.ContractCase, piece: Ascii.Pieces.DesertNight
+  use Ascii.GoldenCase, slug: "desert-night", piece: Ascii.Pieces.DesertNight
 
-  alias AsciiArt.Pieces.DesertNight
+  alias Ascii.Pieces.DesertNight
 
   # The frame's shortcuts (the fast powers and the margins that guard them,
   # the glint skipped where it adds nothing, the airglow's shared noise
@@ -11,7 +11,7 @@ defmodule AsciiArt.Pieces.DesertNightTest do
   # colour and in one ink.
   property "the shortcuts draw what the exact path draws" do
     state =
-      AsciiArt.TestCache.fetch({:init, DesertNight}, fn ->
+      Ascii.TestCache.fetch({:init, DesertNight}, fn ->
         DesertNight.init(DesertNight.meta().options)
       end)
 
@@ -20,7 +20,7 @@ defmodule AsciiArt.Pieces.DesertNightTest do
             max_runs: 20
           ) do
       for color? <- [true, false] do
-        env = %AsciiArt.Env{cols: 200, rows: 100, color?: color?}
+        env = %Ascii.Env{cols: 200, rows: 100, color?: color?}
 
         Enum.reduce(times, {state, %{state | exact?: true}}, fn t, {fast, exact} ->
           {text, colors, fast} = DesertNight.frame(fast, t, env)

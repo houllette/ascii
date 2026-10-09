@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.AlpineLinuxTest do
+defmodule Ascii.Pieces.AlpineLinuxTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.AlpineLinux
-  use AsciiArt.GoldenCase, slug: "alpine-linux", piece: AsciiArt.Pieces.AlpineLinux
+  use Ascii.ContractCase, piece: Ascii.Pieces.AlpineLinux
+  use Ascii.GoldenCase, slug: "alpine-linux", piece: Ascii.Pieces.AlpineLinux
 end

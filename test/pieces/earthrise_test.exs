@@ -1,16 +1,16 @@
-defmodule AsciiArt.Pieces.EarthriseTest do
+defmodule Ascii.Pieces.EarthriseTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Earthrise
-  use AsciiArt.GoldenCase, slug: "earthrise", piece: AsciiArt.Pieces.Earthrise
+  use Ascii.ContractCase, piece: Ascii.Pieces.Earthrise
+  use Ascii.GoldenCase, slug: "earthrise", piece: Ascii.Pieces.Earthrise
 
-  alias AsciiArt.Pieces.Earthrise, as: Piece
+  alias Ascii.Pieces.Earthrise, as: Piece
 
   # With the fast paths off (the power's bounds, the cells left still round
   # the Earth) the same times must draw the same frames and colours, the
   # colour cache evolving through each run.
   property "the fast paths draw what the exact path draws" do
     check all(times <- times(), color? <- boolean(), max_runs: 50) do
-      state = AsciiArt.TestCache.fetch({:init, Piece}, fn -> Piece.init(Piece.meta().options) end)
+      state = Ascii.TestCache.fetch({:init, Piece}, fn -> Piece.init(Piece.meta().options) end)
       fast = play(state, times, color?)
       exact = play(%{state | exact?: true}, times, color?)
       at = Enum.find_index(Enum.zip(fast, exact), fn {a, b} -> a != b end)
@@ -37,7 +37,7 @@ defmodule AsciiArt.Pieces.EarthriseTest do
 
   defp play(state, times, color?) do
     meta = Piece.meta()
-    env = %AsciiArt.Env{cols: meta.cols, rows: meta.rows, color?: color?}
+    env = %Ascii.Env{cols: meta.cols, rows: meta.rows, color?: color?}
 
     {frames, _} =
       Enum.map_reduce(times, state, fn t, state ->

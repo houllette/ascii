@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.StarlingsTest do
+defmodule Ascii.Pieces.StarlingsTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Starlings
-  use AsciiArt.GoldenCase, slug: "starlings", piece: AsciiArt.Pieces.Starlings
+  use Ascii.ContractCase, piece: Ascii.Pieces.Starlings
+  use Ascii.GoldenCase, slug: "starlings", piece: Ascii.Pieces.Starlings
 end

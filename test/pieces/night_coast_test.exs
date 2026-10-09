@@ -1,9 +1,9 @@
-defmodule AsciiArt.Pieces.NightCoastTest do
+defmodule Ascii.Pieces.NightCoastTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.NightCoast
-  use AsciiArt.GoldenCase, slug: "night-coast", piece: AsciiArt.Pieces.NightCoast
+  use Ascii.ContractCase, piece: Ascii.Pieces.NightCoast
+  use Ascii.GoldenCase, slug: "night-coast", piece: Ascii.Pieces.NightCoast
 
-  alias AsciiArt.Pieces.NightCoast, as: Piece
+  alias Ascii.Pieces.NightCoast, as: Piece
 
   # With the fast paths off (the memo, the power's bounds, the cached
   # colours, the glow without a flash) the same times must draw the same
@@ -11,7 +11,7 @@ defmodule AsciiArt.Pieces.NightCoastTest do
   # run.
   property "the fast paths draw what the exact path draws" do
     check all(times <- times(), color? <- boolean(), max_runs: 35) do
-      state = AsciiArt.TestCache.fetch({:init, Piece}, fn -> Piece.init(Piece.meta().options) end)
+      state = Ascii.TestCache.fetch({:init, Piece}, fn -> Piece.init(Piece.meta().options) end)
       fast = play(state, times, color?)
       exact = play(%{state | exact?: true}, times, color?)
       at = Enum.find_index(Enum.zip(fast, exact), fn {a, b} -> a != b end)
@@ -38,7 +38,7 @@ defmodule AsciiArt.Pieces.NightCoastTest do
 
   defp play(state, times, color?) do
     meta = Piece.meta()
-    env = %AsciiArt.Env{cols: meta.cols, rows: meta.rows, color?: color?}
+    env = %Ascii.Env{cols: meta.cols, rows: meta.rows, color?: color?}
 
     {frames, _} =
       Enum.map_reduce(times, state, fn t, state ->

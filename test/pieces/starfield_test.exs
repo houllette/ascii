@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.StarfieldTest do
+defmodule Ascii.Pieces.StarfieldTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Starfield
-  use AsciiArt.GoldenCase, slug: "starfield", piece: AsciiArt.Pieces.Starfield
+  use Ascii.ContractCase, piece: Ascii.Pieces.Starfield
+  use Ascii.GoldenCase, slug: "starfield", piece: Ascii.Pieces.Starfield
 end

@@ -1,6 +1,6 @@
 # Nerves
 
-AsciiArt is pure Elixir with no required dependencies and no NIFs, so it
+Ascii is pure Elixir with no required dependencies and no NIFs, so it
 cross-compiles to every [Nerves](https://nerves-project.org) target as it is.
 A device can show pieces on its console, to anyone who connects over SSH, or
 on a display.
@@ -9,7 +9,7 @@ on a display.
 # needs: a Nerves project's mix.exs
 def deps do
   [
-    {:ascii_art, "~> 0.2"},
+    {:ascii, "~> 0.3.0"},
     # ...
   ]
 end
@@ -25,7 +25,7 @@ terminal like any other, so everything in the
 [terminal guide](terminal.md) works there:
 
 ```elixir
-alias AsciiArt.{Player, Render.ANSI}
+alias Ascii.{Player, Render.ANSI}
 
 IO.write([ANSI.hide_cursor(), ANSI.clear()])
 {:ok, player} = Player.start_link(piece: "spinners", callback: &IO.write([ANSI.home(), ANSI.render(&1)]))
@@ -44,11 +44,11 @@ A serial line is slow, so after the first frame write only what changed
 a drawer that keeps the frame before.
 
 ```elixir
-alias AsciiArt.{Player, Render.ANSI}
+alias Ascii.{Player, Render.ANSI}
 
 draw = fn draw, prev ->
   receive do
-    {:ascii_art_frame, _ref, frame} ->
+    {:ascii_frame, _ref, frame} ->
       IO.write(ANSI.changes(prev, frame, mode: :ansi256))
       draw.(draw, frame)
 
@@ -70,7 +70,7 @@ IO.write([ANSI.reset(), ANSI.show_cursor()])
 
 [ExRatatui](ex_ratatui.md) runs on Nerves (its NIF is precompiled for the
 ARM and RISC-V Linux targets) and serves an app over SSH. With it as a
-dependency, `AsciiArt.ExRatatui.Viewer` is such an app: add it to your
+dependency, `Ascii.ExRatatui.Viewer` is such an app: add it to your
 supervision tree and every visitor gets a full-screen piece with its own
 animation, and ← and → to step through the rest. The host key lives on the
 writable `/data` partition:
@@ -78,21 +78,21 @@ writable `/data` partition:
 ```elixir
 # needs: ex_ratatui, and an SSH host key in /data/ssh
 children = [
-  {AsciiArt.ExRatatui.Viewer,
+  {Ascii.ExRatatui.Viewer,
    transport: :ssh, port: 2222, system_dir: "/data/ssh", app_opts: [piece: "matrix-rain"]}
 ]
 ```
 
 ## Under a supervisor
 
-Started by a supervisor, `AsciiArt.Player` has no owner to send frames to.
+Started by a supervisor, `Ascii.Player` has no owner to send frames to.
 Give it a `:callback` to draw each frame, or let processes `subscribe/1` to
 it (see the [terminal guide](terminal.md#sharing-a-player)):
 
 ```elixir
 # needs: a supervision tree
 children = [
-  {AsciiArt.Player, piece: "analog-clock", fps: 1, callback: &MyDevice.Screen.draw/1}
+  {Ascii.Player, piece: "analog-clock", fps: 1, callback: &MyDevice.Screen.draw/1}
 ]
 ```
 
@@ -108,7 +108,7 @@ a sensor: name it, and give it each reading with `set_options/2`.
 ```elixir
 # needs: a supervision tree and a sensor
 children = [
-  {AsciiArt.Player,
+  {Ascii.Player,
    piece: "gauge",
    name: MyDevice.TempGauge,
    options: %{label: "cpu", unit: "°c", min: 20, max: 90, value: 40},
@@ -116,7 +116,7 @@ children = [
 ]
 
 # wherever the sensor is read
-AsciiArt.Player.set_options(MyDevice.TempGauge, value: MyDevice.Sensor.celsius())
+Ascii.Player.set_options(MyDevice.TempGauge, value: MyDevice.Sensor.celsius())
 ```
 
 A piece that closes a loop is drawn once a frame of its cycle and then
@@ -138,7 +138,7 @@ show the scene's ground (or black), as they do on a canvas:
 
 ```elixir
 defmodule MyDevice.Pixels do
-  alias AsciiArt.Frame
+  alias Ascii.Frame
 
   @doc "The frame as a list of pixel rows."
   def rows(%Frame{colors: colors} = frame, bits, scale \\ 1) when is_binary(colors) do
@@ -172,7 +172,7 @@ defmodule MyDevice.Pixels do
   end
 end
 
-{frame, _} = AsciiArt.new!("debian") |> AsciiArt.frame(0.0)
+{frame, _} = Ascii.new!("debian") |> Ascii.frame(0.0)
 rows = MyDevice.Pixels.rows(frame, 16, 2)
 {length(rows), byte_size(hd(rows))} == {frame.rows * frame.cell * 2, frame.cols * 2 * 2}
 #=> true
@@ -196,12 +196,12 @@ defmodule MyDevice.Screen do
   @impl true
   def init(opts) do
     {:ok, fb} = :file.open(~c"/dev/fb0", [:read, :write, :raw, :binary])
-    {:ok, _player} = AsciiArt.Player.start_link(piece: Keyword.get(opts, :piece, "kyoto-dusk"), fps: 10)
+    {:ok, _player} = Ascii.Player.start_link(piece: Keyword.get(opts, :piece, "kyoto-dusk"), fps: 10)
     {:ok, %{fb: fb, bits: sysfs("bits_per_pixel"), stride: sysfs("stride"), scale: Keyword.get(opts, :scale, 2)}}
   end
 
   @impl true
-  def handle_info({:ascii_art_frame, _ref, frame}, state) do
+  def handle_info({:ascii_frame, _ref, frame}, state) do
     frame
     |> MyDevice.Pixels.rows(state.bits, state.scale)
     |> Enum.with_index()
@@ -229,29 +229,29 @@ anywhere; scenes cost 2 to 14 ms a frame there, so on a small board give
 them a low `fps` (5 to 10) and measure. In IEx on the device:
 
 ```elixir
-anim = AsciiArt.new!("night-coast")
-{_frame, anim} = AsciiArt.frame(anim, 0.0)
-{micros, _} = :timer.tc(fn -> AsciiArt.frame(anim, 1.0) end)
+anim = Ascii.new!("night-coast")
+{_frame, anim} = Ascii.frame(anim, 0.0)
+{micros, _} = :timer.tc(fn -> Ascii.frame(anim, 1.0) end)
 micros > 0
 #=> true
 ```
 
 A piece that closes a loop (`meta.loop`, sixty of them) costs nothing after
-its first cycle if you keep it: draw it once with `AsciiArt.loop/1` and
+its first cycle if you keep it: draw it once with `Ascii.loop/1` and
 show the frames in turn. A logo's cycle is 150 frames of a few kilobytes.
 
 ## Several pieces on one screen
 
 A device's screen is one frame: put several pieces' frames together with
-`AsciiArt.Compose` (panels with titles, side by side, one above another)
+`Ascii.Compose` (panels with titles, side by side, one above another)
 and draw the result as you would one piece's, cell by cell. `fit/4` cuts or
 pads it to exactly the screen's cells.
 
 ```elixir
-alias AsciiArt.Compose
+alias Ascii.Compose
 
-{gauge, _} = AsciiArt.new!("gauge", options: %{label: "temp", unit: "°", max: 90, value: 48, cols: 43, rows: 15}) |> AsciiArt.frame(2.0)
-{timer, _} = AsciiArt.new!("digital-clock", options: %{timer: "up", label: "uptime", seconds: false}) |> AsciiArt.frame(90.0)
+{gauge, _} = Ascii.new!("gauge", options: %{label: "temp", unit: "°", max: 90, value: 48, cols: 43, rows: 15}) |> Ascii.frame(2.0)
+{timer, _} = Ascii.new!("digital-clock", options: %{timer: "up", label: "uptime", seconds: false}) |> Ascii.frame(90.0)
 
 screen = Compose.above([Compose.panel(gauge, title: "board"), Compose.panel(timer, title: "since boot")])
 screen = Compose.fit(screen, 80, 30, valign: :top)
@@ -270,4 +270,4 @@ take the time from the network ([nerves_time](https://hexdocs.pm/nerves_time)
 does this in the default Nerves setup). The local time zone is UTC unless you
 set one, with [nerves_time_zones](https://hexdocs.pm/nerves_time_zones) for
 example. To draw a particular moment instead, pass a `DateTime` as `now:` to
-`AsciiArt.frame/3` or the components; its offset sets the local time.
+`Ascii.frame/3` or the components; its offset sets the local time.

@@ -3,7 +3,7 @@
 # Rewrites the pieces table in README.md (between the <!-- pieces --> marks)
 # from the registry: every piece by category, in upstream's category order.
 # test/readme_test.exs fails when the table is out of date.
-alias AsciiArt.{Meta, Registry}
+alias Ascii.{Meta, Registry}
 
 by_category = Enum.group_by(Registry.all(), fn {_slug, mod} -> mod.meta().category end)
 

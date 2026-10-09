@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.BoxFramesTest do
+defmodule Ascii.Pieces.BoxFramesTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.BoxFrames
-  use AsciiArt.GoldenCase, slug: "box-frames", piece: AsciiArt.Pieces.BoxFrames
+  use Ascii.ContractCase, piece: Ascii.Pieces.BoxFrames
+  use Ascii.GoldenCase, slug: "box-frames", piece: Ascii.Pieces.BoxFrames
 end

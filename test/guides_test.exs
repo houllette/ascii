@@ -1,4 +1,4 @@
-defmodule AsciiArt.GuidesTest do
+defmodule Ascii.GuidesTest do
   # Runs the guides' examples, which define modules, start processes and
   # write to stdio. Each guide's ```elixir blocks run in order, sharing
   # variables and aliases, and a `#=> value` line asserts what the code above

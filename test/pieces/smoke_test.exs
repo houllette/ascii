@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.SmokeTest do
+defmodule Ascii.Pieces.SmokeTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Smoke
-  use AsciiArt.GoldenCase, slug: "smoke", piece: AsciiArt.Pieces.Smoke
+  use Ascii.ContractCase, piece: Ascii.Pieces.Smoke
+  use Ascii.GoldenCase, slug: "smoke", piece: Ascii.Pieces.Smoke
 end

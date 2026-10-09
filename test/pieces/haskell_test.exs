@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.HaskellTest do
+defmodule Ascii.Pieces.HaskellTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Haskell
-  use AsciiArt.GoldenCase, slug: "haskell", piece: AsciiArt.Pieces.Haskell
+  use Ascii.ContractCase, piece: Ascii.Pieces.Haskell
+  use Ascii.GoldenCase, slug: "haskell", piece: Ascii.Pieces.Haskell
 end

@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.SierpinskiTest do
+defmodule Ascii.Pieces.SierpinskiTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Sierpinski
-  use AsciiArt.GoldenCase, slug: "sierpinski", piece: AsciiArt.Pieces.Sierpinski
+  use Ascii.ContractCase, piece: Ascii.Pieces.Sierpinski
+  use Ascii.GoldenCase, slug: "sierpinski", piece: Ascii.Pieces.Sierpinski
 end

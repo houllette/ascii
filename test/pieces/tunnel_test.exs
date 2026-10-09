@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.TunnelTest do
+defmodule Ascii.Pieces.TunnelTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Tunnel
-  use AsciiArt.GoldenCase, slug: "tunnel", piece: AsciiArt.Pieces.Tunnel
+  use Ascii.ContractCase, piece: Ascii.Pieces.Tunnel
+  use Ascii.GoldenCase, slug: "tunnel", piece: Ascii.Pieces.Tunnel
 end

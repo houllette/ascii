@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.CoffeeTest do
+defmodule Ascii.Pieces.CoffeeTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Coffee
-  use AsciiArt.GoldenCase, slug: "coffee", piece: AsciiArt.Pieces.Coffee
+  use Ascii.ContractCase, piece: Ascii.Pieces.Coffee
+  use Ascii.GoldenCase, slug: "coffee", piece: Ascii.Pieces.Coffee
 end

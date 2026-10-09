@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.RotozoomerTest do
+defmodule Ascii.Pieces.RotozoomerTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Rotozoomer
-  use AsciiArt.GoldenCase, slug: "rotozoomer", piece: AsciiArt.Pieces.Rotozoomer
+  use Ascii.ContractCase, piece: Ascii.Pieces.Rotozoomer
+  use Ascii.GoldenCase, slug: "rotozoomer", piece: Ascii.Pieces.Rotozoomer
 end

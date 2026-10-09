@@ -1,12 +1,12 @@
-defmodule AsciiArt.Pieces.UptimeBarTest do
+defmodule Ascii.Pieces.UptimeBarTest do
   use ExUnit.Case, async: true
 
   @api Enum.map(1..90, fn d ->
          if rem(d, 13) == 0, do: 91.0, else: if(rem(d, 7) == 0, do: 99.5, else: 100)
        end)
 
-  use AsciiArt.ContractCase,
-    piece: AsciiArt.Pieces.UptimeBar,
+  use Ascii.ContractCase,
+    piece: Ascii.Pieces.UptimeBar,
     variants: [
       %{history: [@api]},
       %{history: [@api, [100, 98.0], [50]], days: 20},
@@ -20,10 +20,10 @@ defmodule AsciiArt.Pieces.UptimeBarTest do
       }
     ]
 
-  use AsciiArt.GoldenCase, slug: "uptime-bar", piece: AsciiArt.Pieces.UptimeBar
+  use Ascii.GoldenCase, slug: "uptime-bar", piece: Ascii.Pieces.UptimeBar
 
   defp draw(options, t \\ 2.0) do
-    {frame, _} = "uptime-bar" |> AsciiArt.new!(options: options) |> AsciiArt.frame(t)
+    {frame, _} = "uptime-bar" |> Ascii.new!(options: options) |> Ascii.frame(t)
     frame
   end
 
@@ -44,7 +44,7 @@ defmodule AsciiArt.Pieces.UptimeBarTest do
 
   describe "in words" do
     defp told(options),
-      do: "uptime-bar" |> AsciiArt.new!(options: options) |> AsciiArt.describe()
+      do: "uptime-bar" |> Ascii.new!(options: options) |> Ascii.describe()
 
     test "each service given a history: today's state, and its uptime over the days shown" do
       assert told(%{history: [[100, 99.9, 99.99], [], [96]]}) ==
@@ -63,12 +63,12 @@ defmodule AsciiArt.Pieces.UptimeBarTest do
   end
 
   describe "parts" do
-    alias AsciiArt.Frame
-    alias AsciiArt.Kit.Text
-    alias AsciiArt.Pieces.UptimeBar
+    alias Ascii.Frame
+    alias Ascii.Kit.Text
+    alias Ascii.Pieces.UptimeBar
 
     defp parts(options, t \\ 0.0) do
-      {frame, anim} = "uptime-bar" |> AsciiArt.new!(options: options) |> AsciiArt.frame(t)
+      {frame, anim} = "uptime-bar" |> Ascii.new!(options: options) |> Ascii.frame(t)
       {frame, UptimeBar.parts(frame, anim.options)}
     end
 
@@ -162,7 +162,7 @@ defmodule AsciiArt.Pieces.UptimeBarTest do
     end
 
     test "with parts: true, up days green, degraded yellow, down red, the scale grey" do
-      {frame, _} = "uptime-bar" |> AsciiArt.new!(parts: true) |> AsciiArt.frame(0.0)
+      {frame, _} = "uptime-bar" |> Ascii.new!(parts: true) |> Ascii.frame(0.0)
 
       assert Frame.color_at(frame, 2, 1) == "#3fb950"
       assert Frame.color_at(frame, 2, 3) == nil

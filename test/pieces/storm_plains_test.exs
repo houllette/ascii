@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.StormPlainsTest do
+defmodule Ascii.Pieces.StormPlainsTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.StormPlains
-  use AsciiArt.GoldenCase, slug: "storm-plains", piece: AsciiArt.Pieces.StormPlains
+  use Ascii.ContractCase, piece: Ascii.Pieces.StormPlains
+  use Ascii.GoldenCase, slug: "storm-plains", piece: Ascii.Pieces.StormPlains
 end

@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.FerrisWheelTest do
+defmodule Ascii.Pieces.FerrisWheelTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.FerrisWheel
-  use AsciiArt.GoldenCase, slug: "ferris-wheel", piece: AsciiArt.Pieces.FerrisWheel
+  use Ascii.ContractCase, piece: Ascii.Pieces.FerrisWheel
+  use Ascii.GoldenCase, slug: "ferris-wheel", piece: Ascii.Pieces.FerrisWheel
 end

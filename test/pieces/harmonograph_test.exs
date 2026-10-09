@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.HarmonographTest do
+defmodule Ascii.Pieces.HarmonographTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Harmonograph
-  use AsciiArt.GoldenCase, slug: "harmonograph", piece: AsciiArt.Pieces.Harmonograph
+  use Ascii.ContractCase, piece: Ascii.Pieces.Harmonograph
+  use Ascii.GoldenCase, slug: "harmonograph", piece: Ascii.Pieces.Harmonograph
 end

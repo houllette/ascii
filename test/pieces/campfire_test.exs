@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.CampfireTest do
+defmodule Ascii.Pieces.CampfireTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Campfire
-  use AsciiArt.GoldenCase, slug: "campfire", piece: AsciiArt.Pieces.Campfire
+  use Ascii.ContractCase, piece: Ascii.Pieces.Campfire
+  use Ascii.GoldenCase, slug: "campfire", piece: Ascii.Pieces.Campfire
 end

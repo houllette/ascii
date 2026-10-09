@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.SwiftTest do
+defmodule Ascii.Pieces.SwiftTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Swift
-  use AsciiArt.GoldenCase, slug: "swift", piece: AsciiArt.Pieces.Swift
+  use Ascii.ContractCase, piece: Ascii.Pieces.Swift
+  use Ascii.GoldenCase, slug: "swift", piece: Ascii.Pieces.Swift
 end

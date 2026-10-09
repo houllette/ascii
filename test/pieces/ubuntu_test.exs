@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.UbuntuTest do
+defmodule Ascii.Pieces.UbuntuTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Ubuntu
-  use AsciiArt.GoldenCase, slug: "ubuntu", piece: AsciiArt.Pieces.Ubuntu
+  use Ascii.ContractCase, piece: Ascii.Pieces.Ubuntu
+  use Ascii.GoldenCase, slug: "ubuntu", piece: Ascii.Pieces.Ubuntu
 end

@@ -1,6 +1,6 @@
 # Porting notes
 
-How `ascii_art` maps [bas3line/ascii](https://github.com/bas3line/ascii) onto
+How `ascii` maps [bas3line/ascii](https://github.com/bas3line/ascii) onto
 Elixir, and every place JavaScript and Elixir disagree. Upstream is the source
 of truth: where this port differs from upstream, the difference is listed
 here. The pinned commit is in `UPSTREAM.md`.
@@ -47,16 +47,16 @@ from a second picture in colour (`env.color` present) than in one ink.
 
 | upstream | here |
 | --- | --- |
-| `src/pieces/<slug>.ts` | `AsciiArt.Pieces.<CamelName>` in `lib/ascii_art/pieces/<slug>.ex` |
-| `meta` | `c:AsciiArt.Piece.meta/0` returning `%AsciiArt.Meta{}`; options keyed by atoms |
-| the default function | `c:AsciiArt.Piece.init/1`: takes every option, merged with the defaults, and precomputes |
-| `frame(t, env)` | `c:AsciiArt.Piece.frame/3`: `(state, t, env)` to `{iodata, colours, state}` |
+| `src/pieces/<slug>.ts` | `Ascii.Pieces.<CamelName>` in `lib/ascii/pieces/<slug>.ex` |
+| `meta` | `c:Ascii.Piece.meta/0` returning `%Ascii.Meta{}`; options keyed by atoms |
+| the default function | `c:Ascii.Piece.init/1`: takes every option, merged with the defaults, and precomputes |
+| `frame(t, env)` | `c:Ascii.Piece.frame/3`: `(state, t, env)` to `{iodata, colours, state}` |
 | the closure's mutable state | the `state` term, threaded through by the caller |
 | `env.paper` | `env.paper` |
 | `env.color` (the buffer) | `env.color?` says whether colours are wanted; the frame returns them as a binary of `cols * rows` palette indices, row-major, or `nil` |
-| `Date.now()` | `env.now`, a `DateTime` (the golden tests pin it) or `nil` for the system clock; see `AsciiArt.Kit.Clock` |
-| `load`, `names`, `isPiece` | `AsciiArt.Registry` and `AsciiArt.pieces/0,1`, `AsciiArt.meta/1` |
-| `mount` | `AsciiArt.new/2` + `AsciiArt.frame/2`, `AsciiArt.Player`, the Phoenix components |
+| `Date.now()` | `env.now`, a `DateTime` (the golden tests pin it) or `nil` for the system clock; see `Ascii.Kit.Clock` |
+| `load`, `names`, `isPiece` | `Ascii.Registry` and `Ascii.pieces/0,1`, `Ascii.meta/1` |
+| `mount` | `Ascii.new/2` + `Ascii.frame/2`, `Ascii.Player`, the Phoenix components |
 
 A piece that leaves some colour cells unwritten (upstream relies on the
 buffer keeping old values) keeps its last colours in its state and starts
@@ -68,7 +68,7 @@ never creates an atom.
 
 ### Options
 
-Options passed to `AsciiArt.new/2` (or a LiveView session, or the CLI) are
+Options passed to `Ascii.new/2` (or a LiveView session, or the CLI) are
 checked against the piece's defaults before `init/1` sees them:
 
 - keys must name a default option; string keys are matched against the
@@ -125,9 +125,9 @@ chaotic simulations (double-pendulum, three-body, lorenz) drift apart from
 upstream's, and between platforms, over a long run; the goldens cover the
 times upstream's own checks play.
 
-`AsciiArt.JSMath` keeps what JS does differently and Elixir has no answer
+`Ascii.JSMath` keeps what JS does differently and Elixir has no answer
 for, each agreeing with V8 bit for bit (`test/fixtures/js_math.json` holds
-V8's answers and `AsciiArt.JSMathTest` requires them):
+V8's answers and `Ascii.JSMathTest` requires them):
 
   * `Math.round` (halves up, toward +infinity), `%` (the dividend's sign),
     `Math.fround`, typed-array stores, `toFixed` and `String(number)`;
@@ -145,7 +145,7 @@ Every piece is checked against this list.
 
 - **32-bit integers.** `Math.imul`, `>>>`, `>>`, `<<`, `| 0`, `^`, `&` wrap at
   32 bits; Elixir integers do not. Hashes and PRNGs go through
-  `AsciiArt.Int32`, never raw `Bitwise` on unbounded values. `(x * 9) | 0` on
+  `Ascii.Int32`, never raw `Bitwise` on unbounded values. `(x * 9) | 0` on
   a float truncates toward zero, then wraps.
 - **`Math.round`** rounds halves toward +∞: `JSMath.round(-2.5) == -2`.
   Elixir's `round/1` rounds halves away from zero. V8 computes it as
@@ -294,7 +294,7 @@ draws that once.
 
 ## Golden fixtures
 
-`tools/gen_golden.mjs` (run with `mix ascii_art.golden`) imports every
+`tools/gen_golden.mjs` (run with `mix ascii.golden`) imports every
 upstream piece and writes `test/fixtures/golden/<slug>.json`:
 
 - `meta`, `upstream_commit`, `node`, `arch` and `call_order`
@@ -315,7 +315,7 @@ upstream piece and writes `test/fixtures/golden/<slug>.json`:
 Clock pieces see `Date` stubbed to 2026-03-14T15:09:26.535Z at `t = 0`,
 advancing with `t`, in `TZ=UTC`.
 
-`AsciiArt.GoldenCase` replays both, threading state, and requires every frame
+`Ascii.GoldenCase` replays both, threading state, and requires every frame
 and every colour to match exactly. A per-piece tolerance
 (`test/fixtures/tolerances.exs`) exists for a libm difference proven to sit on
 a threshold. Since `JSMath` matches V8 bit for bit there should be none, and
@@ -350,14 +350,14 @@ differences:
   `focus`, `status`, `cols`; calendar `date`, `marks`, `months`,
   `weekdays`, `cols`, `rows`; digital-clock `timer`, `from`, `label`. Each
   piece's documentation says what they do. Pieces whose size follows their
-  options say so with `c:AsciiArt.Piece.size/1`; those that carry state
+  options say so with `c:Ascii.Piece.size/1`; those that carry state
   over new options (the gauge's needle, the bars of bar-chart and
   equalizer, cpu-meters' simulation, a terminal typing out its history, a
-  running timer) with `c:AsciiArt.Piece.update/2`; those that can be used
+  running timer) with `c:Ascii.Piece.update/2`; those that can be used
   (file-tree, form-controls, calendar) take keys and clicks with
-  `c:AsciiArt.Piece.handle_event/2`; and the components tell what they
-  show with `c:AsciiArt.Piece.describe/1`. None of these is upstream's.
-- **Parts** (`c:AsciiArt.Piece.parts/2`) are this port's own: a piece's
+  `c:Ascii.Piece.handle_event/2`; and the components tell what they
+  show with `c:Ascii.Piece.describe/1`. None of these is upstream's.
+- **Parts** (`c:Ascii.Piece.parts/2`) are this port's own: a piece's
   frames labelled cell by cell, read off the picture after it is drawn, so
   colouring them never changes a character. Where a frame cannot tell (a
   gauge's needle over a tick), a cell may be in no part.
@@ -365,7 +365,7 @@ differences:
   than its column past it, and the line runs off the frame (this port used
   to clip it). sparkline's value and range columns, and candlesticks' axis
   prices, last price and quote, write such a number to fit instead
-  (`AsciiArt.Kit.Number`): decimals first, then compact, in thousands,
+  (`Ascii.Kit.Number`): decimals first, then compact, in thousands,
   millions and on (`17.5M`, `3.02G`), an axis's prices all alike. A number
   that fits is written exactly as upstream writes it, so default frames are
   unchanged; so those options' values are bounded at ±10^15 rather than

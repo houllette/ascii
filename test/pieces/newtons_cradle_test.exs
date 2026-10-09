@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.NewtonsCradleTest do
+defmodule Ascii.Pieces.NewtonsCradleTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.NewtonsCradle
-  use AsciiArt.GoldenCase, slug: "newtons-cradle", piece: AsciiArt.Pieces.NewtonsCradle
+  use Ascii.ContractCase, piece: Ascii.Pieces.NewtonsCradle
+  use Ascii.GoldenCase, slug: "newtons-cradle", piece: Ascii.Pieces.NewtonsCradle
 end

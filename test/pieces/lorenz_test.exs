@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.LorenzTest do
+defmodule Ascii.Pieces.LorenzTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Lorenz
-  use AsciiArt.GoldenCase, slug: "lorenz", piece: AsciiArt.Pieces.Lorenz
+  use Ascii.ContractCase, piece: Ascii.Pieces.Lorenz
+  use Ascii.GoldenCase, slug: "lorenz", piece: Ascii.Pieces.Lorenz
 end

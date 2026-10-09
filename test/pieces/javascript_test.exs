@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.JavascriptTest do
+defmodule Ascii.Pieces.JavascriptTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Javascript
-  use AsciiArt.GoldenCase, slug: "javascript", piece: AsciiArt.Pieces.Javascript
+  use Ascii.ContractCase, piece: Ascii.Pieces.Javascript
+  use Ascii.GoldenCase, slug: "javascript", piece: Ascii.Pieces.Javascript
 end

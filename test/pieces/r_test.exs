@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.RTest do
+defmodule Ascii.Pieces.RTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.R
-  use AsciiArt.GoldenCase, slug: "r", piece: AsciiArt.Pieces.R
+  use Ascii.ContractCase, piece: Ascii.Pieces.R
+  use Ascii.GoldenCase, slug: "r", piece: Ascii.Pieces.R
 end

@@ -1,13 +1,13 @@
-defmodule AsciiArt.PerfTest do
+defmodule Ascii.PerfTest do
   # Timing: run alone, not alongside the rest of the suite.
   use ExUnit.Case
 
-  alias Mix.Tasks.AsciiArt.Perf
+  alias Mix.Tasks.Ascii.Perf
 
   @moduletag :perf
   @moduletag timeout: :infinity
 
-  for {slug, mod} <- AsciiArt.Registry.all() do
+  for {slug, mod} <- Ascii.Registry.all() do
     @tag slug: slug
     test "#{slug} stays within three times upstream's frame budget" do
       r = Perf.measure(unquote(slug), unquote(mod))

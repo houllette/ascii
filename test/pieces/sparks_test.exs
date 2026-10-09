@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.SparksTest do
+defmodule Ascii.Pieces.SparksTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Sparks
-  use AsciiArt.GoldenCase, slug: "sparks", piece: AsciiArt.Pieces.Sparks
+  use Ascii.ContractCase, piece: Ascii.Pieces.Sparks
+  use Ascii.GoldenCase, slug: "sparks", piece: Ascii.Pieces.Sparks
 end

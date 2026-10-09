@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.FoxTest do
+defmodule Ascii.Pieces.FoxTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Fox
-  use AsciiArt.GoldenCase, slug: "fox", piece: AsciiArt.Pieces.Fox
+  use Ascii.ContractCase, piece: Ascii.Pieces.Fox
+  use Ascii.GoldenCase, slug: "fox", piece: Ascii.Pieces.Fox
 end

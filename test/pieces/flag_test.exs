@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.FlagTest do
+defmodule Ascii.Pieces.FlagTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Flag
-  use AsciiArt.GoldenCase, slug: "flag", piece: AsciiArt.Pieces.Flag
+  use Ascii.ContractCase, piece: Ascii.Pieces.Flag
+  use Ascii.GoldenCase, slug: "flag", piece: Ascii.Pieces.Flag
 end

@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.FractalTreeTest do
+defmodule Ascii.Pieces.FractalTreeTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.FractalTree
-  use AsciiArt.GoldenCase, slug: "fractal-tree", piece: AsciiArt.Pieces.FractalTree
+  use Ascii.ContractCase, piece: Ascii.Pieces.FractalTree
+  use Ascii.GoldenCase, slug: "fractal-tree", piece: Ascii.Pieces.FractalTree
 end

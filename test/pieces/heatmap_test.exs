@@ -1,10 +1,10 @@
-defmodule AsciiArt.Pieces.HeatmapTest do
+defmodule Ascii.Pieces.HeatmapTest do
   use ExUnit.Case, async: true
 
   @counts Enum.map(0..200, &max(rem(&1 * 7 + div(&1, 3), 11) - 3, 0))
 
-  use AsciiArt.ContractCase,
-    piece: AsciiArt.Pieces.Heatmap,
+  use Ascii.ContractCase,
+    piece: Ascii.Pieces.Heatmap,
     variants: [
       %{counts: @counts, date: "2026-10-07"},
       %{counts: [0, 0, 0], date: "2024-02-29", weeks: 12},
@@ -20,10 +20,10 @@ defmodule AsciiArt.Pieces.HeatmapTest do
       %{months: ["x"], weekdays: []}
     ]
 
-  use AsciiArt.GoldenCase, slug: "heatmap", piece: AsciiArt.Pieces.Heatmap
+  use Ascii.GoldenCase, slug: "heatmap", piece: Ascii.Pieces.Heatmap
 
   defp draw(options, t \\ 1.0) do
-    {frame, _} = "heatmap" |> AsciiArt.new!(options: options) |> AsciiArt.frame(t)
+    {frame, _} = "heatmap" |> Ascii.new!(options: options) |> Ascii.frame(t)
     frame
   end
 
@@ -50,18 +50,18 @@ defmodule AsciiArt.Pieces.HeatmapTest do
 
   test "without a date, the counts end today" do
     now = ~U[2026-10-07 12:00:00Z]
-    anim = AsciiArt.new!("heatmap", options: %{counts: [4], weeks: 12})
-    {a, _} = AsciiArt.frame(anim, 0.0, now: now)
+    anim = Ascii.new!("heatmap", options: %{counts: [4], weeks: 12})
+    {a, _} = Ascii.frame(anim, 0.0, now: now)
     b = draw(%{counts: [4], weeks: 12, date: "2026-10-07"})
     assert a.text == b.text
   end
 
   describe "parts" do
-    alias AsciiArt.Frame
-    alias AsciiArt.Pieces.Heatmap
+    alias Ascii.Frame
+    alias Ascii.Pieces.Heatmap
 
     defp parts(options, t \\ 0.0) do
-      {frame, anim} = "heatmap" |> AsciiArt.new!(options: options) |> AsciiArt.frame(t)
+      {frame, anim} = "heatmap" |> Ascii.new!(options: options) |> Ascii.frame(t)
       {frame, Heatmap.parts(frame, anim.options)}
     end
 
@@ -161,7 +161,7 @@ defmodule AsciiArt.Pieces.HeatmapTest do
     end
 
     test "with parts: true, the shades in greens, the empty days and the scale grey" do
-      {frame, _} = "heatmap" |> AsciiArt.new!(parts: true) |> AsciiArt.frame(0.0)
+      {frame, _} = "heatmap" |> Ascii.new!(parts: true) |> Ascii.frame(0.0)
 
       assert Frame.color_at(frame, 0, 2) == "#8b949e"
       assert Frame.color_at(frame, 6, 2) == "#3fb950"
@@ -174,7 +174,7 @@ defmodule AsciiArt.Pieces.HeatmapTest do
   end
 
   describe "names" do
-    alias AsciiArt.Pieces.Heatmap
+    alias Ascii.Pieces.Heatmap
 
     @french ~w(janvier fevrier mars avril mai juin juillet aout septembre octobre novembre decembre)
 
@@ -200,8 +200,8 @@ defmodule AsciiArt.Pieces.HeatmapTest do
     test "a weekday's name is the scale, whatever its letters" do
       {frame, anim} =
         "heatmap"
-        |> AsciiArt.new!(options: %{weekdays: ~w(su ·o tu ░e th fr sa), counts: [1, 2]})
-        |> AsciiArt.frame(0.0)
+        |> Ascii.new!(options: %{weekdays: ~w(su ·o tu ░e th fr sa), counts: [1, 2]})
+        |> Ascii.frame(0.0)
 
       rows = Heatmap.parts(frame, anim.options)
       assert [{"scale", "·o"}, {nil, _} | _] = Enum.at(rows, 2)
@@ -210,7 +210,7 @@ defmodule AsciiArt.Pieces.HeatmapTest do
   end
 
   describe "describe/1" do
-    alias AsciiArt.Pieces.Heatmap
+    alias Ascii.Pieces.Heatmap
 
     defp describe(options), do: Heatmap.describe(Map.merge(Heatmap.meta().options, options))
 

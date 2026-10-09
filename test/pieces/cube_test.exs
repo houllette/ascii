@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.CubeTest do
+defmodule Ascii.Pieces.CubeTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Cube
-  use AsciiArt.GoldenCase, slug: "cube", piece: AsciiArt.Pieces.Cube
+  use Ascii.ContractCase, piece: Ascii.Pieces.Cube
+  use Ascii.GoldenCase, slug: "cube", piece: Ascii.Pieces.Cube
 end

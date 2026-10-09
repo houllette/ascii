@@ -1,10 +1,10 @@
-defmodule AsciiArt.Pieces.MobiusStripTest.Upstream do
+defmodule Ascii.Pieces.MobiusStripTest.Upstream do
   @moduledoc false
   # A plain port of upstream's mobius-strip.ts, line for line: every point is
   # plotted in upstream's order into a Float32 depth buffer (a map here) and
   # shaded as it is written. No fast paths, no margins.
 
-  alias AsciiArt.JSMath
+  alias Ascii.JSMath
 
   @cols 58
   @rows 20
@@ -176,13 +176,13 @@ defmodule AsciiArt.Pieces.MobiusStripTest.Upstream do
   end
 end
 
-defmodule AsciiArt.Pieces.MobiusStripTest do
+defmodule Ascii.Pieces.MobiusStripTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.MobiusStrip
-  use AsciiArt.GoldenCase, slug: "mobius-strip", piece: AsciiArt.Pieces.MobiusStrip
+  use Ascii.ContractCase, piece: Ascii.Pieces.MobiusStrip
+  use Ascii.GoldenCase, slug: "mobius-strip", piece: Ascii.Pieces.MobiusStrip
 
-  alias AsciiArt.Pieces.MobiusStrip
-  alias AsciiArt.Pieces.MobiusStripTest.Upstream
+  alias Ascii.Pieces.MobiusStrip
+  alias Ascii.Pieces.MobiusStripTest.Upstream
 
   # The port plots into a scratch depth buffer of float32 bits and shades
   # only the point that keeps each cell. Upstream below, plainly, shades
@@ -220,7 +220,7 @@ defmodule AsciiArt.Pieces.MobiusStripTest do
 
   # Each a fresh instance, threading its state through the times in turn.
   defp play(mod, state, times, paper) do
-    env = %AsciiArt.Env{cols: 58, rows: 20, paper: paper}
+    env = %Ascii.Env{cols: 58, rows: 20, paper: paper}
 
     {frames, _} =
       Enum.map_reduce(times, state, fn t, state ->

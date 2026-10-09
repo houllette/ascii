@@ -1,12 +1,12 @@
-defmodule AsciiArt.Pieces.DissolveTest do
+defmodule Ascii.Pieces.DissolveTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Dissolve
-  use AsciiArt.GoldenCase, slug: "dissolve", piece: AsciiArt.Pieces.Dissolve
+  use Ascii.ContractCase, piece: Ascii.Pieces.Dissolve
+  use Ascii.GoldenCase, slug: "dissolve", piece: Ascii.Pieces.Dissolve
 
-  alias AsciiArt.Pieces.Dissolve
+  alias Ascii.Pieces.Dissolve
 
   test "it says the words" do
-    assert AsciiArt.describe(AsciiArt.new!("dissolve")) == "dissolve: hello, hola, ciao, salut"
+    assert Ascii.describe(Ascii.new!("dissolve")) == "dissolve: hello, hola, ciao, salut"
 
     assert Dissolve.describe(%{words: ~w(a b c d e f g h)}) ==
              "dissolve: a, b, c, d, e, f, and 2 more"

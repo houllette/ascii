@@ -1,4 +1,4 @@
-defmodule AsciiArt.Pieces.FormControlsTest do
+defmodule Ascii.Pieces.FormControlsTest do
   use ExUnit.Case, async: true
 
   # One field of every kind, and one of a kind the form does not know.
@@ -13,8 +13,8 @@ defmodule AsciiArt.Pieces.FormControlsTest do
     %{type: "colour", label: "hue"}
   ]
 
-  use AsciiArt.ContractCase,
-    piece: AsciiArt.Pieces.FormControls,
+  use Ascii.ContractCase,
+    piece: Ascii.Pieces.FormControls,
     variants: [
       %{title: ""},
       %{title: "a title long enough to run past the right edge of the frame"},
@@ -33,14 +33,14 @@ defmodule AsciiArt.Pieces.FormControlsTest do
       }
     ]
 
-  use AsciiArt.GoldenCase, slug: "form-controls", piece: AsciiArt.Pieces.FormControls
+  use Ascii.GoldenCase, slug: "form-controls", piece: Ascii.Pieces.FormControls
 
   describe "parts" do
-    alias AsciiArt.Frame
-    alias AsciiArt.Pieces.FormControls
+    alias Ascii.Frame
+    alias Ascii.Pieces.FormControls
 
     defp parts(t, options \\ %{}) do
-      {frame, anim} = "form-controls" |> AsciiArt.new!(options: options) |> AsciiArt.frame(t)
+      {frame, anim} = "form-controls" |> Ascii.new!(options: options) |> Ascii.frame(t)
       {frame, FormControls.parts(frame, anim.options)}
     end
 
@@ -210,7 +210,7 @@ defmodule AsciiArt.Pieces.FormControlsTest do
     end
 
     test "with parts: true, focus and keys yellow, the frame grey, checked green" do
-      {frame, _} = "form-controls" |> AsciiArt.new!(parts: true) |> AsciiArt.frame(0.0)
+      {frame, _} = "form-controls" |> Ascii.new!(parts: true) |> Ascii.frame(0.0)
       assert Frame.color_at(frame, 2, 2) == "#d29922"
       assert Frame.color_at(frame, 0, 5) == "#8b949e"
       assert Frame.color_at(frame, 14, 2) == "#8b949e"
@@ -221,8 +221,8 @@ defmodule AsciiArt.Pieces.FormControlsTest do
   end
 
   describe "a form of the app's own" do
-    alias AsciiArt.Frame
-    alias AsciiArt.Pieces.FormControls
+    alias Ascii.Frame
+    alias Ascii.Pieces.FormControls
 
     # Upstream's own form as fields, as frame 0 of its tour has them.
     @tour [
@@ -235,18 +235,18 @@ defmodule AsciiArt.Pieces.FormControlsTest do
     ]
 
     defp form(options, t \\ 0.0),
-      do: "form-controls" |> AsciiArt.new!(options: options) |> AsciiArt.frame(t)
+      do: "form-controls" |> Ascii.new!(options: options) |> Ascii.frame(t)
 
     defp lines(options), do: elem(form(options), 0).lines
 
     defp press(anim, keys) do
       Enum.reduce(keys, anim, fn key, anim ->
-        {:ok, anim} = AsciiArt.handle_event(anim, {:key, key})
+        {:ok, anim} = Ascii.handle_event(anim, {:key, key})
         anim
       end)
     end
 
-    defp click(anim, x, y), do: AsciiArt.handle_event(anim, {:click, x, y})
+    defp click(anim, x, y), do: Ascii.handle_event(anim, {:click, x, y})
 
     defp field(anim, i), do: Enum.at(anim.options.fields, i)
 
@@ -323,11 +323,11 @@ defmodule AsciiArt.Pieces.FormControlsTest do
     test "the caret holds, then blinks, and holds again while keys come" do
       caret = fn frame -> frame.lines |> Enum.at(2) |> String.contains?("ada█") end
       {at_0, anim} = form(%{fields: @every})
-      {at_half, anim} = AsciiArt.frame(anim, 0.5)
-      {at_1, anim} = AsciiArt.frame(anim, 1.0)
+      {at_half, anim} = Ascii.frame(anim, 0.5)
+      {at_1, anim} = Ascii.frame(anim, 1.0)
       assert {caret.(at_0), caret.(at_half), caret.(at_1)} == {true, false, true}
 
-      {typed, _anim} = anim |> press(["backspace"]) |> AsciiArt.frame(1.5)
+      {typed, _anim} = anim |> press(["backspace"]) |> Ascii.frame(1.5)
       assert typed.lines |> Enum.at(2) |> String.contains?("ad█")
     end
 
@@ -352,17 +352,17 @@ defmodule AsciiArt.Pieces.FormControlsTest do
       assert press(anim, ["left"]).options.focus == 8
       assert press(anim, ["left", "left"]).options.focus == 8
       assert press(anim, ["left", "right"]).options.focus == 9
-      assert AsciiArt.handle_event(anim, {:key, "enter"}) == :ignore
-      assert AsciiArt.handle_event(anim, {:key, " "}) == :ignore
+      assert Ascii.handle_event(anim, {:key, "enter"}) == :ignore
+      assert Ascii.handle_event(anim, {:key, " "}) == :ignore
     end
 
     test "typing into a text field, printable characters up to 256, backspace taking one off" do
       {_frame, anim} = form(%{fields: @every})
       assert field(press(anim, ["!", " ", "d", "backspace"]), 0).text == "ada! "
-      assert AsciiArt.handle_event(anim, {:key, "é"}) == :ignore
+      assert Ascii.handle_event(anim, {:key, "é"}) == :ignore
 
       {_frame, full} = form(%{fields: [%{label: "note", text: String.duplicate("x", 256)}]})
-      assert AsciiArt.handle_event(full, {:key, "y"}) == :ignore
+      assert Ascii.handle_event(full, {:key, "y"}) == :ignore
     end
 
     test "space and the arrows change the field in focus, the rest of it as given" do
@@ -396,7 +396,7 @@ defmodule AsciiArt.Pieces.FormControlsTest do
       assert field(press(rate, ["page_up"]), 6).value == 7.5
       assert field(press(rate, ["page_up", "page_up"]), 6).value == 10.0
 
-      {frame, _anim} = rate |> press(["right"]) |> AsciiArt.frame(1.0)
+      {frame, _anim} = rate |> press(["right"]) |> Ascii.frame(1.0)
       assert Enum.at(frame.lines, 14) =~ "━━━━━━━━█" <> String.duplicate("─", 19) <> "  3.0 /s"
     end
 
@@ -451,7 +451,7 @@ defmodule AsciiArt.Pieces.FormControlsTest do
 
     test "the demo takes no events" do
       {_frame, anim} = form(%{})
-      assert AsciiArt.handle_event(anim, {:key, "tab"}) == :ignore
+      assert Ascii.handle_event(anim, {:key, "tab"}) == :ignore
       assert click(anim, 20, 4) == :ignore
     end
 
@@ -523,7 +523,7 @@ defmodule AsciiArt.Pieces.FormControlsTest do
 
     test "the caret is a part only while it shows" do
       {_at_0, anim} = form(%{fields: @every})
-      {frame, anim} = AsciiArt.frame(anim, 0.5)
+      {frame, anim} = Ascii.frame(anim, 0.5)
 
       refute frame
              |> FormControls.parts(anim.options)
@@ -534,8 +534,8 @@ defmodule AsciiArt.Pieces.FormControlsTest do
     test "with parts: true, the focus yellow, the marks green and grey" do
       {frame, _anim} =
         "form-controls"
-        |> AsciiArt.new!(options: %{fields: @every, focus: 3}, parts: true)
-        |> AsciiArt.frame(0.0)
+        |> Ascii.new!(options: %{fields: @every, focus: 3}, parts: true)
+        |> Ascii.frame(0.0)
 
       assert Frame.color_at(frame, 2, 8) == "#d29922"
       assert Frame.color_at(frame, 13, 8) == "#d29922"
@@ -549,19 +549,19 @@ defmodule AsciiArt.Pieces.FormControlsTest do
 
       {_frame, anim} = form(%{fields: @every})
 
-      assert AsciiArt.describe(anim) ==
+      assert Ascii.describe(anim) ==
                "preferences: name ada, plan team, size l, notify sms, terms off, sync on, " <>
                  "rate 2.5 /s, hue; focus on name"
 
       {_frame, anim} = form(%{fields: @tour, focus: 7, title: ""})
 
-      assert AsciiArt.describe(anim) ==
+      assert Ascii.describe(anim) ==
                "form: email team@example.com, units metric, theme light, notify replies, " <>
                  "sync off, volume 40%; focus on save"
 
       many = for i <- 1..30, do: %{label: "field #{i}", text: "text #{i}"}
       {_frame, anim} = form(%{fields: many, focus: -1})
-      told = AsciiArt.describe(anim)
+      told = Ascii.describe(anim)
       assert told =~ ~r/^preferences: field 1 text 1, field 2 text 2, .*, and \d+ more$/
       assert String.length(told) < 200
     end

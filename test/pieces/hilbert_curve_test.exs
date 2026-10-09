@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.HilbertCurveTest do
+defmodule Ascii.Pieces.HilbertCurveTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.HilbertCurve
-  use AsciiArt.GoldenCase, slug: "hilbert-curve", piece: AsciiArt.Pieces.HilbertCurve
+  use Ascii.ContractCase, piece: Ascii.Pieces.HilbertCurve
+  use Ascii.GoldenCase, slug: "hilbert-curve", piece: Ascii.Pieces.HilbertCurve
 end

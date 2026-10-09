@@ -7,28 +7,28 @@
 # if the frames repeat twice over in the time played: 320 seconds, enough for
 # upstream's longest loop (pendulum-wave's 150), or 60 for scenes, which are
 # slow to draw and do not loop. Pieces that read the clock, and stills, never
-# loop. test/ascii_art/loops_test.exs holds every period written here.
-alias AsciiArt.Registry
+# loop. test/ascii/loops_test.exs holds every period written here.
+alias Ascii.Registry
 
 slugs =
   case System.argv() do
-    [] -> AsciiArt.pieces()
+    [] -> Ascii.pieces()
     named -> named
   end
 
 period = fn slug ->
-  meta = AsciiArt.meta!(slug)
+  meta = Ascii.meta!(slug)
   horizon = if meta.category == :scenes, do: 60, else: 320
 
   if meta.clock or meta.fps == 0 do
     nil
   else
     n = horizon * meta.fps
-    anim = AsciiArt.new!(slug)
+    anim = Ascii.new!(slug)
 
     {hashes, _} =
       Enum.map_reduce(0..(n - 1), anim, fn i, anim ->
-        {frame, anim} = AsciiArt.frame(anim, i / meta.fps)
+        {frame, anim} = Ascii.frame(anim, i / meta.fps)
         {:erlang.phash2({frame.text, frame.colors}), anim}
       end)
 
@@ -55,7 +55,7 @@ for {slug, loop} <- Enum.sort(found) do
   path = mod.module_info(:compile)[:source] |> to_string() |> Path.relative_to_cwd()
   source = File.read!(path)
 
-  [block] = Regex.run(~r/  @meta %AsciiArt\.Meta\{\n.*?\n  \}\n/s, source)
+  [block] = Regex.run(~r/  @meta %Ascii\.Meta\{\n.*?\n  \}\n/s, source)
 
   fields =
     block

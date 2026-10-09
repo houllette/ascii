@@ -1,7 +1,7 @@
-defmodule AsciiArt.Pieces.CpuMetersTest do
+defmodule Ascii.Pieces.CpuMetersTest do
   use ExUnit.Case, async: true
 
-  alias AsciiArt.Pieces.CpuMeters
+  alias Ascii.Pieces.CpuMeters
 
   @live %{
     cores: [12, 87.5, 40, 3, 100, 55],
@@ -50,8 +50,8 @@ defmodule AsciiArt.Pieces.CpuMetersTest do
     }
   ]
 
-  use AsciiArt.ContractCase,
-    piece: AsciiArt.Pieces.CpuMeters,
+  use Ascii.ContractCase,
+    piece: Ascii.Pieces.CpuMeters,
     variants: [
       @live,
       %{cores: Enum.to_list(1..32)},
@@ -70,10 +70,10 @@ defmodule AsciiArt.Pieces.CpuMetersTest do
       %{processes: @too_wide}
     ]
 
-  use AsciiArt.GoldenCase, slug: "cpu-meters", piece: AsciiArt.Pieces.CpuMeters
+  use Ascii.GoldenCase, slug: "cpu-meters", piece: Ascii.Pieces.CpuMeters
 
   defp draw(options, t \\ 1.0) do
-    {frame, _} = "cpu-meters" |> AsciiArt.new!(options: options) |> AsciiArt.frame(t)
+    {frame, _} = "cpu-meters" |> Ascii.new!(options: options) |> Ascii.frame(t)
     frame
   end
 
@@ -138,9 +138,9 @@ defmodule AsciiArt.Pieces.CpuMetersTest do
 
   test "a process past a thousand hours of CPU time shows days and hours" do
     # Ten days of play away: put it there.
-    state = CpuMeters.init(AsciiArt.meta!("cpu-meters").options)
+    state = CpuMeters.init(Ascii.meta!("cpu-meters").options)
     state = update_in(state.sim.procs, fn procs -> Enum.map(procs, &%{&1 | time: 4.0e6}) end)
-    {io, nil, _} = CpuMeters.frame(state, 0.0, %AsciiArt.Env{})
+    {io, nil, _} = CpuMeters.frame(state, 0.0, %Ascii.Env{})
     lines = io |> IO.iodata_to_binary() |> String.split("\n")
 
     assert Enum.all?(lines, &(String.length(&1) == 66))
@@ -160,16 +160,16 @@ defmodule AsciiArt.Pieces.CpuMetersTest do
   end
 
   test "new readings taken up while playing keep the simulation going" do
-    anim = AsciiArt.new!("cpu-meters")
-    {_, anim} = AsciiArt.frame(anim, 5.0)
+    anim = Ascii.new!("cpu-meters")
+    {_, anim} = Ascii.frame(anim, 5.0)
     sim = anim.state.sim
-    anim = AsciiArt.put_options!(anim, cores: [50])
+    anim = Ascii.put_options!(anim, cores: [50])
     assert anim.state.sim == sim
   end
 
   describe "in words" do
     defp told(options),
-      do: "cpu-meters" |> AsciiArt.new!(options: options) |> AsciiArt.describe()
+      do: "cpu-meters" |> Ascii.new!(options: options) |> Ascii.describe()
 
     test "the readings given, the simulation's left out" do
       assert told(%{
@@ -194,11 +194,11 @@ defmodule AsciiArt.Pieces.CpuMetersTest do
   end
 
   describe "parts" do
-    alias AsciiArt.Frame
-    alias AsciiArt.Kit.Text
+    alias Ascii.Frame
+    alias Ascii.Kit.Text
 
     defp parts(options, t \\ 0.0) do
-      {frame, anim} = "cpu-meters" |> AsciiArt.new!(options: options) |> AsciiArt.frame(t)
+      {frame, anim} = "cpu-meters" |> Ascii.new!(options: options) |> Ascii.frame(t)
       {frame, CpuMeters.parts(frame, anim.options)}
     end
 
@@ -406,7 +406,7 @@ defmodule AsciiArt.Pieces.CpuMetersTest do
     end
 
     test "with parts: true, labels cyan, user time green, kernel time red, R green" do
-      {frame, _} = "cpu-meters" |> AsciiArt.new!(parts: true) |> AsciiArt.frame(0.0)
+      {frame, _} = "cpu-meters" |> Ascii.new!(parts: true) |> Ascii.frame(0.0)
 
       assert Frame.color_at(frame, 3, 1) == "#39c5cf"
       assert Frame.color_at(frame, 4, 1) == "#8b949e"

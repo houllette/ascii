@@ -1,10 +1,10 @@
-defmodule AsciiArt.Pieces.HeartTest.Upstream do
+defmodule Ascii.Pieces.HeartTest.Upstream do
   @moduledoc false
   # A plain port of upstream's heart.ts, line for line: every ray marched
   # with the field's Math.cbrt at every step, and shaded with Math.cbrt,
   # Math.hypot and Math.pow. No fast paths, no margins.
 
-  alias AsciiArt.JSMath
+  alias Ascii.JSMath
 
   @cols 52
   @rows 24
@@ -119,13 +119,13 @@ defmodule AsciiArt.Pieces.HeartTest.Upstream do
   end
 end
 
-defmodule AsciiArt.Pieces.HeartTest do
+defmodule Ascii.Pieces.HeartTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Heart
-  use AsciiArt.GoldenCase, slug: "heart", piece: AsciiArt.Pieces.Heart
+  use Ascii.ContractCase, piece: Ascii.Pieces.Heart
+  use Ascii.GoldenCase, slug: "heart", piece: Ascii.Pieces.Heart
 
-  alias AsciiArt.Pieces.Heart
-  alias AsciiArt.Pieces.HeartTest.Upstream
+  alias Ascii.Pieces.Heart
+  alias Ascii.Pieces.HeartTest.Upstream
 
   # The port decides the field's sign by comparing cubes, taking Math.cbrt
   # only within a margin, and brackets Math.pow before taking it exactly.
@@ -158,7 +158,7 @@ defmodule AsciiArt.Pieces.HeartTest do
 
   # Each a fresh instance, threading its state through the times in turn.
   defp play(mod, state, times, paper) do
-    env = %AsciiArt.Env{cols: 52, rows: 24, paper: paper}
+    env = %Ascii.Env{cols: 52, rows: 24, paper: paper}
 
     {frames, _} =
       Enum.map_reduce(times, state, fn t, state ->

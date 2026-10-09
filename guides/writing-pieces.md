@@ -1,34 +1,34 @@
 # Writing a piece
 
-The built-in pieces are modules implementing `AsciiArt.Piece`, and yours can
-be too. A piece module works everywhere a slug does: `AsciiArt.new/2`,
-`AsciiArt.render/3`, `AsciiArt.stream/2`, `AsciiArt.Player`, the renderers
+The built-in pieces are modules implementing `Ascii.Piece`, and yours can
+be too. A piece module works everywhere a slug does: `Ascii.new/2`,
+`Ascii.render/3`, `Ascii.stream/2`, `Ascii.Player`, the renderers
 and the `ascii/1` component.
 
 ## The contract
 
 A piece has three functions:
 
-  * `meta/0` returns an `AsciiArt.Meta`: its name, what you see, its size in
+  * `meta/0` returns an `Ascii.Meta`: its name, what you see, its size in
     cells, its frame rate, the default of every option, and, for a coloured
     piece, its palette (and a ground, for a scene).
   * `init/1` receives the options (the defaults merged with what was asked
     for, already checked) and returns a state. Precompute here.
   * `frame/3` receives the state, the play time `t` in seconds and an
-    `AsciiArt.Env`, and returns `{text, colors, state}`.
+    `Ascii.Env`, and returns `{text, colors, state}`.
 
 ## A first piece
 
 ```elixir
 defmodule MyApp.Pieces.Wave do
-  @behaviour AsciiArt.Piece
+  @behaviour Ascii.Piece
 
   @cols 48
   @rows 9
 
   @impl true
   def meta do
-    %AsciiArt.Meta{
+    %Ascii.Meta{
       name: "wave",
       category: :generative,
       note: "a sine wave rolling by",
@@ -65,13 +65,13 @@ defmodule MyApp.Pieces.Wave do
   end
 end
 
-{:ok, anim} = AsciiArt.new(MyApp.Pieces.Wave, options: %{"speed" => "3", "crest" => "≈"})
-{frame, _anim} = AsciiArt.frame(anim, 1.0)
+{:ok, anim} = Ascii.new(MyApp.Pieces.Wave, options: %{"speed" => "3", "crest" => "≈"})
+{frame, _anim} = Ascii.frame(anim, 1.0)
 {length(frame.lines), frame.lines |> Enum.map(&String.length/1) |> Enum.uniq()}
 #=> {9, [48]}
 ```
 
-Options come in through `AsciiArt.Options` like a built-in piece's: only the
+Options come in through `Ascii.Options` like a built-in piece's: only the
 keys in `meta.options`, of the same kind as their defaults, and numbers
 clamped to `meta.bounds` (or ±1,000,000 without one). Still, `init/1` should
 make any value it is given safe to draw, as `crest` is here.
@@ -100,7 +100,7 @@ make any value it is given safe to draw, as `crest` is here.
   * **Cheap frames.** Do the expensive work in `init/1`. Upstream's budget is
     4 ms a frame for text pieces, and 10 ms for 200×100 scenes.
 
-The built-in pieces use `:math` too, and `AsciiArt.JSMath` only where
+The built-in pieces use `:math` too, and `Ascii.JSMath` only where
 JavaScript's numbers behave differently from Elixir's (`Math.round` rounds
 halves up, `%` keeps the dividend's sign), to match upstream. Your own piece
 has no upstream to match, so it needs neither.
@@ -117,16 +117,16 @@ A few more things a piece can say, all optional:
   * **`size/1`**: the frame's size for the options, `{cols, rows}`, for a
     piece that fits its data or a width. Every frame must be that size.
   * **`update/2`**: the state for new options while it plays (see
-    `AsciiArt.put_options/2`), keeping what it can, so a needle swings on
+    `Ascii.put_options/2`), keeping what it can, so a needle swings on
     from where it was. Without it, `init/1` starts afresh.
 
 ```elixir
 defmodule MyApp.Pieces.Level do
-  @behaviour AsciiArt.Piece
+  @behaviour Ascii.Piece
 
   @impl true
   def meta do
-    %AsciiArt.Meta{
+    %Ascii.Meta{
       name: "level",
       category: :data,
       note: "a bar that eases to its value",
@@ -159,13 +159,13 @@ defmodule MyApp.Pieces.Level do
   end
 end
 
-anim = AsciiArt.new!(MyApp.Pieces.Level, options: %{value: 100, width: 10})
-{frame, anim} = AsciiArt.frame(anim, 0.0)
+anim = Ascii.new!(MyApp.Pieces.Level, options: %{value: 100, width: 10})
+{frame, anim} = Ascii.frame(anim, 0.0)
 frame.text
 #=> "██████████"
 
-anim = AsciiArt.put_options!(anim, value: 0)
-{frame, _anim} = AsciiArt.frame(anim, 0.05)
+anim = Ascii.put_options!(anim, value: 0)
+{frame, _anim} = Ascii.frame(anim, 0.05)
 frame.text
 #=> "███████░░░"
 ```
@@ -182,11 +182,11 @@ defmodule MyApp.Pieces.WaveTest do
 
   for color <- [true, false], paper <- [false, true] do
     test "frames fit the meta (color: #{color}, paper: #{paper})" do
-      {:ok, anim} = AsciiArt.new(MyApp.Pieces.Wave, color: unquote(color), paper: unquote(paper))
+      {:ok, anim} = Ascii.new(MyApp.Pieces.Wave, color: unquote(color), paper: unquote(paper))
       meta = anim.meta
 
       Enum.reduce([0.0, 0.5, 1.0, 2.5, 10.0, 1.0], anim, fn t, anim ->
-        {frame, anim} = AsciiArt.frame(anim, t)
+        {frame, anim} = Ascii.frame(anim, t)
         assert length(frame.lines) == meta.rows
         assert Enum.all?(frame.lines, &(length(String.codepoints(&1)) == meta.cols))
         if unquote(color), do: assert(byte_size(frame.colors) == meta.cols * meta.rows), else: assert(frame.colors == nil)
@@ -202,25 +202,25 @@ end
 ```elixir
 alias MyApp.Pieces.Wave
 
-AsciiArt.render!(Wave, 0.5) |> String.split("\n") |> length()
+Ascii.render!(Wave, 0.5) |> String.split("\n") |> length()
 #=> 9
 
-AsciiArt.stream!(Wave) |> Enum.take(3) |> Enum.map(& &1.t)
+Ascii.stream!(Wave) |> Enum.take(3) |> Enum.map(& &1.t)
 #=> [0.0, 0.05, 0.1]
 ```
 
 Pass the module wherever a slug goes, in a template:
 
 ```heex
-<AsciiArt.Phoenix.Components.ascii piece={MyApp.Pieces.Wave} />
-<AsciiArt.Phoenix.player socket={@socket} id="wave" piece={MyApp.Pieces.Wave} />
+<Ascii.Phoenix.Components.ascii piece={MyApp.Pieces.Wave} />
+<Ascii.Phoenix.player socket={@socket} id="wave" piece={MyApp.Pieces.Wave} />
 ```
 
 or by name to the mix task, which looks for it among the modules of your
 project and its dependencies:
 
 ```sh
-mix ascii_art.play MyApp.Pieces.Wave --option speed=3
+mix ascii.play MyApp.Pieces.Wave --option speed=3
 ```
 
 A piece module reaches the player's LiveView in its session, which only your

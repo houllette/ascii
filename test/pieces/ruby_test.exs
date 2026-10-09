@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.RubyTest do
+defmodule Ascii.Pieces.RubyTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Ruby
-  use AsciiArt.GoldenCase, slug: "ruby", piece: AsciiArt.Pieces.Ruby
+  use Ascii.ContractCase, piece: Ascii.Pieces.Ruby
+  use Ascii.GoldenCase, slug: "ruby", piece: Ascii.Pieces.Ruby
 end

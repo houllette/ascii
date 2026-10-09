@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.DebianTest do
+defmodule Ascii.Pieces.DebianTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Debian
-  use AsciiArt.GoldenCase, slug: "debian", piece: AsciiArt.Pieces.Debian
+  use Ascii.ContractCase, piece: Ascii.Pieces.Debian
+  use Ascii.GoldenCase, slug: "debian", piece: Ascii.Pieces.Debian
 end

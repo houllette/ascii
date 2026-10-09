@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.PlanetTest do
+defmodule Ascii.Pieces.PlanetTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Planet
-  use AsciiArt.GoldenCase, slug: "planet", piece: AsciiArt.Pieces.Planet
+  use Ascii.ContractCase, piece: Ascii.Pieces.Planet
+  use Ascii.GoldenCase, slug: "planet", piece: Ascii.Pieces.Planet
 end

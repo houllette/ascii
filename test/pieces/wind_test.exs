@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.WindTest do
+defmodule Ascii.Pieces.WindTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Wind
-  use AsciiArt.GoldenCase, slug: "wind", piece: AsciiArt.Pieces.Wind
+  use Ascii.ContractCase, piece: Ascii.Pieces.Wind
+  use Ascii.GoldenCase, slug: "wind", piece: Ascii.Pieces.Wind
 end

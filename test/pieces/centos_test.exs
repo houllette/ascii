@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.CentosTest do
+defmodule Ascii.Pieces.CentosTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Centos
-  use AsciiArt.GoldenCase, slug: "centos", piece: AsciiArt.Pieces.Centos
+  use Ascii.ContractCase, piece: Ascii.Pieces.Centos
+  use Ascii.GoldenCase, slug: "centos", piece: Ascii.Pieces.Centos
 end

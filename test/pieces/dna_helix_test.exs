@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.DnaHelixTest do
+defmodule Ascii.Pieces.DnaHelixTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.DnaHelix
-  use AsciiArt.GoldenCase, slug: "dna-helix", piece: AsciiArt.Pieces.DnaHelix
+  use Ascii.ContractCase, piece: Ascii.Pieces.DnaHelix
+  use Ascii.GoldenCase, slug: "dna-helix", piece: Ascii.Pieces.DnaHelix
 end

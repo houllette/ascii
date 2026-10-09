@@ -1,17 +1,17 @@
-defmodule AsciiArt.Pieces.VaranasiGhatsTest do
+defmodule Ascii.Pieces.VaranasiGhatsTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.VaranasiGhats
-  use AsciiArt.GoldenCase, slug: "varanasi-ghats", piece: AsciiArt.Pieces.VaranasiGhats
+  use Ascii.ContractCase, piece: Ascii.Pieces.VaranasiGhats
+  use Ascii.GoldenCase, slug: "varanasi-ghats", piece: Ascii.Pieces.VaranasiGhats
 
-  alias AsciiArt.Env
-  alias AsciiArt.Pieces.VaranasiGhats
+  alias Ascii.Env
+  alias Ascii.Pieces.VaranasiGhats
 
   # The frame's shortcuts (`:math` checked against margins, precomputed dots,
   # rows and columns no light reaches passed over) must draw exactly what the
   # forced exact path draws, colour cache included, at any times in any order.
   property "the shortcuts draw what the exact path draws" do
     state =
-      AsciiArt.TestCache.fetch({:init, VaranasiGhats}, fn ->
+      Ascii.TestCache.fetch({:init, VaranasiGhats}, fn ->
         VaranasiGhats.init(VaranasiGhats.meta().options)
       end)
 

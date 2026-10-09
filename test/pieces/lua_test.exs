@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.LuaTest do
+defmodule Ascii.Pieces.LuaTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Lua
-  use AsciiArt.GoldenCase, slug: "lua", piece: AsciiArt.Pieces.Lua
+  use Ascii.ContractCase, piece: Ascii.Pieces.Lua
+  use Ascii.GoldenCase, slug: "lua", piece: Ascii.Pieces.Lua
 end

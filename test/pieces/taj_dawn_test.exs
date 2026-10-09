@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.TajDawnTest do
+defmodule Ascii.Pieces.TajDawnTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.TajDawn
-  use AsciiArt.GoldenCase, slug: "taj-dawn", piece: AsciiArt.Pieces.TajDawn
+  use Ascii.ContractCase, piece: Ascii.Pieces.TajDawn
+  use Ascii.GoldenCase, slug: "taj-dawn", piece: Ascii.Pieces.TajDawn
 end

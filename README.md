@@ -1,6 +1,6 @@
-# AsciiArt
+# Ascii
 
-ASCII-art UI components for Elixir: file trees, boot logs, htop-style
+ASCII components and diagrams for Elixir: file trees, boot logs, htop-style
 meters, gauges, sparklines, progress bars, forms, terminals, calendars and
 departure boards that draw your own live data, natively, in Phoenix
 LiveView, terminal UIs, Livebook and Nerves devices, in your app's colours.
@@ -24,35 +24,41 @@ distros, 3D shapes, simulations and type.
 
 - **Components that take live data.** The UI, data and type pieces take
   your data as options (readings, listings, text), and new data as it comes
-  (`AsciiArt.put_options/2`): a gauge's needle swings to the new value, a
+  (`Ascii.put_options/2`): a gauge's needle swings to the new value, a
   sparkline scrolls on, a file tree lists your files. See
   [Live data](guides/getting-started.md#live-data).
 - **Native to the Elixir ecosystem.** Function components and LiveView
   players for Phoenix (`live_player/1` takes your assigns), widgets for
   [ExRatatui](guides/ex_ratatui.md) terminal UIs, locally or over SSH, ANSI
-  for any terminal, a supervised `AsciiArt.Player` for a process of your
+  for any terminal, a supervised `Ascii.Player` for a process of your
   own, and plain frame data for Livebook, a framebuffer or anything else.
   No NIFs, no Node at runtime, and no required dependencies; the
   optional ExRatatui integration brings ratatui's NIF only if you add it.
 - **Usable.** A file tree's cursor walks and its folders open, a form's
   fields take typing, a calendar picks a date: keys and clicks go to the
-  piece (`AsciiArt.handle_event/2`), in LiveView, in ExRatatui and in a
+  piece (`Ascii.handle_event/2`), in LiveView, in ExRatatui and in a
   plain terminal, and what was chosen is in its options. A click tells you
-  the part under it, the file or the bar (`AsciiArt.part_at/4`).
+  the part under it, the file or the bar (`Ascii.part_at/4`).
 - **In your colours.** Give a piece an ink, one colour or a gradient
-  (`AsciiArt.Ink`), and colour its parts one by one: a file tree's folders
+  (`Ascii.Ink`), and colour its parts one by one: a file tree's folders
   and file types, a boot log's `OK` and `WARN`, a meter's bars, a heading's
-  letters (`AsciiArt.Parts`). On a page the colours can be CSS variables,
+  letters (`Ascii.Parts`). On a page the colours can be CSS variables,
   so they follow your theme into dark mode; on paper, the suggested colours
   are those for a light page.
 - **Put together.** Frames go into bordered panels, beside and above one
-  another, with rules between (`AsciiArt.Compose`), for a dashboard on a
+  another, with rules between (`Ascii.Compose`), for a dashboard on a
   plain terminal or a device's screen; out as SVG for a README or an email
-  (`AsciiArt.Render.SVG`, `mix ascii_art.svg`); and `mix ascii_art.top`
+  (`Ascii.Render.SVG`, `mix ascii.svg`); and `mix ascii.top`
   watches your BEAM, htop-style, made of the pieces themselves.
+- **Native diagrams.** Build flowcharts, sequence diagrams and C4 views
+  from Elixir data or supported Mermaid source (`Ascii.Diagram`,
+  `Ascii.Mermaid`). The result is a frame for the same renderers, with
+  nested boundaries and sequence fragments, optional colours per element,
+  and retained geometry for hit testing. See the [diagram guide](guides/diagrams.md)
+  for the syntax support matrix and runnable examples.
 - **Accessible.** Each component says what it shows, from its data, for
   screen readers ("load: 72%", "deploy: 6 steps, 1 failed"), and the
-  Phoenix players label the picture with it (`AsciiArt.describe/1`).
+  Phoenix players label the picture with it (`Ascii.describe/1`).
 - **Exact.** It began as a port of [ascii.rest](https://ascii.rest) by
   [@bas3line](https://github.com/bas3line)
   ([bas3line/ascii](https://github.com/bas3line/ascii), a TypeScript
@@ -65,14 +71,14 @@ distros, 3D shapes, simulations and type.
 
 Requires Elixir 1.18 or later.
 
-From [Hex](https://hex.pm/packages/ascii_art), with the docs on
-[HexDocs](https://ascii-art.hexdocs.pm/):
+From [Hex](https://hex.pm/packages/ascii), with the docs on
+[HexDocs](https://ascii.hexdocs.pm/):
 
 ```elixir
 # in mix.exs
 def deps do
   [
-    {:ascii_art, "~> 0.2"},
+    {:ascii, "~> 0.3.0"},
     # optional, for the Phoenix components and the LiveView player:
     {:phoenix_live_view, "~> 1.1"},
     # optional, for ratatui widgets and the full-screen terminal viewer:
@@ -83,47 +89,50 @@ def deps do
 end
 ```
 
+Version 0.3.0 renames `ascii_art` to `ascii` and `AsciiArt.*` to `Ascii.*`.
+Existing consumers should follow the [migration guide](guides/migrating-to-ascii.md).
+
 ## Quick start
 
 ### One frame
 
 ```elixir
 # A component, from your data: a gauge reading 72%, two seconds in.
-IO.puts(AsciiArt.render!("gauge", 2.0, options: %{label: "cpu", value: 72}))
+IO.puts(Ascii.render!("gauge", 2.0, options: %{label: "cpu", value: 72}))
 
 # Or art: the picture at 1.5 seconds, as text.
-IO.puts(AsciiArt.render!("donut", 1.5))
+IO.puts(Ascii.render!("donut", 1.5))
 
-{:ok, text} = AsciiArt.render("typewriter", 0.0, options: %{prefix: "we make "})
+{:ok, text} = Ascii.render("typewriter", 0.0, options: %{prefix: "we make "})
 true = text =~ "we make "
 
 # What a piece is.
-meta = AsciiArt.meta!("night-coast")
+meta = Ascii.meta!("night-coast")
 {200, 100, :scenes} = {meta.cols, meta.rows, meta.category}
-"night-coast" in AsciiArt.pieces(category: :scenes)
+"night-coast" in Ascii.pieces(category: :scenes)
 ```
 
 ### Playing frames
 
 Pieces are functions of time with state (simulations step by how far `t`
-moved), so play time forward through `AsciiArt.frame/3`:
+moved), so play time forward through `Ascii.frame/3`:
 
 ```elixir
-{:ok, anim} = AsciiArt.new("doom-fire")
-{frame, anim} = AsciiArt.frame(anim, 0.0)
-{frame, _anim} = AsciiArt.frame(anim, 1 / 24)
+{:ok, anim} = Ascii.new("doom-fire")
+{frame, anim} = Ascii.frame(anim, 0.0)
+{frame, _anim} = Ascii.frame(anim, 1 / 24)
 
-# An AsciiArt.Frame: text, lines, and for coloured pieces a palette index a cell.
+# An Ascii.Frame: text, lines, and for coloured pieces a palette index a cell.
 18 = length(frame.lines)
 nil = frame.colors
 
 # A coloured piece gives cols * rows palette indices, row by row.
-{logo, _} = AsciiArt.new!("elixir") |> AsciiArt.frame(0.0)
+{logo, _} = Ascii.new!("elixir") |> Ascii.frame(0.0)
 true = byte_size(logo.colors) == logo.cols * logo.rows
-"#" <> _ = AsciiArt.Frame.color_at(logo, 20, 10)
+"#" <> _ = Ascii.Frame.color_at(logo, 20, 10)
 
 # Or a lazy stream, one frame every 1/fps seconds.
-AsciiArt.stream!("spinners", fps: 12) |> Enum.take(3) |> Enum.map(& &1.t)
+Ascii.stream!("spinners", fps: 12) |> Enum.take(3) |> Enum.map(& &1.t)
 ```
 
 Options are checked against the piece's defaults: unknown keys and values of
@@ -134,14 +143,14 @@ ever becomes an atom.
 ### In a terminal
 
 ```sh
-mix ascii_art.play night-coast            # q or Ctrl-C to stop
-mix ascii_art.play elixir --mode ansi256
-mix ascii_art.play typewriter --option "prefix=we make " --paper
-mix ascii_art.play big-text --ink ff5f6d,ffc371   # one ink, or a gradient
-mix ascii_art.play boot-log --parts               # its parts in colour
-mix ascii_art.play file-tree --option walk=false --interactive   # arrows, enter, space
-mix ascii_art.top                                 # this BEAM, htop-style
-mix ascii_art.svg gauge --option value=72 --parts # one frame as an SVG
+mix ascii.play night-coast            # q or Ctrl-C to stop
+mix ascii.play elixir --mode ansi256
+mix ascii.play typewriter --option "prefix=we make " --paper
+mix ascii.play big-text --ink ff5f6d,ffc371   # one ink, or a gradient
+mix ascii.play boot-log --parts               # its parts in colour
+mix ascii.play file-tree --option walk=false --interactive   # arrows, enter, space
+mix ascii.top                                 # this BEAM, htop-style
+mix ascii.svg gauge --option value=72 --parts # one frame as an SVG
 ```
 
 With [ExRatatui](guides/ex_ratatui.md) as a dependency, a full-screen viewer
@@ -150,16 +159,16 @@ your terminal or served over SSH, and frames are ratatui widgets for your own
 terminal UIs:
 
 ```sh
-mix run -e 'AsciiArt.ExRatatui.Viewer.run(piece: "donut")'
+mix run -e 'Ascii.ExRatatui.Viewer.run(piece: "donut")'
 ```
 
-From code, `AsciiArt.Player` plays a piece in real time and hands each frame
+From code, `Ascii.Player` plays a piece in real time and hands each frame
 to a process, a callback, or any number of subscribers; under a supervisor
-it sends only to its callback and subscribers. `AsciiArt.Render.ANSI` turns
+it sends only to its callback and subscribers. `Ascii.Render.ANSI` turns
 a frame into truecolor (or 256-colour, or plain) escapes:
 
 ```elixir
-alias AsciiArt.{Player, Render.ANSI}
+alias Ascii.{Player, Render.ANSI}
 
 draw = fn frame -> IO.write([ANSI.home(), ANSI.render(frame, mode: :truecolor)]) end
 
@@ -179,20 +188,20 @@ The components draw your own data: progress bars, sparklines, a gauge, an
 htop-style panel, uptime bars, a contribution heatmap, candlesticks, a bar
 chart, an equalizer, a file tree, a terminal session, a departures board.
 Give it as options, and new data while it plays with
-`AsciiArt.put_options/2` (or `AsciiArt.Player.set_options/2`):
+`Ascii.put_options/2` (or `Ascii.Player.set_options/2`):
 
 ```elixir
 cpu = %{label: "cpu", unit: "%", lo: 0, hi: 100, values: [12, 30, 25, 60]}
-anim = AsciiArt.new!("sparkline", options: %{series: [cpu], range: false, rows: 3})
+anim = Ascii.new!("sparkline", options: %{series: [cpu], range: false, rows: 3})
 
-anim = AsciiArt.put_options!(anim, series: [%{cpu | values: cpu.values ++ [45]}])
-{frame, _anim} = AsciiArt.frame(anim, 1.0)
+anim = Ascii.put_options!(anim, series: [%{cpu | values: cpu.values ++ [45]}])
+{frame, _anim} = Ascii.frame(anim, 1.0)
 IO.puts(frame.text)
 ```
 
 [Getting started](guides/getting-started.md#live-data) lists what each
-takes. `AsciiArt.Telemetry` turns your app's `:telemetry` events into
-readings for them, and `AsciiArt.BEAM` your VM's schedulers, memory and
+takes. `Ascii.Telemetry` turns your app's `:telemetry` events into
+readings for them, and `Ascii.BEAM` your VM's schedulers, memory and
 busiest processes.
 
 ### Usable components
@@ -204,30 +213,30 @@ there to read:
 
 ```elixir
 paths = ["lib/my_app.ex", "lib/my_app/repo.ex", "mix.exs", "README.md"]
-tree = AsciiArt.new!("file-tree", options: %{walk: false, paths: paths, root: "my_app"})
+tree = Ascii.new!("file-tree", options: %{walk: false, paths: paths, root: "my_app"})
 
-{:ok, tree} = AsciiArt.handle_event(tree, {:key, "down"})
-{:ok, tree} = AsciiArt.handle_event(tree, {:key, "right"})
-{:ok, tree} = AsciiArt.handle_event(tree, {:key, "down"})
+{:ok, tree} = Ascii.handle_event(tree, {:key, "down"})
+{:ok, tree} = Ascii.handle_event(tree, {:key, "right"})
+{:ok, tree} = Ascii.handle_event(tree, {:key, "down"})
 "lib/my_app.ex" = tree.options.cursor
-"file tree of my_app: 2 folders, 4 files; at lib/my_app.ex" = AsciiArt.describe(tree)
+"file tree of my_app: 2 folders, 4 files; at lib/my_app.ex" = Ascii.describe(tree)
 
 # Which part is under a click: here, the file the cursor is on.
-{frame, tree} = AsciiArt.frame(tree, 0.0)
-{"file.ex", "my_app.ex"} = AsciiArt.part_at(tree, frame, 18, 2)
+{frame, tree} = Ascii.frame(tree, 0.0)
+{"file.ex", "my_app.ex"} = Ascii.part_at(tree, frame, 18, 2)
 ```
 
 In LiveView, give the player `interactive` (and `notify` to be told of each
-key and click); in ExRatatui, `AsciiArt.ExRatatui.handle_event/3` takes
-its events; in a terminal, `mix ascii_art.play --interactive`.
+key and click); in ExRatatui, `Ascii.ExRatatui.handle_event/3` takes
+its events; in a terminal, `mix ascii.play --interactive`.
 
 ### Putting frames together
 
 ```elixir
-alias AsciiArt.Compose
+alias Ascii.Compose
 
-{:ok, gauge} = AsciiArt.still("gauge", options: %{label: "load", value: 72}, parts: true)
-{:ok, log} = AsciiArt.still("boot-log", options: %{title: "deploy", steps: [%{text: "built", status: "ok"}]})
+{:ok, gauge} = Ascii.still("gauge", options: %{label: "load", value: 72}, parts: true)
+{:ok, log} = Ascii.still("boot-log", options: %{title: "deploy", steps: [%{text: "built", status: "ok"}]})
 
 board =
   Compose.above([
@@ -235,45 +244,45 @@ board =
     Compose.divider(128, label: "end of report", style: :dashed)
   ])
 
-IO.puts(AsciiArt.Render.ANSI.render(board))
-svg = IO.iodata_to_binary(AsciiArt.Render.SVG.render(board, background: "#0d1117"))
+IO.puts(Ascii.Render.ANSI.render(board))
+svg = IO.iodata_to_binary(Ascii.Render.SVG.render(board, background: "#0d1117"))
 true = String.starts_with?(svg, "<svg")
 ```
 
 ### Phoenix: a still
 
-`AsciiArt.Phoenix.Components.ascii/1` draws one frame (frame 0 by default,
+`Ascii.Phoenix.Components.ascii/1` draws one frame (frame 0 by default,
 which upstream designs to be a good still) as a `<pre>`: plain text for text
 pieces, runs of coloured spans over the ground for coloured ones. No
 JavaScript. It is `role="img"` with an `aria-label`.
 
 ```heex
-<AsciiArt.Phoenix.Components.ascii piece="donut" />
-<AsciiArt.Phoenix.Components.ascii piece="night-coast" label="a lighthouse at night" />
-<AsciiArt.Phoenix.Components.ascii piece="elixir" mono class="logo" />
-<AsciiArt.Phoenix.Components.ascii piece="big-text" ink={["#ff5f6d", "#ffc371"]} />
-<AsciiArt.Phoenix.Components.ascii piece="file-tree" parts={%{"folder" => "#58a6ff"}} />
+<Ascii.Phoenix.Components.ascii piece="donut" />
+<Ascii.Phoenix.Components.ascii piece="night-coast" label="a lighthouse at night" />
+<Ascii.Phoenix.Components.ascii piece="elixir" mono class="logo" />
+<Ascii.Phoenix.Components.ascii piece="big-text" ink={["#ff5f6d", "#ffc371"]} />
+<Ascii.Phoenix.Components.ascii piece="file-tree" parts={%{"folder" => "#58a6ff"}} />
 ```
 
 ### Phoenix: playing
 
-`AsciiArt.Phoenix.player/1` embeds `AsciiArt.Phoenix.PlayerLive` with
+`Ascii.Phoenix.player/1` embeds `Ascii.Phoenix.PlayerLive` with
 `live_render/3`: a LiveView of its own, with its own timer, so the page
 needs no `handle_info`. The dead render is frame 0; once connected it plays.
 
 ```heex
-<AsciiArt.Phoenix.player socket={@socket} id="spinners" piece="spinners" />
-<AsciiArt.Phoenix.player socket={@socket} id="logo" piece="elixir" fps={20} />
-<AsciiArt.Phoenix.player socket={@socket} id="coast" piece="night-coast" />
+<Ascii.Phoenix.player socket={@socket} id="spinners" piece="spinners" />
+<Ascii.Phoenix.player socket={@socket} id="logo" piece="elixir" fps={20} />
+<Ascii.Phoenix.player socket={@socket} id="coast" piece="night-coast" />
 ```
 
-For live data, `AsciiArt.Phoenix.live_player/1` plays a piece inside your
+For live data, `Ascii.Phoenix.live_player/1` plays a piece inside your
 LiveView and takes new options each time it renders with them: the gauge's
 needle swings to each new reading.
 
 ```heex
-<AsciiArt.Phoenix.live_player id="load" piece="gauge" options={%{label: "load", value: @load}} />
-<AsciiArt.Phoenix.live_player id="top" piece="cpu-meters" options={@readings} parts />
+<Ascii.Phoenix.live_player id="load" piece="gauge" options={%{label: "load", value: @load}} />
+<Ascii.Phoenix.live_player id="top" piece="cpu-meters" options={@readings} parts />
 ```
 
 `parts` colours each part of a component as it suggests (htop's green and
@@ -284,7 +293,7 @@ or your theme's: `parts={%{"bar.user" => "var(--color-success)"}}`.
 each one, with the part clicked and the options the piece now has:
 
 ```heex
-<AsciiArt.Phoenix.live_player id="files" piece="file-tree" options={%{walk: false, paths: @paths}} interactive notify />
+<Ascii.Phoenix.live_player id="files" piece="file-tree" options={%{walk: false, paths: @paths}} interactive notify />
 ```
 
 With the hook below registered, the browser draws, and the server sends as
@@ -299,14 +308,14 @@ HTML a row at a time instead. See the
 
 ### The hook
 
-The only JavaScript in the project, `priv/static/ascii_art_hook.js`. Register
+The only JavaScript in the project, `priv/static/ascii_hook.js`. Register
 it in your `app.js`:
 
 ```js
-import {AsciiArt} from "../../deps/ascii_art/priv/static/ascii_art_hook.js"
+import {Ascii} from "../../deps/ascii/priv/static/ascii_hook.js"
 
 let liveSocket = new LiveSocket("/live", Socket, {
-  hooks: {AsciiArt},
+  hooks: {Ascii},
   params: {_csrf_token: csrfToken},
 })
 ```
@@ -320,7 +329,7 @@ ink's colour, and colours for its parts.
 
 ### Nerves and other devices
 
-`AsciiArt.Player` needs nothing from Phoenix. On a device with a serial
+`Ascii.Player` needs nothing from Phoenix. On a device with a serial
 console, play into the terminal as above. With a display, draw the frame's
 cells yourself: `frame.lines` holds the characters and `frame.colors` a
 palette index for each, row by row.
@@ -333,16 +342,16 @@ defmodule MyDevice.Art do
 
   @impl true
   def init(piece) do
-    {:ok, player} = AsciiArt.Player.start_link(piece: piece, fps: 10)
+    {:ok, player} = Ascii.Player.start_link(piece: piece, fps: 10)
     {:ok, %{player: player, palette: nil}}
   end
 
   @impl true
-  def handle_info({:ascii_art_frame, _ref, frame}, state) do
+  def handle_info({:ascii_frame, _ref, frame}, state) do
     for {line, y} <- Enum.with_index(frame.lines),
         {char, x} <- Enum.with_index(String.codepoints(line)),
         char != " " do
-      color = AsciiArt.Frame.color_at(frame, x, y) || "#ffffff"
+      color = Ascii.Frame.color_at(frame, x, y) || "#ffffff"
       # draw `char` at cell (x, y) in `color` on your display
       {x, y, char, color}
     end
@@ -365,9 +374,9 @@ end
   * [Phoenix and LiveView](guides/phoenix.md): stills, live players, live
     data with `live_player/1`, interactive players, telemetry, what goes
     over the wire, one player for many viewers.
-  * [Terminal apps](guides/terminal.md): `mix ascii_art.play`,
-    `mix ascii_art.top`, ANSI colour, writing only what changed, panels and
-    layouts with `AsciiArt.Compose`, `AsciiArt.Player`, scripts.
+  * [Terminal apps](guides/terminal.md): `mix ascii.play`,
+    `mix ascii.top`, ANSI colour, writing only what changed, panels and
+    layouts with `Ascii.Compose`, `Ascii.Player`, scripts.
   * [ExRatatui](guides/ex_ratatui.md): the full-screen viewer, pieces as
     widgets in your own terminal UI, locally or over SSH, keys and clicks,
     and a live dashboard.
@@ -376,14 +385,14 @@ end
   * [Nerves](guides/nerves.md): the console, SSH, supervised players, and
     pixels for a framebuffer or an SPI panel.
   * [Drawing frames yourself](guides/custom-rendering.md): cells, runs of
-    colour, SVG (`AsciiArt.Render.SVG`), asciinema recordings, frames over
+    colour, SVG (`Ascii.Render.SVG`), asciinema recordings, frames over
     the wire.
   * [Writing a piece](guides/writing-pieces.md): your own pieces, on the same
     contract.
 
 ## Pieces
 
-Each slug is upstream's file name; `AsciiArt.meta!/1` says what a piece
+Each slug is upstream's file name; `Ascii.meta!/1` says what a piece
 shows and which options it takes.
 
 <!-- pieces -->
@@ -410,41 +419,41 @@ porting notes.
 
 ## How it matches upstream
 
-- `AsciiArt.JSMath` reproduces JavaScript's numbers where they differ from
+- `Ascii.JSMath` reproduces JavaScript's numbers where they differ from
   Elixir's, bit for bit: `Math.round`, `%`, `Math.fround`, typed-array
   stores, `Math.hypot`, `Math.cbrt`, `Math.log1p`, `toFixed` and
-  `String(number)`. `AsciiArt.Int32` does JS's 32-bit operators. `sin`,
+  `String(number)`. `Ascii.Int32` does JS's 32-bit operators. `sin`,
   `exp`, `pow` and the rest are Erlang's `:math`, which can differ from V8
   in the last bit but has never changed a golden frame.
 - `test/fixtures/golden/` holds frames from upstream, generated with Node at
   fixed times and played at the frame rate, ink and paper, in colour and one
-  ink. Every piece is tested against them (`AsciiArt.GoldenCase`), and
-  against upstream's contract (`AsciiArt.ContractCase`).
+  ink. Every piece is tested against them (`Ascii.GoldenCase`), and
+  against upstream's contract (`Ascii.ContractCase`).
 - [PORTING.md](PORTING.md) lists every place JavaScript and Elixir differ and
   how the port handles it, and every deviation from upstream (there are few,
   all for unusual options).
 
 ## Contributing a piece
 
-A piece is a module implementing `AsciiArt.Piece`: `meta/0`, `init/1` (the
+A piece is a module implementing `Ascii.Piece`: `meta/0`, `init/1` (the
 options, merged with the defaults; precompute here) and `frame/3` (the
-picture at `t` for an `AsciiArt.Env`, its colours, and the next state). The
+picture at `t` for an `Ascii.Env`, its colours, and the next state). The
 contract is upstream's: every frame exactly `rows` lines of `cols`
 characters from printable ASCII, `·`, `°` and U+2500–U+259F (scenes also `•`
 and `●`); deterministic for the same `t`; colours, when asked for, a palette
-index for every cell. See `AsciiArt.Piece` for an example.
+index for every cell. See `Ascii.Piece` for an example.
 
 To port an upstream piece:
 
 1. Have upstream at the commit in [UPSTREAM.md](UPSTREAM.md) in
    `tmp/upstream`, and its golden fixture in `test/fixtures/golden/`
-   (`NODE=/path/to/x64/node mix ascii_art.golden <slug>`).
-2. Write `test/pieces/<slug>_test.exs` with `use AsciiArt.ContractCase` and
-   `use AsciiArt.GoldenCase`, and watch it fail.
-3. Port the piece until it passes, using `AsciiArt.JSMath`, `AsciiArt.Int32`
-   and the helpers in `AsciiArt.Kit`; [PORTING.md](PORTING.md) has the
+   (`NODE=/path/to/x64/node mix ascii.golden <slug>`).
+2. Write `test/pieces/<slug>_test.exs` with `use Ascii.ContractCase` and
+   `use Ascii.GoldenCase`, and watch it fail.
+3. Port the piece until it passes, using `Ascii.JSMath`, `Ascii.Int32`
+   and the helpers in `Ascii.Kit`; [PORTING.md](PORTING.md) has the
    hazards to check.
-4. `mix run tools/gen_registry.exs` registers it; `mix ascii_art.perf <slug>`
+4. `mix run tools/gen_registry.exs` registers it; `mix ascii.perf <slug>`
    times it against upstream's budget; `mix precommit` checks everything.
 
 ## Development
@@ -454,7 +463,7 @@ mix deps.get
 mix test                 # everything but the frame-time budgets
 mix test --only perf     # the budgets
 mix precommit            # what CI runs
-mix ascii_art.perf       # frame times of every piece
+mix ascii.perf       # frame times of every piece
 ```
 
 Tool versions are pinned in `.tool-versions`. Regenerating fixtures needs

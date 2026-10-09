@@ -1,11 +1,11 @@
-defmodule AsciiArt.Pieces.TwistedRingTest.Upstream do
+defmodule Ascii.Pieces.TwistedRingTest.Upstream do
   @moduledoc false
   # A plain port of upstream's twisted-ring.ts, line for line: every point is
   # placed, tested and plotted in upstream's order into Float32 buffers (maps
   # here), each corner point taking its stroke as it is written. No fast
   # paths, no margins.
 
-  alias AsciiArt.JSMath
+  alias Ascii.JSMath
 
   @cols 46
   @rows 21
@@ -189,13 +189,13 @@ defmodule AsciiArt.Pieces.TwistedRingTest.Upstream do
   end
 end
 
-defmodule AsciiArt.Pieces.TwistedRingTest do
+defmodule Ascii.Pieces.TwistedRingTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.TwistedRing
-  use AsciiArt.GoldenCase, slug: "twisted-ring", piece: AsciiArt.Pieces.TwistedRing
+  use Ascii.ContractCase, piece: Ascii.Pieces.TwistedRing
+  use Ascii.GoldenCase, slug: "twisted-ring", piece: Ascii.Pieces.TwistedRing
 
-  alias AsciiArt.Pieces.TwistedRing
-  alias AsciiArt.Pieces.TwistedRingTest.Upstream
+  alias Ascii.Pieces.TwistedRing
+  alias Ascii.Pieces.TwistedRingTest.Upstream
 
   # The port skips, or draws without testing, whole strips of a face whose
   # two edges are clearly on one side of the eye, and shades only the point
@@ -228,7 +228,7 @@ defmodule AsciiArt.Pieces.TwistedRingTest do
 
   # Each a fresh instance, threading its state through the times in turn.
   defp play(mod, state, times, paper) do
-    env = %AsciiArt.Env{cols: 46, rows: 21, paper: paper}
+    env = %Ascii.Env{cols: 46, rows: 21, paper: paper}
 
     {frames, _} =
       Enum.map_reduce(times, state, fn t, state ->

@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.JellyfishTest do
+defmodule Ascii.Pieces.JellyfishTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Jellyfish
-  use AsciiArt.GoldenCase, slug: "jellyfish", piece: AsciiArt.Pieces.Jellyfish
+  use Ascii.ContractCase, piece: Ascii.Pieces.Jellyfish
+  use Ascii.GoldenCase, slug: "jellyfish", piece: Ascii.Pieces.Jellyfish
 end

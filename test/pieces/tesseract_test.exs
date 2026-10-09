@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.TesseractTest do
+defmodule Ascii.Pieces.TesseractTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Tesseract
-  use AsciiArt.GoldenCase, slug: "tesseract", piece: AsciiArt.Pieces.Tesseract
+  use Ascii.ContractCase, piece: Ascii.Pieces.Tesseract
+  use Ascii.GoldenCase, slug: "tesseract", piece: Ascii.Pieces.Tesseract
 end

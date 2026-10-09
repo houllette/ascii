@@ -1,11 +1,11 @@
-defmodule AsciiArt.TestPieces.Blink do
+defmodule Ascii.TestPieces.Blink do
   @moduledoc false
   # A piece of our own, not in the registry: a dot that blinks twice a second.
-  @behaviour AsciiArt.Piece
+  @behaviour Ascii.Piece
 
   @impl true
   def meta do
-    %AsciiArt.Meta{
+    %Ascii.Meta{
       name: "blink",
       category: :ui,
       note: "a dot that blinks",
@@ -26,16 +26,16 @@ defmodule AsciiArt.TestPieces.Blink do
   end
 end
 
-defmodule AsciiArt.TestPieces.Gated do
+defmodule Ascii.TestPieces.Gated do
   @moduledoc false
   # A piece whose setup waits to be let go with `send(player, :go)`, as a
   # scene's takes a while on a small board. Set up before the player has
   # started, it is never let go and raises.
-  @behaviour AsciiArt.Piece
+  @behaviour Ascii.Piece
 
   @impl true
   def meta,
-    do: %AsciiArt.Meta{
+    do: %Ascii.Meta{
       name: "gated",
       category: :ui,
       note: "waits to start",
@@ -57,15 +57,15 @@ defmodule AsciiArt.TestPieces.Gated do
   def frame(state, _t, _env), do: {"g", nil, state}
 end
 
-defmodule AsciiArt.TestPieces.Waltz do
+defmodule Ascii.TestPieces.Waltz do
   @moduledoc false
   # Counts to three every three quarters of a second: a loop that is not a
   # whole number of frames at its rate (7.5 at 10 fps).
-  @behaviour AsciiArt.Piece
+  @behaviour Ascii.Piece
 
   @impl true
   def meta,
-    do: %AsciiArt.Meta{
+    do: %Ascii.Meta{
       name: "waltz",
       category: :ui,
       note: "one two three",
@@ -82,15 +82,15 @@ defmodule AsciiArt.TestPieces.Waltz do
   def frame(state, t, _env), do: {Integer.to_string(rem(floor(t / 0.25), 3) + 1), nil, state}
 end
 
-defmodule AsciiArt.TestPieces.Static do
+defmodule Ascii.TestPieces.Static do
   @moduledoc false
   # Noise that repeats every two seconds: a loop far too big to send, 200×100
   # cells a frame that hardly compress.
-  @behaviour AsciiArt.Piece
+  @behaviour Ascii.Piece
 
   @impl true
   def meta,
-    do: %AsciiArt.Meta{
+    do: %Ascii.Meta{
       name: "static",
       category: :effects,
       note: "noise",
@@ -118,15 +118,15 @@ defmodule AsciiArt.TestPieces.Static do
   end
 end
 
-defmodule AsciiArt.TestPieces.Counted do
+defmodule Ascii.TestPieces.Counted do
   @moduledoc false
   # Counts to ten twice a second, a loop of ten frames at its 20 fps, and
   # tells the process registered as :loop_watch each time it is drawn.
-  @behaviour AsciiArt.Piece
+  @behaviour Ascii.Piece
 
   @impl true
   def meta,
-    do: %AsciiArt.Meta{
+    do: %Ascii.Meta{
       name: "counted",
       category: :ui,
       note: "counts",
@@ -146,16 +146,16 @@ defmodule AsciiArt.TestPieces.Counted do
   end
 end
 
-defmodule AsciiArt.TestPieces.Bar do
+defmodule Ascii.TestPieces.Bar do
   @moduledoc false
   # A bar `width` cells wide, `value` percent full: its size follows its
   # options, and it counts the updates it has taken, to show its state
   # carries over. `marks` (a list of numbers) shows how shapes check lists.
-  @behaviour AsciiArt.Piece
+  @behaviour Ascii.Piece
 
   @impl true
   def meta,
-    do: %AsciiArt.Meta{
+    do: %Ascii.Meta{
       name: "bar",
       category: :ui,
       note: "a bar",
@@ -183,17 +183,17 @@ defmodule AsciiArt.TestPieces.Bar do
   end
 end
 
-defmodule AsciiArt.TestPieces.Noted do
+defmodule Ascii.TestPieces.Noted do
   @moduledoc false
   # Sends :init to the process setting it up, if that process has put
   # :init_watch in its dictionary, to show when a still is drawn and when it
   # is kept. A flag of the test's own, rather than a registered name, so
   # tests that run at once do not see each other's.
-  @behaviour AsciiArt.Piece
+  @behaviour Ascii.Piece
 
   @impl true
   def meta,
-    do: %AsciiArt.Meta{
+    do: %Ascii.Meta{
       name: "noted",
       category: :ui,
       note: "noted",
@@ -213,18 +213,18 @@ defmodule AsciiArt.TestPieces.Noted do
   def frame(mark, t, _env), do: {[mark, Integer.to_string(rem(floor(t), 10))], nil, mark}
 end
 
-defmodule AsciiArt.TestPieces.Switches do
+defmodule Ascii.TestPieces.Switches do
   @moduledoc false
   # Three switches in a row, one under a cursor: a piece that can be used,
   # told in words and labelled by part. ← and → move the cursor, space flips
   # the switch under it, and a click flips the one clicked.
-  @behaviour AsciiArt.Piece
+  @behaviour Ascii.Piece
 
-  alias AsciiArt.Parts
+  alias Ascii.Parts
 
   @impl true
   def meta,
-    do: %AsciiArt.Meta{
+    do: %Ascii.Meta{
       name: "switches",
       category: :ui,
       note: "three switches",

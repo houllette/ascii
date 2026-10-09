@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.AnalogClockTest do
+defmodule Ascii.Pieces.AnalogClockTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.AnalogClock
-  use AsciiArt.GoldenCase, slug: "analog-clock", piece: AsciiArt.Pieces.AnalogClock
+  use Ascii.ContractCase, piece: Ascii.Pieces.AnalogClock
+  use Ascii.GoldenCase, slug: "analog-clock", piece: Ascii.Pieces.AnalogClock
 end

@@ -1,4 +1,4 @@
-defmodule AsciiArt.Pieces.CandlesticksTest do
+defmodule Ascii.Pieces.CandlesticksTest do
   use ExUnit.Case, async: true
 
   @candles for i <- 0..19,
@@ -11,8 +11,8 @@ defmodule AsciiArt.Pieces.CandlesticksTest do
     [16_600_000.0, 17_000_000.0, 15_000_000.0, 16_000_000]
   ]
 
-  use AsciiArt.ContractCase,
-    piece: AsciiArt.Pieces.Candlesticks,
+  use Ascii.ContractCase,
+    piece: Ascii.Pieces.Candlesticks,
     variants: [
       %{candles: @candles, times: Enum.map(0..19, &"#{10 + div(&1, 4)}:#{rem(&1, 4) * 15}")},
       %{candles: [[1.5, 1.7, 1.4, 1.6]], digits: 4},
@@ -27,10 +27,10 @@ defmodule AsciiArt.Pieces.CandlesticksTest do
       %{start: 1.0e15, digits: 8}
     ]
 
-  use AsciiArt.GoldenCase, slug: "candlesticks", piece: AsciiArt.Pieces.Candlesticks
+  use Ascii.GoldenCase, slug: "candlesticks", piece: Ascii.Pieces.Candlesticks
 
   defp draw(options, t \\ 1.0) do
-    {frame, _} = "candlesticks" |> AsciiArt.new!(options: options) |> AsciiArt.frame(t)
+    {frame, _} = "candlesticks" |> Ascii.new!(options: options) |> Ascii.frame(t)
     frame
   end
 
@@ -55,7 +55,7 @@ defmodule AsciiArt.Pieces.CandlesticksTest do
 
   describe "in words" do
     defp told(options),
-      do: "candlesticks" |> AsciiArt.new!(options: options) |> AsciiArt.describe()
+      do: "candlesticks" |> Ascii.new!(options: options) |> Ascii.describe()
 
     test "the candles given: how many, the last one's prices and change" do
       assert told(%{candles: [[1, 2, 0.5, 1.5], [100, 104, 96, 103]], times: ["09:30", "09:35"]}) ==
@@ -72,12 +72,12 @@ defmodule AsciiArt.Pieces.CandlesticksTest do
   end
 
   describe "parts" do
-    alias AsciiArt.Frame
-    alias AsciiArt.Kit.Text
-    alias AsciiArt.Pieces.Candlesticks
+    alias Ascii.Frame
+    alias Ascii.Kit.Text
+    alias Ascii.Pieces.Candlesticks
 
     defp parts(options, t \\ 0.0) do
-      {frame, anim} = "candlesticks" |> AsciiArt.new!(options: options) |> AsciiArt.frame(t)
+      {frame, anim} = "candlesticks" |> Ascii.new!(options: options) |> Ascii.frame(t)
       {frame, Candlesticks.parts(frame, anim.options)}
     end
 
@@ -215,7 +215,7 @@ defmodule AsciiArt.Pieces.CandlesticksTest do
     end
 
     test "with parts: true, up green, down red, the price blue, axis and labels grey" do
-      {frame, _} = "candlesticks" |> AsciiArt.new!(parts: true) |> AsciiArt.frame(0.0)
+      {frame, _} = "candlesticks" |> Ascii.new!(parts: true) |> Ascii.frame(0.0)
 
       assert Frame.color_at(frame, 32, 7) == "#3fb950"
       assert Frame.color_at(frame, 0, 8) == "#f85149"

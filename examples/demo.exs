@@ -4,17 +4,17 @@
 #
 # then open http://localhost:4000 (set PORT to use another). The index shows
 # frame 0 of all the pieces by category: text pieces through
-# AsciiArt.Phoenix.Components.ascii/1, coloured ones drawn on a canvas. Each
-# opens a page that plays it with AsciiArt.Phoenix.player/1, where you can
+# Ascii.Phoenix.Components.ascii/1, coloured ones drawn on a canvas. Each
+# opens a page that plays it with Ascii.Phoenix.player/1, where you can
 # try its options, paper (dark ink on a light page), one ink, the colour of
-# that ink (one, or several in a gradient: AsciiArt.Ink) and, for pieces that
-# know their parts, a colour for each part (AsciiArt.Parts), and for pieces
+# that ink (one, or several in a gradient: Ascii.Ink) and, for pieces that
+# know their parts, a colour for each part (Ascii.Parts), and for pieces
 # that can be used, keys and clicks. /dashboard shows the UI and data pieces
-# as live widgets, fed this very BEAM's figures (AsciiArt.BEAM) and its
-# LiveViews' telemetry (AsciiArt.Telemetry); /widgets, the ones you can use;
+# as live widgets, fed this very BEAM's figures (Ascii.BEAM) and its
+# LiveViews' telemetry (Ascii.Telemetry); /widgets, the ones you can use;
 # /piece/<slug>/svg, a piece as an SVG.
 Mix.install([
-  {:ascii_art, path: Path.expand("..", __DIR__)},
+  {:ascii, path: Path.expand("..", __DIR__)},
   {:phoenix_live_view, "~> 1.1"},
   {:bandit, "~> 1.5"}
 ])
@@ -27,8 +27,8 @@ Application.put_env(:demo, Demo.Endpoint,
   adapter: Bandit.PhoenixAdapter,
   http: [ip: {127, 0, 0, 1}, port: port],
   server: true,
-  secret_key_base: String.duplicate("ascii_art_demo", 5),
-  live_view: [signing_salt: "ascii_art_demo"]
+  secret_key_base: String.duplicate("ascii_demo", 8),
+  live_view: [signing_salt: "ascii_demo"]
 )
 
 defmodule Demo.Layout do
@@ -42,7 +42,7 @@ defmodule Demo.Layout do
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="csrf-token" content={Phoenix.Controller.get_csrf_token()} />
-        <title>ascii_art gallery</title>
+        <title>ascii gallery</title>
         <style>
           :root { --bg: #111; --ink: #ddd; --dim: #888; --card: #181818; --line: #2a2a2a; --accent: #7fdbca; }
           body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
@@ -90,10 +90,10 @@ defmodule Demo.Layout do
         <script src="/phoenix/phoenix.min.js"></script>
         <script src="/phoenix_live_view/phoenix_live_view.min.js"></script>
         <script type="module">
-          import {AsciiArt} from "/ascii_art/ascii_art_hook.js";
+          import {Ascii} from "/ascii/ascii_hook.js";
           const csrf = document.querySelector("meta[name='csrf-token']").content;
           const liveSocket = new window.LiveView.LiveSocket("/live", window.Phoenix.Socket, {
-            hooks: {AsciiArt},
+            hooks: {Ascii},
             params: {_csrf_token: csrf},
           });
           liveSocket.connect();
@@ -103,7 +103,7 @@ defmodule Demo.Layout do
           // for this tab as you leave it, and put back when you return, by the
           // browser's back button or by a "← gallery" link (a new visit to /,
           // which a browser would otherwise show from the top).
-          const KEY = "ascii_art_gallery_scroll";
+          const KEY = "ascii_gallery_scroll";
           if (document.querySelector("[data-gallery]")) {
             history.scrollRestoration = "manual";
             const nav = performance.getEntriesByType("navigation")[0];
@@ -162,8 +162,8 @@ defmodule Demo.Gallery do
   def slugs,
     do:
       for(
-        category <- AsciiArt.Meta.categories(),
-        slug <- AsciiArt.pieces(category: category),
+        category <- Ascii.Meta.categories(),
+        slug <- Ascii.pieces(category: category),
         do: slug
       )
 end
@@ -185,13 +185,13 @@ defmodule Demo.Stills do
   end
 
   defp still(slug) do
-    meta = AsciiArt.meta!(slug)
+    meta = Ascii.meta!(slug)
     Map.merge(%{slug: slug, meta: meta}, picture(slug, meta))
   end
 
   # Coloured pieces as data for a canvas; text pieces as the component draws them.
   defp picture(slug, %{palette: palette} = meta) when palette != nil do
-    {frame, _anim} = slug |> AsciiArt.new!() |> AsciiArt.frame(0.0)
+    {frame, _anim} = slug |> Ascii.new!() |> Ascii.frame(0.0)
 
     %{
       kind: :canvas,
@@ -208,7 +208,7 @@ defmodule Demo.Stills do
 
     html =
       ~H"""
-      <AsciiArt.Phoenix.Components.ascii piece={@slug} />
+      <Ascii.Phoenix.Components.ascii piece={@slug} />
       """
       |> Phoenix.HTML.Safe.to_iodata()
       |> IO.iodata_to_binary()
@@ -232,7 +232,7 @@ defmodule Demo.GalleryHTML do
 
     ~H"""
     <main data-gallery>
-      <h1>ascii_art</h1>
+      <h1>ascii</h1>
       <div class="note">
         {length(@stills)} pieces from <a href="https://ascii.rest">ascii.rest</a>
         by <a href="https://github.com/bas3line">@bas3line</a>, drawn by Elixir. Each opens to play.
@@ -281,7 +281,7 @@ defmodule Demo.GalleryController do
 end
 
 defmodule Demo.SVGController do
-  # A frame of a piece as an SVG (AsciiArt.Render.SVG), drawn as its page
+  # A frame of a piece as an SVG (Ascii.Render.SVG), drawn as its page
   # shows it: the same options, paper, one ink and parts, from the query.
   use Phoenix.Controller, formats: []
 
@@ -297,13 +297,13 @@ defmodule Demo.SVGController do
       parts: for({k, v} <- params["parts"] || %{}, is_binary(v) and v != "", into: %{}, do: {k, v})
     ]
 
-    case AsciiArt.new(slug, opts) do
+    case Ascii.new(slug, opts) do
       {:ok, anim} ->
-        {frame, _} = AsciiArt.frame(anim, 0.0)
+        {frame, _} = Ascii.frame(anim, 0.0)
 
         svg =
-          AsciiArt.Render.SVG.render(frame,
-            title: AsciiArt.describe(anim),
+          Ascii.Render.SVG.render(frame,
+            title: Ascii.describe(anim),
             background: frame.ground || if(paper, do: "#f4f1ea", else: "#111111"),
             foreground: if(paper, do: "#222222", else: "#dddddd")
           )
@@ -348,12 +348,12 @@ defmodule Demo.PieceLive do
 
   @impl true
   def mount(%{"slug" => slug}, _session, socket) do
-    case AsciiArt.meta(slug) do
+    case Ascii.meta(slug) do
       {:ok, meta} ->
         slugs = Demo.Gallery.slugs()
         i = Enum.find_index(slugs, &(&1 == slug))
 
-        {:ok, module} = AsciiArt.resolve(slug)
+        {:ok, module} = Ascii.resolve(slug)
 
         {:ok,
          assign(socket,
@@ -396,7 +396,7 @@ defmodule Demo.PieceLive do
           do: {name, String.trim(color)}
 
     {parts, parts_error} =
-      case AsciiArt.Parts.cast(given, meta) do
+      case Ascii.Parts.cast(given, meta) do
         {:ok, _} ->
           {given, nil}
 
@@ -405,7 +405,7 @@ defmodule Demo.PieceLive do
       end
 
     {ink, ink_error} =
-      case AsciiArt.Ink.cast(ink_text) do
+      case Ascii.Ink.cast(ink_text) do
         {:ok, nil} ->
           {nil, nil}
 
@@ -449,14 +449,14 @@ defmodule Demo.PieceLive do
 
   # What a piece that can be used tells of its keys and clicks (notify).
   @impl true
-  def handle_info({:ascii_art, _id, info}, socket),
+  def handle_info({:ascii, _id, info}, socket),
     do: {:noreply, assign(socket, told: info)}
 
   defp path(slug, query) when map_size(query) == 0, do: "/piece/#{slug}"
   defp path(slug, query), do: "/piece/#{slug}?" <> Plug.Conn.Query.encode(query)
 
   # The colours the piece suggests for its parts, for the page it is on.
-  defp suggested(meta, paper), do: AsciiArt.Parts.suggested(meta, paper: paper)
+  defp suggested(meta, paper), do: Ascii.Parts.suggested(meta, paper: paper)
 
   defp preset(query, ink, nil), do: query |> Map.put("ink", ink) |> Map.delete("gradient")
   defp preset(query, ink, gradient), do: Map.merge(query, %{"ink" => ink, "gradient" => gradient})
@@ -498,7 +498,7 @@ defmodule Demo.PieceLive do
           {@meta.category} · {@meta.cols}×{@meta.rows} · {@meta.fps} fps{if @meta.loop, do: " · a #{@meta.loop} s loop"} · <code>{@slug}</code>
         </div>
         <div class="stage" style={"--cols: #{@meta.cols}"}>
-          <AsciiArt.Phoenix.player
+          <Ascii.Phoenix.player
             socket={@socket}
             id={@player_id}
             piece={@slug}
@@ -583,9 +583,9 @@ defmodule Demo.PieceLive do
         </form>
         <p :for={error <- @errors} class="error">{error}</p>
         <p class="note">
-          In a terminal: <code>mix ascii_art.play {@slug}</code> ·
+          In a terminal: <code>mix ascii.play {@slug}</code> ·
           as a picture: <a href={"/piece/#{@slug}/svg" <> if(@query == %{}, do: "", else: "?" <> Plug.Conn.Query.encode(@query))}>svg</a>
-          (<code>mix ascii_art.svg {@slug}</code>)
+          (<code>mix ascii.svg {@slug}</code>)
         </p>
       </main>
     </div>
@@ -595,20 +595,20 @@ end
 
 defmodule Demo.DashboardLive do
   # The UI and data pieces as live widgets: this BEAM's schedulers, memory,
-  # run queue and busiest processes, sampled every second by AsciiArt.BEAM,
-  # and the LiveViews' own telemetry through AsciiArt.Telemetry. Each widget
-  # is AsciiArt.Phoenix.live_player/1, given new options from the assigns;
+  # run queue and busiest processes, sampled every second by Ascii.BEAM,
+  # and the LiveViews' own telemetry through Ascii.Telemetry. Each widget
+  # is Ascii.Phoenix.live_player/1, given new options from the assigns;
   # it carries on from where it was (the gauge's needle swings, the
   # sparkline scrolls), and the browser is sent only the cells that change.
   use Phoenix.LiveView
 
-  alias AsciiArt.BEAM
+  alias Ascii.BEAM
 
   @impl true
   def mount(_params, _session, socket) do
     if connected?(socket) do
       :timer.send_interval(1000, :sample)
-      AsciiArt.Telemetry.subscribe(Demo.Readings)
+      Ascii.Telemetry.subscribe(Demo.Readings)
     end
 
     {:ok, assign(socket, stats: BEAM.sample(), parts: true, readings: [])}
@@ -618,10 +618,10 @@ defmodule Demo.DashboardLive do
   def handle_info(:sample, socket),
     do: {:noreply, assign(socket, stats: BEAM.sample(socket.assigns.stats))}
 
-  def handle_info({:ascii_art_telemetry, _feed, readings}, socket),
+  def handle_info({:ascii_telemetry, _feed, readings}, socket),
     do: {:noreply, assign(socket, readings: readings)}
 
-  # The widgets' parts in the colours they suggest (AsciiArt.Parts), or not.
+  # The widgets' parts in the colours they suggest (Ascii.Parts), or not.
   @impl true
   def handle_event("parts", _params, socket),
     do: {:noreply, assign(socket, parts: not socket.assigns.parts)}
@@ -652,7 +652,7 @@ defmodule Demo.DashboardLive do
         series: BEAM.sparkline(s),
         busy: BEAM.gauge(s),
         memory: Map.put(BEAM.progress_bar(s), :style, 1),
-        telemetry: AsciiArt.Telemetry.sparkline(assigns.readings)
+        telemetry: Ascii.Telemetry.sparkline(assigns.readings)
       )
 
     ~H"""
@@ -660,10 +660,10 @@ defmodule Demo.DashboardLive do
       <nav><a href="/" data-to-gallery>← gallery</a> · <a href="/widgets">widgets you can use</a></nav>
       <h1 style="margin-top: 1rem">dashboard</h1>
       <div class="note">
-        This BEAM, sampled every second by <code>AsciiArt.BEAM</code>, and its LiveViews' telemetry by
-        <code>AsciiArt.Telemetry</code>. Each widget is <code>AsciiArt.Phoenix.live_player/1</code>,
+        This BEAM, sampled every second by <code>Ascii.BEAM</code>, and its LiveViews' telemetry by
+        <code>Ascii.Telemetry</code>. Each widget is <code>Ascii.Phoenix.live_player/1</code>,
         given new options from this LiveView's assigns, and labelled for screen readers with what it shows.
-        In a terminal, the same: <code>mix ascii_art.top</code>.
+        In a terminal, the same: <code>mix ascii.top</code>.
         <button type="button" phx-click="work">make work</button>
       </div>
       <div class="toggles" style="margin-top: 1rem">
@@ -674,23 +674,23 @@ defmodule Demo.DashboardLive do
       <div class="dash">
         <section class="widget" style="grid-column: 1 / -1">
           <h2>cpu-meters: schedulers, memory, run queue, busiest processes</h2>
-          <AsciiArt.Phoenix.live_player id="meters" piece="cpu-meters" options={@meters} parts={@parts} />
+          <Ascii.Phoenix.live_player id="meters" piece="cpu-meters" options={@meters} parts={@parts} />
         </section>
         <section class="widget">
           <h2>gauge: scheduler use</h2>
-          <AsciiArt.Phoenix.live_player id="busy" piece="gauge" options={@busy} parts={@parts} />
+          <Ascii.Phoenix.live_player id="busy" piece="gauge" options={@busy} parts={@parts} />
         </section>
         <section class="widget">
           <h2>progress-bar: where the memory goes</h2>
-          <AsciiArt.Phoenix.live_player id="memory" piece="progress-bar" options={@memory} parts={@parts} />
+          <Ascii.Phoenix.live_player id="memory" piece="progress-bar" options={@memory} parts={@parts} />
         </section>
         <section class="widget" style="grid-column: 1 / -1">
           <h2>sparkline: the last two minutes</h2>
-          <AsciiArt.Phoenix.live_player id="history" piece="sparkline" options={@series} parts={@parts} />
+          <Ascii.Phoenix.live_player id="history" piece="sparkline" options={@series} parts={@parts} />
         </section>
         <section :if={@readings != []} class="widget" style="grid-column: 1 / -1">
           <h2>sparkline from telemetry: the LiveViews' renders and component updates a second, and a render's time</h2>
-          <AsciiArt.Phoenix.live_player id="telemetry" piece="sparkline" options={@telemetry} parts={@parts} />
+          <Ascii.Phoenix.live_player id="telemetry" piece="sparkline" options={@telemetry} parts={@parts} />
         </section>
       </div>
     </main>
@@ -751,7 +751,7 @@ defmodule Demo.WidgetsLive do
 
   # What the players tell us: the file opened, the form's values, the date.
   @impl true
-  def handle_info({:ascii_art, id, info} = told, socket) do
+  def handle_info({:ascii, id, info} = told, socket) do
     socket = assign(socket, told: inspect(Map.delete(info, :options), limit: 6))
     {:noreply, take(socket, id, told)}
   end
@@ -801,17 +801,17 @@ defmodule Demo.WidgetsLive do
       <h1 style="margin-top: 1rem">widgets you can use</h1>
       <div class="note">
         Each is <code>live_player/1</code> with <code>interactive</code> and <code>notify</code>: click it or tab to it,
-        then use the arrows, space, enter and typing. The piece takes the keys (<code>AsciiArt.handle_event/2</code>),
+        then use the arrows, space, enter and typing. The piece takes the keys (<code>Ascii.handle_event/2</code>),
         and this LiveView is told of each, with the part clicked.
       </div>
       <p class="note">last told: <code>{@told || "nothing yet"}</code></p>
       <div class="dash">
         <section class="widget">
           <h2>file-tree: this library's lib/ (enter or click a file to open it)</h2>
-          <AsciiArt.Phoenix.live_player
+          <Ascii.Phoenix.live_player
             id="files"
             piece="file-tree"
-            options={%{walk: false, paths: @paths, root: "ascii_art", cols: 56, rows: 24}}
+            options={%{walk: false, paths: @paths, root: "ascii", cols: 56, rows: 24}}
             parts
             interactive
             notify
@@ -819,21 +819,21 @@ defmodule Demo.WidgetsLive do
         </section>
         <section class="widget">
           <h2>terminal: the file opened</h2>
-          <AsciiArt.Phoenix.live_player
+          <Ascii.Phoenix.live_player
             id="file"
             piece="terminal"
-            options={%{prompt: "$", title: "ascii_art", history: [@file || %{output: ["enter or click a file in the tree to open it here"]}], typing: true, cols: 66, rows: 18}}
+            options={%{prompt: "$", title: "ascii", history: [@file || %{output: ["enter or click a file in the tree to open it here"]}], typing: true, cols: 66, rows: 18}}
             parts
           />
         </section>
         <section class="widget">
           <h2>form-controls: a form you describe</h2>
-          <AsciiArt.Phoenix.live_player id="form" piece="form-controls" options={%{fields: fields(), title: "settings"}} parts interactive notify />
+          <Ascii.Phoenix.live_player id="form" piece="form-controls" options={%{fields: fields(), title: "settings"}} parts interactive notify />
           <p class="note">values: <code>{inspect(Enum.map(@fields, &Map.take(&1, [:text, :choice, :checked, :on, :value])))}</code></p>
         </section>
         <section class="widget">
           <h2>calendar: a date picker, the 1st and 15th marked</h2>
-          <AsciiArt.Phoenix.live_player
+          <Ascii.Phoenix.live_player
             id="calendar"
             piece="calendar"
             options={%{date: @today, time: false, marks: marks(@today)}}
@@ -845,15 +845,15 @@ defmodule Demo.WidgetsLive do
         </section>
         <section class="widget">
           <h2>boot-log: a deploy, step by step <button type="button" phx-click="deploy">deploy</button></h2>
-          <AsciiArt.Phoenix.live_player id="deploy" piece="boot-log" options={%{title: "deploy web", steps: @steps}} parts />
+          <Ascii.Phoenix.live_player id="deploy" piece="boot-log" options={%{title: "deploy web", steps: @steps}} parts />
         </section>
         <section class="widget">
           <h2>digital-clock: a countdown</h2>
-          <AsciiArt.Phoenix.live_player id="tea" piece="digital-clock" options={%{timer: "down", from: 300, label: "tea"}} parts />
+          <Ascii.Phoenix.live_player id="tea" piece="digital-clock" options={%{timer: "down", from: 300, label: "tea"}} parts />
         </section>
         <section class="widget">
           <h2>big-text: a heading in your palette, a letter at a time</h2>
-          <AsciiArt.Phoenix.live_player
+          <Ascii.Phoenix.live_player
             id="heading"
             piece="big-text"
             options={%{text: "elixir"}}
@@ -862,7 +862,7 @@ defmodule Demo.WidgetsLive do
         </section>
         <section class="widget">
           <h2>radar: your contacts</h2>
-          <AsciiArt.Phoenix.live_player
+          <Ascii.Phoenix.live_player
             id="radar"
             piece="radar"
             options={%{contacts: [%{bearing: 40, range: 9}, %{bearing: 130, range: 18, size: 2}, %{bearing: 300, range: 14}], land: false}}
@@ -906,21 +906,21 @@ end
 defmodule Demo.Endpoint do
   use Phoenix.Endpoint, otp_app: :demo
 
-  @session [store: :cookie, key: "_demo", signing_salt: "ascii_art_demo"]
+  @session [store: :cookie, key: "_demo", signing_salt: "ascii_demo"]
 
   socket("/live", Phoenix.LiveView.Socket, websocket: [connect_info: [session: @session]])
 
   plug(Plug.Static, at: "/phoenix", from: {:phoenix, "priv/static"})
   plug(Plug.Static, at: "/phoenix_live_view", from: {:phoenix_live_view, "priv/static"})
-  plug(Plug.Static, at: "/ascii_art", from: {:ascii_art, "priv/static"})
+  plug(Plug.Static, at: "/ascii", from: {:ascii, "priv/static"})
   plug(Plug.Session, @session)
   plug(Demo.Router)
 end
 
-IO.puts("ascii_art gallery: drawing frame 0 of every piece...")
+IO.puts("ascii gallery: drawing frame 0 of every piece...")
 # The LiveViews' own telemetry, a reading a second, for the dashboard.
 readings =
-  {AsciiArt.Telemetry,
+  {Ascii.Telemetry,
    name: Demo.Readings,
    metrics: [
      %{name: "renders", event: [:phoenix, :live_view, :render, :stop], measurement: :duration, kind: :counter},
@@ -935,5 +935,5 @@ readings =
    ]}
 
 {:ok, _} = Supervisor.start_link([Demo.Stills, readings, Demo.Endpoint], strategy: :one_for_one)
-IO.puts("ascii_art gallery at http://localhost:#{port}")
+IO.puts("ascii gallery at http://localhost:#{port}")
 Process.sleep(:infinity)

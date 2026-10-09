@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.EclipseTest do
+defmodule Ascii.Pieces.EclipseTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Eclipse
-  use AsciiArt.GoldenCase, slug: "eclipse", piece: AsciiArt.Pieces.Eclipse
+  use Ascii.ContractCase, piece: Ascii.Pieces.Eclipse
+  use Ascii.GoldenCase, slug: "eclipse", piece: Ascii.Pieces.Eclipse
 end

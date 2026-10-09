@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.ManjaroTest do
+defmodule Ascii.Pieces.ManjaroTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Manjaro
-  use AsciiArt.GoldenCase, slug: "manjaro", piece: AsciiArt.Pieces.Manjaro
+  use Ascii.ContractCase, piece: Ascii.Pieces.Manjaro
+  use Ascii.GoldenCase, slug: "manjaro", piece: Ascii.Pieces.Manjaro
 end

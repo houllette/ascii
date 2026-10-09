@@ -1,8 +1,8 @@
-defmodule AsciiArt.Pieces.DigitalClockTest do
+defmodule Ascii.Pieces.DigitalClockTest do
   use ExUnit.Case, async: true
 
-  use AsciiArt.ContractCase,
-    piece: AsciiArt.Pieces.DigitalClock,
+  use Ascii.ContractCase,
+    piece: Ascii.Pieces.DigitalClock,
     variants: [
       %{hour12: true},
       %{seconds: false, date: false},
@@ -13,18 +13,18 @@ defmodule AsciiArt.Pieces.DigitalClockTest do
       %{timer: "sideways", from: 5}
     ]
 
-  use AsciiArt.GoldenCase, slug: "digital-clock", piece: AsciiArt.Pieces.DigitalClock
+  use Ascii.GoldenCase, slug: "digital-clock", piece: Ascii.Pieces.DigitalClock
 
-  alias AsciiArt.Frame
-  alias AsciiArt.Pieces.DigitalClock
+  alias Ascii.Frame
+  alias Ascii.Pieces.DigitalClock
 
   # 15:09:26 on Saturday 14 March 2026, half a second in: the colon is dark.
   @now ~U[2026-03-14 15:09:26.535Z]
 
   # A frame at `now` with `options`, and the part of each of its cells.
   defp parts_at(now, options \\ %{}) do
-    anim = AsciiArt.new!("digital-clock", options: options)
-    {frame, _} = AsciiArt.frame(anim, 0.0, now: now)
+    anim = Ascii.new!("digital-clock", options: options)
+    {frame, _} = Ascii.frame(anim, 0.0, now: now)
 
     names =
       for runs <- DigitalClock.parts(frame, anim.options) do
@@ -96,7 +96,7 @@ defmodule AsciiArt.Pieces.DigitalClockTest do
 
     test "with parts: true, unlit glass is grey and lit segments the ink" do
       {frame, _} =
-        "digital-clock" |> AsciiArt.new!(parts: true) |> AsciiArt.frame(0.0, now: @now)
+        "digital-clock" |> Ascii.new!(parts: true) |> Ascii.frame(0.0, now: @now)
 
       assert Frame.color_at(frame, 4, 1) == "#8b949e"
       assert Frame.color_at(frame, 22, 3) == "#8b949e"
@@ -143,10 +143,10 @@ defmodule AsciiArt.Pieces.DigitalClockTest do
     end
 
     defp play(options, times) do
-      anim = AsciiArt.new!("digital-clock", options: options)
+      anim = Ascii.new!("digital-clock", options: options)
 
       {frames, _} =
-        Enum.map_reduce(times, anim, fn t, anim -> AsciiArt.frame(anim, t) end)
+        Enum.map_reduce(times, anim, fn t, anim -> Ascii.frame(anim, t) end)
 
       frames
     end
@@ -175,8 +175,8 @@ defmodule AsciiArt.Pieces.DigitalClockTest do
     end
 
     test "a label beneath, in its part" do
-      anim = AsciiArt.new!("digital-clock", options: %{timer: "down", from: 300, label: "tea"})
-      {frame, anim} = AsciiArt.frame(anim, 0.0)
+      anim = Ascii.new!("digital-clock", options: %{timer: "down", from: 300, label: "tea"})
+      {frame, anim} = Ascii.frame(anim, 0.0)
       assert reading(frame, 1, 3) == "00:05:00"
       assert String.trim(Enum.at(frame.lines, 9)) == "tea"
       rows = DigitalClock.parts(frame, anim.options)
@@ -184,36 +184,36 @@ defmodule AsciiArt.Pieces.DigitalClockTest do
     end
 
     test "a new label carries on; a new start or another timer starts afresh" do
-      anim = AsciiArt.new!("digital-clock", options: %{timer: "up", from: 10})
-      {_, anim} = AsciiArt.frame(anim, 0.0)
-      {frame, anim} = AsciiArt.frame(anim, 5.0)
+      anim = Ascii.new!("digital-clock", options: %{timer: "up", from: 10})
+      {_, anim} = Ascii.frame(anim, 0.0)
+      {frame, anim} = Ascii.frame(anim, 5.0)
       assert reading(frame, 2, 3) == "00:00:15"
 
-      labelled = AsciiArt.put_options!(anim, label: "lap")
-      {frame, _} = AsciiArt.frame(labelled, 6.0)
+      labelled = Ascii.put_options!(anim, label: "lap")
+      {frame, _} = Ascii.frame(labelled, 6.0)
       assert reading(frame, 1, 3) == "00:00:16"
 
-      restarted = AsciiArt.put_options!(anim, from: 100)
-      {_, restarted} = AsciiArt.frame(restarted, 6.0)
-      {frame, _} = AsciiArt.frame(restarted, 8.5)
+      restarted = Ascii.put_options!(anim, from: 100)
+      {_, restarted} = Ascii.frame(restarted, 6.0)
+      {frame, _} = Ascii.frame(restarted, 8.5)
       assert reading(frame, 2, 3) == "00:01:42"
 
-      {frame, _} = anim |> AsciiArt.put_options!(timer: "down") |> AsciiArt.frame(6.0)
+      {frame, _} = anim |> Ascii.put_options!(timer: "down") |> Ascii.frame(6.0)
       assert reading(frame, 2, 3) == "00:00:10"
     end
 
     test "a timer keeps play time, not the clock" do
-      anim = AsciiArt.new!("digital-clock", options: %{timer: "down", from: 90})
-      {a, _} = AsciiArt.frame(anim, 3.0, now: @now)
-      {b, _} = AsciiArt.frame(anim, 3.0, now: ~U[2030-01-01 00:00:00Z])
+      anim = Ascii.new!("digital-clock", options: %{timer: "down", from: 90})
+      {a, _} = Ascii.frame(anim, 3.0, now: @now)
+      {b, _} = Ascii.frame(anim, 3.0, now: ~U[2030-01-01 00:00:00Z])
       assert a.text == b.text
     end
 
     test "anything else is the clock" do
       {a, _} =
-        "digital-clock" |> AsciiArt.new!(options: %{timer: "x"}) |> AsciiArt.frame(0.0, now: @now)
+        "digital-clock" |> Ascii.new!(options: %{timer: "x"}) |> Ascii.frame(0.0, now: @now)
 
-      {b, _} = "digital-clock" |> AsciiArt.new!() |> AsciiArt.frame(0.0, now: @now)
+      {b, _} = "digital-clock" |> Ascii.new!() |> Ascii.frame(0.0, now: @now)
       assert a.text == b.text
     end
 

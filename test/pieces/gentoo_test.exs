@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.GentooTest do
+defmodule Ascii.Pieces.GentooTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Gentoo
-  use AsciiArt.GoldenCase, slug: "gentoo", piece: AsciiArt.Pieces.Gentoo
+  use Ascii.ContractCase, piece: Ascii.Pieces.Gentoo
+  use Ascii.GoldenCase, slug: "gentoo", piece: Ascii.Pieces.Gentoo
 end

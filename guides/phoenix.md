@@ -2,38 +2,38 @@
 
 The components are LiveView components: a gauge, a sparkline or an
 htop-style panel in your dashboard takes its readings from your assigns,
-and draws in your colours. With `phoenix_live_view` in your deps, AsciiArt
+and draws in your colours. With `phoenix_live_view` in your deps, Ascii
 adds:
 
-  * `AsciiArt.Phoenix.Components.ascii/1` draws one frame as a `<pre>`, with
+  * `Ascii.Phoenix.Components.ascii/1` draws one frame as a `<pre>`, with
     no JavaScript: for dead views, controllers, emails and stills;
-    `AsciiArt.Phoenix.Components.frame/1` draws a frame you already have;
-  * `AsciiArt.Phoenix.player/1` plays a piece live, through a small LiveView
-    of its own (`AsciiArt.Phoenix.PlayerLive`), so your LiveView needs no
+    `Ascii.Phoenix.Components.frame/1` draws a frame you already have;
+  * `Ascii.Phoenix.player/1` plays a piece live, through a small LiveView
+    of its own (`Ascii.Phoenix.PlayerLive`), so your LiveView needs no
     timers or `handle_info`;
-  * `AsciiArt.Phoenix.live_player/1` plays a piece inside your LiveView
-    (`AsciiArt.Phoenix.PlayerComponent`), taking new options as your
+  * `Ascii.Phoenix.live_player/1` plays a piece inside your LiveView
+    (`Ascii.Phoenix.PlayerComponent`), taking new options as your
     assigns change: for live data;
-  * `priv/static/ascii_art_hook.js`, a LiveView hook that lets the browser
+  * `priv/static/ascii_hook.js`, a LiveView hook that lets the browser
     do the drawing, so the server sends a looping piece once and anything
     else only as it changes.
 
 ## A still
 
 ```heex
-<AsciiArt.Phoenix.Components.ascii piece="donut" />
-<AsciiArt.Phoenix.Components.ascii piece="donut" t={2.5} paper class="hero" />
-<AsciiArt.Phoenix.Components.ascii piece="elixir" label="the Elixir logo" />
-<AsciiArt.Phoenix.Components.ascii piece="elixir" mono />
-<AsciiArt.Phoenix.Components.ascii piece="big-text" ink={["#ff5f6d", "#ffc371"]} />
-<AsciiArt.Phoenix.Components.ascii piece="boot-log" parts={%{"status.warn" => "#d29922"}} />
+<Ascii.Phoenix.Components.ascii piece="donut" />
+<Ascii.Phoenix.Components.ascii piece="donut" t={2.5} paper class="hero" />
+<Ascii.Phoenix.Components.ascii piece="elixir" label="the Elixir logo" />
+<Ascii.Phoenix.Components.ascii piece="elixir" mono />
+<Ascii.Phoenix.Components.ascii piece="big-text" ink={["#ff5f6d", "#ffc371"]} />
+<Ascii.Phoenix.Components.ascii piece="boot-log" parts={%{"status.warn" => "#d29922"}} />
 ```
 
 It works in any HEEx template, LiveView or not. A text piece is plain text in
 the page's own colour and font, or runs of `<span style="color:…">` in an
-`ink` (one colour, or several for a `gradient`; see `AsciiArt.Ink`) and of
+`ink` (one colour, or several for a `gradient`; see `Ascii.Ink`) and of
 colours for its `parts` (`true` for the ones it suggests; see
-`AsciiArt.Parts`); a
+`Ascii.Parts`); a
 coloured piece is runs of its palette over its ground (`mono` draws it in one
 ink instead).
 The `<pre>` is `role="img"` with an `aria-label` (the `label`, or the piece's
@@ -42,16 +42,16 @@ name), and carries a few styles that ASCII art needs (no margin, line height
 not know are passed to the `<pre>`.
 
 Frame 0 is the default `t`, and upstream draws frame 0 to be a good still.
-It is drawn once and kept (`AsciiArt.still/2`), so a scene in a template
+It is drawn once and kept (`Ascii.still/2`), so a scene in a template
 costs its setup, up to a second, the first time it is shown, and microseconds
 after.
 
 ## Playing a piece
 
 ```heex
-<AsciiArt.Phoenix.player socket={@socket} id="spinner" piece="spinners" />
-<AsciiArt.Phoenix.player socket={@socket} id="logo" piece="elixir" fps={20} label="Elixir" />
-<AsciiArt.Phoenix.player socket={@socket} id="coast" piece="night-coast" render={:server} />
+<Ascii.Phoenix.player socket={@socket} id="spinner" piece="spinners" />
+<Ascii.Phoenix.player socket={@socket} id="logo" piece="elixir" fps={20} label="Elixir" />
+<Ascii.Phoenix.player socket={@socket} id="coast" piece="night-coast" render={:server} />
 ```
 
 `player/1` calls `live_render/3`, so the piece plays in its own process with
@@ -74,7 +74,7 @@ draws: a text piece in its `<pre>`, a coloured one on a `<canvas>` in its
 palette over its ground. What the server sends depends on the piece:
 
   * **A closed loop** (60 pieces, among them every logo; see
-    `AsciiArt.loop/1`) is drawn for one cycle and sent once, compressed:
+    `Ascii.loop/1`) is drawn for one cycle and sent once, compressed:
     a logo is 5 to 12 KB, the longest loop under half a megabyte. The browser
     plays it from then on, and the server does nothing more for it.
   * **Anything else** is drawn on the server at its frame rate, and each
@@ -99,20 +99,20 @@ falls back to this.
 Register it with your LiveSocket in `assets/js/app.js`:
 
 ```js
-import {AsciiArt} from "../../deps/ascii_art/priv/static/ascii_art_hook.js"
+import {Ascii} from "../../deps/ascii/priv/static/ascii_hook.js"
 
 const liveSocket = new LiveSocket("/live", Socket, {
-  hooks: {AsciiArt},
+  hooks: {Ascii},
   params: {_csrf_token: csrfToken},
 })
 ```
 
-If you already have hooks, add it to them: `hooks: {...Hooks, AsciiArt}`.
+If you already have hooks, add it to them: `hooks: {...Hooks, Ascii}`.
 
 ## Options from params
 
 `options` are checked against the piece's defaults before it sees them (see
-`AsciiArt.Options`): unknown keys and values of the wrong kind are refused,
+`Ascii.Options`): unknown keys and values of the wrong kind are refused,
 numbers are clamped, strings are cast where the default is a number or a
 boolean. No atom is ever created. So a query string can go straight to the
 player:
@@ -125,7 +125,7 @@ end
 ```
 
 ```heex
-<AsciiArt.Phoenix.player socket={@socket} id="art" piece={@piece} options={@options} />
+<Ascii.Phoenix.player socket={@socket} id="art" piece={@piece} options={@options} />
 ```
 
 An unknown piece or a refused option shows a short `role="alert"` message in
@@ -158,8 +158,8 @@ end
 ```
 
 ```heex
-<AsciiArt.Phoenix.live_player id="load" piece="gauge" options={%{label: "run queue", max: 20, value: @load}} />
-<AsciiArt.Phoenix.live_player
+<Ascii.Phoenix.live_player id="load" piece="gauge" options={%{label: "run queue", max: 20, value: @load}} />
+<Ascii.Phoenix.live_player
   id="history"
   piece="sparkline"
   options={%{series: [%{label: "run queue", values: @samples}], range: false, rows: 3}}
@@ -180,19 +180,19 @@ LiveView would spend between its own events: play scenes with `player/1`.
 
 `examples/demo.exs` has a dashboard of this BEAM's schedulers, memory, run
 queue and busiest processes, every widget a `live_player/1` fed by
-`AsciiArt.BEAM` (`elixir examples/demo.exs`, then open
+`Ascii.BEAM` (`elixir examples/demo.exs`, then open
 http://localhost:4000/dashboard).
 
 ### From telemetry
 
-`AsciiArt.Telemetry` keeps your app's `:telemetry` events as readings, a
+`Ascii.Telemetry` keeps your app's `:telemetry` events as readings, a
 sample a second, from the same `Telemetry.Metrics` definitions a reporter
 takes, and sends them to whoever subscribes:
 
 ```elixir
 # needs: a Phoenix app; in application.ex
 children = [
-  {AsciiArt.Telemetry,
+  {Ascii.Telemetry,
    name: MyApp.Readings,
    metrics: [
      Telemetry.Metrics.last_value("vm.memory.total", unit: {:byte, :megabyte}),
@@ -204,16 +204,16 @@ children = [
 ```elixir
 # needs: a Phoenix app
 def mount(_params, _session, socket) do
-  if connected?(socket), do: AsciiArt.Telemetry.subscribe(MyApp.Readings)
+  if connected?(socket), do: Ascii.Telemetry.subscribe(MyApp.Readings)
   {:ok, assign(socket, history: %{})}
 end
 
-def handle_info({:ascii_art_telemetry, _feed, readings}, socket),
-  do: {:noreply, assign(socket, history: AsciiArt.Telemetry.sparkline(readings))}
+def handle_info({:ascii_telemetry, _feed, readings}, socket),
+  do: {:noreply, assign(socket, history: Ascii.Telemetry.sparkline(readings))}
 ```
 
 ```heex
-<AsciiArt.Phoenix.live_player id="history" piece="sparkline" options={@history} parts />
+<Ascii.Phoenix.live_player id="history" piece="sparkline" options={@history} parts />
 ```
 
 ## Keys and clicks
@@ -229,12 +229,12 @@ browser's. Clicks need the hook, which works out the cell clicked; without
 it (`render={:server}`) keys still come, by `phx-keydown`.
 
 With `notify` as well, your LiveView is told of each key and click as
-`{:ascii_art, id, info}`: the event, the part clicked and its text (see
-`AsciiArt.part_at/4`), and the options the piece now has, from which to read
+`{:ascii, id, info}`: the event, the part clicked and its text (see
+`Ascii.part_at/4`), and the options the piece now has, from which to read
 what was chosen.
 
 ```heex
-<AsciiArt.Phoenix.live_player
+<Ascii.Phoenix.live_player
   id="files"
   piece="file-tree"
   options={%{walk: false, paths: @paths, root: "my_app"}}
@@ -245,13 +245,13 @@ what was chosen.
 
 ```elixir
 # needs: a Phoenix app
-def handle_info({:ascii_art, "files", %{event: {:key, "enter"}, options: %{cursor: path}}}, socket),
+def handle_info({:ascii, "files", %{event: {:key, "enter"}, options: %{cursor: path}}}, socket),
   do: {:noreply, assign(socket, open: path)}
 
-def handle_info({:ascii_art, "files", %{event: {:click, _x, _y}, part: "file" <> _, options: options}}, socket),
+def handle_info({:ascii, "files", %{event: {:click, _x, _y}, part: "file" <> _, options: options}}, socket),
   do: {:noreply, assign(socket, open: options.cursor)}
 
-def handle_info({:ascii_art, _id, _info}, socket), do: {:noreply, socket}
+def handle_info({:ascii, _id, _info}, socket), do: {:noreply, socket}
 ```
 
 The options you give `live_player/1` are merged over what the piece's
@@ -260,20 +260,20 @@ form's `focus`) unless you mean to set them. `player/1` takes `interactive`
 and `notify` too, telling the LiveView that embeds it.
 
 Every player and still is labelled for screen readers with what the piece
-tells of its data (`AsciiArt.describe/1`): "load: 72%", "deploy: 6 steps, 1
+tells of its data (`Ascii.describe/1`): "load: 72%", "deploy: 6 steps, 1
 failed", and anew as the data changes. `label` gives your own words
 instead.
 
 ## In a controller or a dead view
 
 `ascii/1` works in any template. To build markup yourself, say for an email
-or a static page, `AsciiArt.Render.HTML` gives the inside of the `<pre>`,
+or a static page, `Ascii.Render.HTML` gives the inside of the `<pre>`,
 already escaped:
 
 ```elixir
-{frame, _} = AsciiArt.new!("elixir") |> AsciiArt.frame(0.0)
-inner = AsciiArt.Render.HTML.render(frame)
-style = AsciiArt.Render.HTML.style(frame)
+{frame, _} = Ascii.new!("elixir") |> Ascii.frame(0.0)
+inner = Ascii.Render.HTML.render(frame)
+style = Ascii.Render.HTML.style(frame)
 
 html = ["<pre style=\"", style || "", "\">", inner, "</pre>"] |> IO.iodata_to_binary()
 html =~ "<span style=\"color:#"
@@ -301,7 +301,7 @@ under your application's supervisor:
 # needs: a Phoenix app; in application.ex
 children = [
   # ...
-  {AsciiArt.Player, piece: "elixir", name: MyApp.Logo}
+  {Ascii.Player, piece: "elixir", name: MyApp.Logo}
 ]
 ```
 
@@ -311,15 +311,15 @@ once connected:
 ```elixir
 # needs: a Phoenix app
 def mount(_params, _session, socket) do
-  if connected?(socket), do: AsciiArt.Player.subscribe(MyApp.Logo)
-  {:ok, assign(socket, frame: AsciiArt.Player.frame(MyApp.Logo))}
+  if connected?(socket), do: Ascii.Player.subscribe(MyApp.Logo)
+  {:ok, assign(socket, frame: Ascii.Player.frame(MyApp.Logo))}
 end
 
-def handle_info({:ascii_art_frame, _ref, frame}, socket), do: {:noreply, assign(socket, frame: frame)}
+def handle_info({:ascii_frame, _ref, frame}, socket), do: {:noreply, assign(socket, frame: frame)}
 ```
 
 ```heex
-<AsciiArt.Phoenix.Components.frame frame={@frame} label="the Elixir logo" />
+<Ascii.Phoenix.Components.frame frame={@frame} label="the Elixir logo" />
 ```
 
 `frame/1` draws it as `ascii/1` draws a piece, a row an element, so as the
@@ -328,7 +328,7 @@ frame changes LiveView sends only the rows that did.
 A supervised player sends frames only to its subscribers, never to the
 supervisor, and drops each LiveView as it exits. While no one is watching it
 holds its frame and does no work. Give it readings with
-`AsciiArt.Player.set_options/2` and every viewer sees the needle swing. To
+`Ascii.Player.set_options/2` and every viewer sees the needle swing. To
 share one player across a cluster, give it a `:callback` that broadcasts
 each frame with `Phoenix.PubSub`.
 

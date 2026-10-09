@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.BlackHoleTest do
+defmodule Ascii.Pieces.BlackHoleTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.BlackHole
-  use AsciiArt.GoldenCase, slug: "black-hole", piece: AsciiArt.Pieces.BlackHole
+  use Ascii.ContractCase, piece: Ascii.Pieces.BlackHole
+  use Ascii.GoldenCase, slug: "black-hole", piece: Ascii.Pieces.BlackHole
 end

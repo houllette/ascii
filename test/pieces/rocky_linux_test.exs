@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.RockyLinuxTest do
+defmodule Ascii.Pieces.RockyLinuxTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.RockyLinux
-  use AsciiArt.GoldenCase, slug: "rocky-linux", piece: AsciiArt.Pieces.RockyLinux
+  use Ascii.ContractCase, piece: Ascii.Pieces.RockyLinux
+  use Ascii.GoldenCase, slug: "rocky-linux", piece: Ascii.Pieces.RockyLinux
 end

@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.ElixirTest do
+defmodule Ascii.Pieces.ElixirTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Elixir
-  use AsciiArt.GoldenCase, slug: "elixir", piece: AsciiArt.Pieces.Elixir
+  use Ascii.ContractCase, piece: Ascii.Pieces.Elixir
+  use Ascii.GoldenCase, slug: "elixir", piece: Ascii.Pieces.Elixir
 end

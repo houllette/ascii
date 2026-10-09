@@ -1,10 +1,10 @@
-defmodule AsciiArt.Pieces.SparklineTest do
+defmodule Ascii.Pieces.SparklineTest do
   use ExUnit.Case, async: true
 
   @cpu %{label: "cpu", unit: "%", lo: 0, hi: 100, values: [10, 40, 35, 80, 60, 20, 95]}
 
-  use AsciiArt.ContractCase,
-    piece: AsciiArt.Pieces.Sparkline,
+  use Ascii.ContractCase,
+    piece: Ascii.Pieces.Sparkline,
     variants: [
       %{series: [@cpu]},
       %{series: [@cpu], rows: 3, cols: 40, range: false},
@@ -18,10 +18,10 @@ defmodule AsciiArt.Pieces.SparklineTest do
       %{series: [%{label: "wide", unit: " widgets/s", digits: 2, values: [1.0e15, -1.0e15]}]}
     ]
 
-  use AsciiArt.GoldenCase, slug: "sparkline", piece: AsciiArt.Pieces.Sparkline
+  use Ascii.GoldenCase, slug: "sparkline", piece: Ascii.Pieces.Sparkline
 
   defp draw(options) do
-    {frame, _} = "sparkline" |> AsciiArt.new!(options: options) |> AsciiArt.frame(1.0)
+    {frame, _} = "sparkline" |> Ascii.new!(options: options) |> Ascii.frame(1.0)
     frame
   end
 
@@ -52,24 +52,24 @@ defmodule AsciiArt.Pieces.SparklineTest do
 
   test "values from params are checked: numbers only" do
     assert {:ok, _} =
-             AsciiArt.new("sparkline",
+             Ascii.new("sparkline",
                options: %{"series" => [%{"label" => "x", "values" => [1, 2]}]}
              )
 
     assert {:error, {:invalid_option, "series"}} =
-             AsciiArt.new("sparkline", options: %{"series" => [%{"values" => ["x"]}]})
+             Ascii.new("sparkline", options: %{"series" => [%{"values" => ["x"]}]})
   end
 
   test "new samples taken up while playing" do
-    anim = AsciiArt.new!("sparkline", options: %{series: [@cpu], range: false})
-    anim = AsciiArt.put_options!(anim, series: [%{@cpu | values: @cpu.values ++ [5]}])
-    {frame, _} = AsciiArt.frame(anim, 2.0)
+    anim = Ascii.new!("sparkline", options: %{series: [@cpu], range: false})
+    anim = Ascii.put_options!(anim, series: [%{@cpu | values: @cpu.values ++ [5]}])
+    {frame, _} = Ascii.frame(anim, 2.0)
     assert Enum.join(frame.lines) =~ "▁▏      5%"
   end
 
   describe "in words" do
     defp told(options),
-      do: "sparkline" |> AsciiArt.new!(options: options) |> AsciiArt.describe()
+      do: "sparkline" |> Ascii.new!(options: options) |> Ascii.describe()
 
     test "each series given values: its label and its latest value, in full" do
       series = [
@@ -90,11 +90,11 @@ defmodule AsciiArt.Pieces.SparklineTest do
   end
 
   describe "parts" do
-    alias AsciiArt.Pieces.Sparkline
+    alias Ascii.Pieces.Sparkline
 
     # The frame at 1s and its parts.
     defp parts(options) do
-      {frame, anim} = "sparkline" |> AsciiArt.new!(options: options) |> AsciiArt.frame(1.0)
+      {frame, anim} = "sparkline" |> Ascii.new!(options: options) |> Ascii.frame(1.0)
       {frame, Sparkline.parts(frame, anim.options)}
     end
 

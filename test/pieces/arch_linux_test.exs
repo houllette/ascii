@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.ArchLinuxTest do
+defmodule Ascii.Pieces.ArchLinuxTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.ArchLinux
-  use AsciiArt.GoldenCase, slug: "arch-linux", piece: AsciiArt.Pieces.ArchLinux
+  use Ascii.ContractCase, piece: Ascii.Pieces.ArchLinux
+  use Ascii.GoldenCase, slug: "arch-linux", piece: Ascii.Pieces.ArchLinux
 end

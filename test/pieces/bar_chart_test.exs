@@ -1,10 +1,10 @@
-defmodule AsciiArt.Pieces.BarChartTest do
+defmodule Ascii.Pieces.BarChartTest do
   use ExUnit.Case, async: true
 
   @months ~w(jan feb mar apr may jun jul aug sep oct nov dec)
 
-  use AsciiArt.ContractCase,
-    piece: AsciiArt.Pieces.BarChart,
+  use Ascii.ContractCase,
+    piece: Ascii.Pieces.BarChart,
     variants: [
       %{
         labels: @months,
@@ -26,51 +26,51 @@ defmodule AsciiArt.Pieces.BarChartTest do
       }
     ]
 
-  use AsciiArt.GoldenCase, slug: "bar-chart", piece: AsciiArt.Pieces.BarChart
+  use Ascii.GoldenCase, slug: "bar-chart", piece: Ascii.Pieces.BarChart
 
   test "values past a million are drawn as given" do
     values = [2_500_000, 3_100_000, 1_900_000, 4_200_000, 3_300_000, 2_000_000, 2_800_000]
     options = %{datasets: [%{name: "requests", values: values}]}
-    {frame, _} = "bar-chart" |> AsciiArt.new!(options: options) |> AsciiArt.frame(10.0)
+    {frame, _} = "bar-chart" |> Ascii.new!(options: options) |> Ascii.frame(10.0)
     assert frame.text =~ "4200000"
   end
 
   @one %{title: "requests", labels: ["a", "b"], datasets: [%{name: "now", values: [100, 300]}]}
 
-  defp text(anim, t), do: anim |> AsciiArt.frame(t) |> elem(0) |> Map.get(:text)
+  defp text(anim, t), do: anim |> Ascii.frame(t) |> elem(0) |> Map.get(:text)
 
   test "one dataset stands still, its values on top of its bars" do
-    anim = AsciiArt.new!("bar-chart", options: @one)
+    anim = Ascii.new!("bar-chart", options: @one)
     assert text(anim, 1.0) == text(anim, 7.0)
     assert text(anim, 1.0) =~ "300"
   end
 
   test "new values taken up while playing ease from what was shown" do
-    anim = AsciiArt.new!("bar-chart", options: @one)
-    {shown, anim} = AsciiArt.frame(anim, 1.0)
-    anim = AsciiArt.put_options!(anim, datasets: [%{name: "now", values: [300, 100]}])
+    anim = Ascii.new!("bar-chart", options: @one)
+    {shown, anim} = Ascii.frame(anim, 1.0)
+    anim = Ascii.put_options!(anim, datasets: [%{name: "now", values: [300, 100]}])
 
     # The first frame after is still the old picture; then the bars move,
     # and settle on the new values.
-    {first, anim} = AsciiArt.frame(anim, 1.0)
+    {first, anim} = Ascii.frame(anim, 1.0)
     assert first.text == shown.text
-    {midway, anim} = AsciiArt.frame(anim, 1.5)
+    {midway, anim} = Ascii.frame(anim, 1.5)
 
     refute midway.text in [
              shown.text,
              text(
-               AsciiArt.new!("bar-chart",
+               Ascii.new!("bar-chart",
                  options: %{@one | datasets: [%{name: "now", values: [300, 100]}]}
                ),
                1.0
              )
            ]
 
-    {settled, _} = AsciiArt.frame(anim, 3.0)
+    {settled, _} = Ascii.frame(anim, 3.0)
 
     assert settled.text ==
              text(
-               AsciiArt.new!("bar-chart",
+               Ascii.new!("bar-chart",
                  options: %{@one | datasets: [%{name: "now", values: [300, 100]}]}
                ),
                1.0
@@ -80,21 +80,21 @@ defmodule AsciiArt.Pieces.BarChartTest do
   test "cols makes room for more bars" do
     {frame, _} =
       "bar-chart"
-      |> AsciiArt.new!(
+      |> Ascii.new!(
         options: %{
           labels: @months,
           datasets: [%{name: "x", values: Enum.to_list(1..12)}],
           cols: 80
         }
       )
-      |> AsciiArt.frame(0.0)
+      |> Ascii.frame(0.0)
 
     assert frame.cols == 80
     for m <- @months, do: assert(frame.text =~ m)
   end
 
   describe "in words" do
-    defp told(options), do: "bar-chart" |> AsciiArt.new!(options: options) |> AsciiArt.describe()
+    defp told(options), do: "bar-chart" |> Ascii.new!(options: options) |> Ascii.describe()
 
     test "several datasets, each one's highest bar" do
       assert told(%{}) ==
@@ -123,11 +123,11 @@ defmodule AsciiArt.Pieces.BarChartTest do
   end
 
   describe "parts" do
-    alias AsciiArt.Pieces.BarChart
+    alias Ascii.Pieces.BarChart
 
     # The frame at the last of `times`, played in order, and its parts.
     defp parts(anim, times) do
-      {frame, anim} = Enum.reduce(times, {nil, anim}, fn t, {_, a} -> AsciiArt.frame(a, t) end)
+      {frame, anim} = Enum.reduce(times, {nil, anim}, fn t, {_, a} -> Ascii.frame(a, t) end)
       {frame, BarChart.parts(frame, anim.options)}
     end
 
@@ -143,7 +143,7 @@ defmodule AsciiArt.Pieces.BarChartTest do
     end
 
     test "title, legend, axis, scale, grid, bars by place, values and labels" do
-      p = parts(AsciiArt.new!("bar-chart"), [1.0])
+      p = parts(Ascii.new!("bar-chart"), [1.0])
 
       assert at(p, 2, 1) == {"title", "v"}
       assert at(p, 14, 1) == {"title", "y"}
@@ -171,23 +171,23 @@ defmodule AsciiArt.Pieces.BarChartTest do
     end
 
     test "the legend follows the dataset shown" do
-      p = parts(AsciiArt.new!("bar-chart"), [2.0])
+      p = parts(Ascii.new!("bar-chart"), [2.0])
       assert at(p, 32, 1) == {nil, " "}
       assert at(p, 41, 1) == {"legend.active", "["}
       assert at(p, 42, 1) == {"legend.active", "w"}
     end
 
     test "a full bar's value above the plot" do
-      p = parts(AsciiArt.new!("bar-chart", options: @one), [1.0])
+      p = parts(Ascii.new!("bar-chart", options: @one), [1.0])
       assert at(p, 33, 3) == {"value", "3"}
       assert at(p, 35, 3) == {"value", "0"}
       assert at(p, 33, 4) == {"bar.2", "█"}
     end
 
     test "bars easing down from values past the new top run over the title and legend" do
-      anim = AsciiArt.new!("bar-chart", options: @one)
-      {_, anim} = AsciiArt.frame(anim, 1.0)
-      anim = AsciiArt.put_options!(anim, datasets: [%{name: "now", values: [1, 3]}])
+      anim = Ascii.new!("bar-chart", options: @one)
+      {_, anim} = Ascii.frame(anim, 1.0)
+      anim = Ascii.put_options!(anim, datasets: [%{name: "now", values: [1, 3]}])
       p = parts(anim, [1.0, 1.2])
 
       assert at(p, 20, 1) == {"title", "r"}

@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.KaliLinuxTest do
+defmodule Ascii.Pieces.KaliLinuxTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.KaliLinux
-  use AsciiArt.GoldenCase, slug: "kali-linux", piece: AsciiArt.Pieces.KaliLinux
+  use Ascii.ContractCase, piece: Ascii.Pieces.KaliLinux
+  use Ascii.GoldenCase, slug: "kali-linux", piece: Ascii.Pieces.KaliLinux
 end

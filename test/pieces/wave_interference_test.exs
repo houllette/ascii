@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.WaveInterferenceTest do
+defmodule Ascii.Pieces.WaveInterferenceTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.WaveInterference
-  use AsciiArt.GoldenCase, slug: "wave-interference", piece: AsciiArt.Pieces.WaveInterference
+  use Ascii.ContractCase, piece: Ascii.Pieces.WaveInterference
+  use Ascii.GoldenCase, slug: "wave-interference", piece: Ascii.Pieces.WaveInterference
 end

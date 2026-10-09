@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.FirefliesTest do
+defmodule Ascii.Pieces.FirefliesTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Fireflies
-  use AsciiArt.GoldenCase, slug: "fireflies", piece: AsciiArt.Pieces.Fireflies
+  use Ascii.ContractCase, piece: Ascii.Pieces.Fireflies
+  use Ascii.GoldenCase, slug: "fireflies", piece: Ascii.Pieces.Fireflies
 end

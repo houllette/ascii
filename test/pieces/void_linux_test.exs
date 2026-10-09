@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.VoidLinuxTest do
+defmodule Ascii.Pieces.VoidLinuxTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.VoidLinux
-  use AsciiArt.GoldenCase, slug: "void-linux", piece: AsciiArt.Pieces.VoidLinux
+  use Ascii.ContractCase, piece: Ascii.Pieces.VoidLinux
+  use Ascii.GoldenCase, slug: "void-linux", piece: Ascii.Pieces.VoidLinux
 end

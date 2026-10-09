@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.LavaLampTest do
+defmodule Ascii.Pieces.LavaLampTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.LavaLamp
-  use AsciiArt.GoldenCase, slug: "lava-lamp", piece: AsciiArt.Pieces.LavaLamp
+  use Ascii.ContractCase, piece: Ascii.Pieces.LavaLamp
+  use Ascii.GoldenCase, slug: "lava-lamp", piece: Ascii.Pieces.LavaLamp
 end

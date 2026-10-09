@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.GoTest do
+defmodule Ascii.Pieces.GoTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Go
-  use AsciiArt.GoldenCase, slug: "go", piece: AsciiArt.Pieces.Go
+  use Ascii.ContractCase, piece: Ascii.Pieces.Go
+  use Ascii.GoldenCase, slug: "go", piece: Ascii.Pieces.Go
 end

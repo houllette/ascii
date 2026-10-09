@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.SpiderTest do
+defmodule Ascii.Pieces.SpiderTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Spider
-  use AsciiArt.GoldenCase, slug: "spider", piece: AsciiArt.Pieces.Spider
+  use Ascii.ContractCase, piece: Ascii.Pieces.Spider
+  use Ascii.GoldenCase, slug: "spider", piece: Ascii.Pieces.Spider
 end

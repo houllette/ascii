@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.KiteTest do
+defmodule Ascii.Pieces.KiteTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Kite
-  use AsciiArt.GoldenCase, slug: "kite", piece: AsciiArt.Pieces.Kite
+  use Ascii.ContractCase, piece: Ascii.Pieces.Kite
+  use Ascii.GoldenCase, slug: "kite", piece: Ascii.Pieces.Kite
 end

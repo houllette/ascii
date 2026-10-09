@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.SkylineTest do
+defmodule Ascii.Pieces.SkylineTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Skyline
-  use AsciiArt.GoldenCase, slug: "skyline", piece: AsciiArt.Pieces.Skyline
+  use Ascii.ContractCase, piece: Ascii.Pieces.Skyline
+  use Ascii.GoldenCase, slug: "skyline", piece: Ascii.Pieces.Skyline
 end

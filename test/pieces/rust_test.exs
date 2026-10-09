@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.RustTest do
+defmodule Ascii.Pieces.RustTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Rust
-  use AsciiArt.GoldenCase, slug: "rust", piece: AsciiArt.Pieces.Rust
+  use Ascii.ContractCase, piece: Ascii.Pieces.Rust
+  use Ascii.GoldenCase, slug: "rust", piece: Ascii.Pieces.Rust
 end

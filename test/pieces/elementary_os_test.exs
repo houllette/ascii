@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.ElementaryOsTest do
+defmodule Ascii.Pieces.ElementaryOsTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.ElementaryOs
-  use AsciiArt.GoldenCase, slug: "elementary-os", piece: AsciiArt.Pieces.ElementaryOs
+  use Ascii.ContractCase, piece: Ascii.Pieces.ElementaryOs
+  use Ascii.GoldenCase, slug: "elementary-os", piece: Ascii.Pieces.ElementaryOs
 end

@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.FallingSandTest do
+defmodule Ascii.Pieces.FallingSandTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.FallingSand
-  use AsciiArt.GoldenCase, slug: "falling-sand", piece: AsciiArt.Pieces.FallingSand
+  use Ascii.ContractCase, piece: Ascii.Pieces.FallingSand
+  use Ascii.GoldenCase, slug: "falling-sand", piece: Ascii.Pieces.FallingSand
 end

@@ -1,8 +1,8 @@
 // node tools/gen_js_math.mjs [out file]
 //
 // Writes test/fixtures/js_math.json: V8's answers for the Math functions,
-// 32-bit integer operators and number formatting that AsciiArt.JSMath and
-// AsciiArt.Int32 reimplement (the pieces call :math for the rest). Doubles
+// 32-bit integer operators and number formatting that Ascii.JSMath and
+// Ascii.Int32 reimplement (the pieces call :math for the rest). Doubles
 // are stored as 16 hex digits of their bits, so the comparison in the tests
 // is exact.
 //

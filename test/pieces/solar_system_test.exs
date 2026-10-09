@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.SolarSystemTest do
+defmodule Ascii.Pieces.SolarSystemTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.SolarSystem
-  use AsciiArt.GoldenCase, slug: "solar-system", piece: AsciiArt.Pieces.SolarSystem
+  use Ascii.ContractCase, piece: Ascii.Pieces.SolarSystem
+  use Ascii.GoldenCase, slug: "solar-system", piece: Ascii.Pieces.SolarSystem
 end

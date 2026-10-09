@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.RedHatTest do
+defmodule Ascii.Pieces.RedHatTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.RedHat
-  use AsciiArt.GoldenCase, slug: "red-hat", piece: AsciiArt.Pieces.RedHat
+  use Ascii.ContractCase, piece: Ascii.Pieces.RedHat
+  use Ascii.GoldenCase, slug: "red-hat", piece: Ascii.Pieces.RedHat
 end

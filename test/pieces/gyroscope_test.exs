@@ -1,11 +1,11 @@
-defmodule AsciiArt.Pieces.GyroscopeTest.Upstream do
+defmodule Ascii.Pieces.GyroscopeTest.Upstream do
   @moduledoc false
   # A plain port of upstream's gyroscope.ts, line for line: every point is
   # plotted in upstream's order into a Float32 depth buffer (a map here) and
   # shaded as it is written, with Math.hypot and Math.pow. No fast paths, no
   # margins.
 
-  alias AsciiArt.JSMath
+  alias Ascii.JSMath
 
   @cols 60
   @rows 32
@@ -274,13 +274,13 @@ defmodule AsciiArt.Pieces.GyroscopeTest.Upstream do
   end
 end
 
-defmodule AsciiArt.Pieces.GyroscopeTest do
+defmodule Ascii.Pieces.GyroscopeTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Gyroscope
-  use AsciiArt.GoldenCase, slug: "gyroscope", piece: AsciiArt.Pieces.Gyroscope
+  use Ascii.ContractCase, piece: Ascii.Pieces.Gyroscope
+  use Ascii.GoldenCase, slug: "gyroscope", piece: Ascii.Pieces.Gyroscope
 
-  alias AsciiArt.Pieces.Gyroscope
-  alias AsciiArt.Pieces.GyroscopeTest.Upstream
+  alias Ascii.Pieces.Gyroscope
+  alias Ascii.Pieces.GyroscopeTest.Upstream
 
   # The port plots into a scratch depth buffer of float32 bits, shades only
   # the point that keeps each cell, and brackets Math.pow before taking it
@@ -313,7 +313,7 @@ defmodule AsciiArt.Pieces.GyroscopeTest do
 
   # Each a fresh instance, threading its state through the times in turn.
   defp play(mod, state, times, paper) do
-    env = %AsciiArt.Env{cols: 60, rows: 32, paper: paper}
+    env = %Ascii.Env{cols: 60, rows: 32, paper: paper}
 
     {frames, _} =
       Enum.map_reduce(times, state, fn t, state ->

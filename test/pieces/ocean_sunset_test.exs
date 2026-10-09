@@ -1,17 +1,17 @@
-defmodule AsciiArt.Pieces.OceanSunsetTest do
+defmodule Ascii.Pieces.OceanSunsetTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.OceanSunset
-  use AsciiArt.GoldenCase, slug: "ocean-sunset", piece: AsciiArt.Pieces.OceanSunset
+  use Ascii.ContractCase, piece: Ascii.Pieces.OceanSunset
+  use Ascii.GoldenCase, slug: "ocean-sunset", piece: Ascii.Pieces.OceanSunset
 
-  alias AsciiArt.Env
-  alias AsciiArt.Pieces.OceanSunset
+  alias Ascii.Env
+  alias Ascii.Pieces.OceanSunset
 
   # The frame's shortcuts (`:math` checked against margins, precomputed dots,
   # skipped zero terms) must draw exactly what the forced exact path draws,
   # colour cache included, at any times in any order.
   property "the shortcuts draw what the exact path draws" do
     state =
-      AsciiArt.TestCache.fetch({:init, OceanSunset}, fn ->
+      Ascii.TestCache.fetch({:init, OceanSunset}, fn ->
         OceanSunset.init(OceanSunset.meta().options)
       end)
 

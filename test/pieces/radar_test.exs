@@ -1,10 +1,10 @@
-defmodule AsciiArt.Pieces.RadarTest do
+defmodule Ascii.Pieces.RadarTest do
   use ExUnit.Case, async: true
 
-  alias AsciiArt.Pieces.Radar
+  alias Ascii.Pieces.Radar
 
-  use AsciiArt.ContractCase,
-    piece: AsciiArt.Pieces.Radar,
+  use Ascii.ContractCase,
+    piece: Ascii.Pieces.Radar,
     variants: [
       %{contacts: [%{bearing: 90, range: 12}, %{bearing: 225, range: 22, size: 2}]},
       %{
@@ -16,11 +16,11 @@ defmodule AsciiArt.Pieces.RadarTest do
       %{land: false, contacts: [%{bearing: 200, range: 20}], unit: ""}
     ]
 
-  use AsciiArt.GoldenCase, slug: "radar", piece: AsciiArt.Pieces.Radar
+  use Ascii.GoldenCase, slug: "radar", piece: Ascii.Pieces.Radar
 
   defp draw(options, t) do
-    anim = AsciiArt.new!("radar", options: options)
-    {frame, anim} = AsciiArt.frame(anim, t)
+    anim = Ascii.new!("radar", options: options)
+    {frame, anim} = Ascii.frame(anim, t)
     {frame, Radar.parts(frame, anim.options)}
   end
 
@@ -69,10 +69,10 @@ defmodule AsciiArt.Pieces.RadarTest do
     end
 
     test "new ones taken up while playing are drawn at once" do
-      anim = AsciiArt.new!("radar", options: %{contacts: @east})
-      {_, anim} = AsciiArt.frame(anim, 1.05)
-      anim = AsciiArt.put_options!(anim, contacts: [%{bearing: 0, range: 12}])
-      {frame, _} = AsciiArt.frame(anim, 1.1)
+      anim = Ascii.new!("radar", options: %{contacts: @east})
+      {_, anim} = Ascii.frame(anim, 1.05)
+      anim = Ascii.put_options!(anim, contacts: [%{bearing: 0, range: 12}])
+      {frame, _} = Ascii.frame(anim, 1.1)
       assert String.at(Enum.at(frame.lines, 12), 36) != "█"
       assert String.at(Enum.at(frame.lines, 7), 26) == "▓"
     end
@@ -128,16 +128,16 @@ defmodule AsciiArt.Pieces.RadarTest do
     end
 
     test "coloured through the animation" do
-      anim = AsciiArt.new!("radar", options: %{contacts: @east}, parts: true)
-      {frame, _} = AsciiArt.frame(anim, 1.05)
-      assert AsciiArt.Frame.color_at(frame, 36, 12) == "#3fb950"
-      assert AsciiArt.Frame.color_at(frame, 6, 12) == "#8b949e"
-      assert AsciiArt.Frame.color_at(frame, 9, 12) == "#db6d28"
+      anim = Ascii.new!("radar", options: %{contacts: @east}, parts: true)
+      {frame, _} = Ascii.frame(anim, 1.05)
+      assert Ascii.Frame.color_at(frame, 36, 12) == "#3fb950"
+      assert Ascii.Frame.color_at(frame, 6, 12) == "#8b949e"
+      assert Ascii.Frame.color_at(frame, 9, 12) == "#db6d28"
     end
   end
 
   test "describe/1 counts the contacts within range" do
-    options = AsciiArt.meta!("radar").options
+    options = Ascii.meta!("radar").options
     assert Radar.describe(options) == nil
 
     assert Radar.describe(%{

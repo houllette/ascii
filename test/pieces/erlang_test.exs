@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.ErlangTest do
+defmodule Ascii.Pieces.ErlangTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Erlang
-  use AsciiArt.GoldenCase, slug: "erlang", piece: AsciiArt.Pieces.Erlang
+  use Ascii.ContractCase, piece: Ascii.Pieces.Erlang
+  use Ascii.GoldenCase, slug: "erlang", piece: Ascii.Pieces.Erlang
 end

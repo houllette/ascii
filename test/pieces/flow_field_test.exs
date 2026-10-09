@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.FlowFieldTest do
+defmodule Ascii.Pieces.FlowFieldTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.FlowField
-  use AsciiArt.GoldenCase, slug: "flow-field", piece: AsciiArt.Pieces.FlowField
+  use Ascii.ContractCase, piece: Ascii.Pieces.FlowField
+  use Ascii.GoldenCase, slug: "flow-field", piece: Ascii.Pieces.FlowField
 end

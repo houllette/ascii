@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.LandscapeTest do
+defmodule Ascii.Pieces.LandscapeTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Landscape
-  use AsciiArt.GoldenCase, slug: "landscape", piece: AsciiArt.Pieces.Landscape
+  use Ascii.ContractCase, piece: Ascii.Pieces.Landscape
+  use Ascii.GoldenCase, slug: "landscape", piece: Ascii.Pieces.Landscape
 end

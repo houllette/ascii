@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.RainTest do
+defmodule Ascii.Pieces.RainTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Rain
-  use AsciiArt.GoldenCase, slug: "rain", piece: AsciiArt.Pieces.Rain
+  use Ascii.ContractCase, piece: Ascii.Pieces.Rain
+  use Ascii.GoldenCase, slug: "rain", piece: Ascii.Pieces.Rain
 end

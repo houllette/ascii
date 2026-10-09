@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.SunriseTest do
+defmodule Ascii.Pieces.SunriseTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Sunrise
-  use AsciiArt.GoldenCase, slug: "sunrise", piece: AsciiArt.Pieces.Sunrise
+  use Ascii.ContractCase, piece: Ascii.Pieces.Sunrise
+  use Ascii.GoldenCase, slug: "sunrise", piece: Ascii.Pieces.Sunrise
 end

@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.MazeTest do
+defmodule Ascii.Pieces.MazeTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Maze
-  use AsciiArt.GoldenCase, slug: "maze", piece: AsciiArt.Pieces.Maze
+  use Ascii.ContractCase, piece: Ascii.Pieces.Maze
+  use Ascii.GoldenCase, slug: "maze", piece: Ascii.Pieces.Maze
 end

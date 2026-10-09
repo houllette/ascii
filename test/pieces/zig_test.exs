@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.ZigTest do
+defmodule Ascii.Pieces.ZigTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Zig
-  use AsciiArt.GoldenCase, slug: "zig", piece: AsciiArt.Pieces.Zig
+  use Ascii.ContractCase, piece: Ascii.Pieces.Zig
+  use Ascii.GoldenCase, slug: "zig", piece: Ascii.Pieces.Zig
 end

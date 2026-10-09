@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.PopOsTest do
+defmodule Ascii.Pieces.PopOsTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.PopOs
-  use AsciiArt.GoldenCase, slug: "pop-os", piece: AsciiArt.Pieces.PopOs
+  use Ascii.ContractCase, piece: Ascii.Pieces.PopOs
+  use Ascii.GoldenCase, slug: "pop-os", piece: Ascii.Pieces.PopOs
 end

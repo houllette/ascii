@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.ButterflyTest do
+defmodule Ascii.Pieces.ButterflyTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Butterfly
-  use AsciiArt.GoldenCase, slug: "butterfly", piece: AsciiArt.Pieces.Butterfly
+  use Ascii.ContractCase, piece: Ascii.Pieces.Butterfly
+  use Ascii.GoldenCase, slug: "butterfly", piece: Ascii.Pieces.Butterfly
 end

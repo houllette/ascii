@@ -1,16 +1,16 @@
-defmodule AsciiArt.Pieces.AlpineDawnTest do
+defmodule Ascii.Pieces.AlpineDawnTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.AlpineDawn
-  use AsciiArt.GoldenCase, slug: "alpine-dawn", piece: AsciiArt.Pieces.AlpineDawn
+  use Ascii.ContractCase, piece: Ascii.Pieces.AlpineDawn
+  use Ascii.GoldenCase, slug: "alpine-dawn", piece: Ascii.Pieces.AlpineDawn
 
-  alias AsciiArt.Pieces.AlpineDawn
+  alias Ascii.Pieces.AlpineDawn
 
   # The frame's shortcuts (the dot's fast power and the margins that guard
   # it, the lake's shared noise lattice) must draw exactly what the long way
   # draws, at any time, in colour and in one ink.
   property "the shortcuts draw what the exact path draws" do
     state =
-      AsciiArt.TestCache.fetch({:init, AlpineDawn}, fn ->
+      Ascii.TestCache.fetch({:init, AlpineDawn}, fn ->
         AlpineDawn.init(AlpineDawn.meta().options)
       end)
 
@@ -19,7 +19,7 @@ defmodule AsciiArt.Pieces.AlpineDawnTest do
             max_runs: 20
           ) do
       for color? <- [true, false] do
-        env = %AsciiArt.Env{cols: 200, rows: 100, color?: color?}
+        env = %Ascii.Env{cols: 200, rows: 100, color?: color?}
 
         Enum.reduce(times, {state, %{state | exact?: true}}, fn t, {fast, exact} ->
           {text, colors, fast} = AlpineDawn.frame(fast, t, env)

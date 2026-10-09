@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.GliderGunTest do
+defmodule Ascii.Pieces.GliderGunTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.GliderGun
-  use AsciiArt.GoldenCase, slug: "glider-gun", piece: AsciiArt.Pieces.GliderGun
+  use Ascii.ContractCase, piece: Ascii.Pieces.GliderGun
+  use Ascii.GoldenCase, slug: "glider-gun", piece: Ascii.Pieces.GliderGun
 end

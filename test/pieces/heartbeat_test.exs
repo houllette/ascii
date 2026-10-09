@@ -1,13 +1,13 @@
-defmodule AsciiArt.Pieces.HeartbeatTest do
+defmodule Ascii.Pieces.HeartbeatTest do
   use ExUnit.Case, async: true
 
-  alias AsciiArt.Pieces.Heartbeat
+  alias Ascii.Pieces.Heartbeat
 
-  use AsciiArt.ContractCase,
-    piece: AsciiArt.Pieces.Heartbeat,
+  use Ascii.ContractCase,
+    piece: Ascii.Pieces.Heartbeat,
     variants: [%{bpm: 30}, %{bpm: 180.4}]
 
-  use AsciiArt.GoldenCase, slug: "heartbeat", piece: AsciiArt.Pieces.Heartbeat
+  use Ascii.GoldenCase, slug: "heartbeat", piece: Ascii.Pieces.Heartbeat
 
   test "describe/1 tells the rate it beats at" do
     assert Heartbeat.describe(%{bpm: 72}) == "heartbeat: 72 bpm"

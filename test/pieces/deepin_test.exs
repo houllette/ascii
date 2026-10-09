@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.DeepinTest do
+defmodule Ascii.Pieces.DeepinTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Deepin
-  use AsciiArt.GoldenCase, slug: "deepin", piece: AsciiArt.Pieces.Deepin
+  use Ascii.ContractCase, piece: Ascii.Pieces.Deepin
+  use Ascii.GoldenCase, slug: "deepin", piece: Ascii.Pieces.Deepin
 end

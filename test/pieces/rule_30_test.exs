@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.Rule30Test do
+defmodule Ascii.Pieces.Rule30Test do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Rule30
-  use AsciiArt.GoldenCase, slug: "rule-30", piece: AsciiArt.Pieces.Rule30
+  use Ascii.ContractCase, piece: Ascii.Pieces.Rule30
+  use Ascii.GoldenCase, slug: "rule-30", piece: Ascii.Pieces.Rule30
 end

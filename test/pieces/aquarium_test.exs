@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.AquariumTest do
+defmodule Ascii.Pieces.AquariumTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Aquarium
-  use AsciiArt.GoldenCase, slug: "aquarium", piece: AsciiArt.Pieces.Aquarium
+  use Ascii.ContractCase, piece: Ascii.Pieces.Aquarium
+  use Ascii.GoldenCase, slug: "aquarium", piece: Ascii.Pieces.Aquarium
 end

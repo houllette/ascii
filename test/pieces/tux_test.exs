@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.TuxTest do
+defmodule Ascii.Pieces.TuxTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Tux
-  use AsciiArt.GoldenCase, slug: "tux", piece: AsciiArt.Pieces.Tux
+  use Ascii.ContractCase, piece: Ascii.Pieces.Tux
+  use Ascii.GoldenCase, slug: "tux", piece: Ascii.Pieces.Tux
 end

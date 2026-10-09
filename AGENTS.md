@@ -2,7 +2,7 @@
 
 ## Project overview
 
-`ascii_art` is an Elixir port of the [bas3line/ascii](https://github.com/bas3line/ascii)
+`ascii` is an Elixir port of the [bas3line/ascii](https://github.com/bas3line/ascii)
 library (ascii.rest) — "animated ascii art for web pages". Upstream is a
 TypeScript package of roughly 170–190 animated pieces (scenes, UI elements,
 charts, text effects, logos, 3D shapes, physics, generative patterns) that mount
@@ -93,7 +93,7 @@ alias in `mix.exs` is the authoritative list for this project.
   byte, text and colours; `test/pieces/<slug>_test.exs` (GoldenCase and
   ContractCase) checks it. Read `PORTING.md` before touching a piece: it has
   the hazards and the speed techniques that keep results exact.
-- **JS numbers go through `AsciiArt.JSMath` and `AsciiArt.Int32`** where
+- **JS numbers go through `Ascii.JSMath` and `Ascii.Int32`** where
   they differ from Elixir's (`Math.round`, `%`, `Math.fround`, typed-array
   stores, `Math.hypot`, `Math.cbrt`, `Math.log1p`, number formatting,
   32-bit operators), never raw `Bitwise` on JS values or Elixir's `round/1`.
@@ -102,12 +102,12 @@ alias in `mix.exs` is the authoritative list for this project.
   path, need a test holding them to it (`exact?` switches, reference ports
   in test files).
 - **Fixtures come from upstream**, regenerated with
-  `NODE=<x64 node> mix ascii_art.golden` (see `UPSTREAM.md`); never edit them.
+  `NODE=<x64 node> mix ascii.golden` (see `UPSTREAM.md`); never edit them.
 - **Generated files**: the registry map (`mix run tools/gen_registry.exs`),
   the README pieces table (`mix run tools/readme_pieces.exs`) and
   `PORT_STATUS.md` (`mix run tools/port_status.exs`). Tests fail when the
   first two are stale.
-- `mix ascii_art.perf [slug]` times pieces against upstream's budgets;
+- `mix ascii.perf [slug]` times pieces against upstream's budgets;
   `mix test --only perf` fails any piece over three times its budget.
 
 ## Library guidelines

@@ -1,12 +1,12 @@
-defmodule AsciiArt.Pieces.NotFoundTest do
+defmodule Ascii.Pieces.NotFoundTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.NotFound
-  use AsciiArt.GoldenCase, slug: "not-found", piece: AsciiArt.Pieces.NotFound
+  use Ascii.ContractCase, piece: Ascii.Pieces.NotFound
+  use Ascii.GoldenCase, slug: "not-found", piece: Ascii.Pieces.NotFound
 
-  alias AsciiArt.Pieces.NotFound
+  alias Ascii.Pieces.NotFound
 
   test "it says the code, the title and the message" do
-    assert AsciiArt.describe(AsciiArt.new!("not-found")) ==
+    assert Ascii.describe(Ascii.new!("not-found")) ==
              "404: page not found; the page you asked for has moved or never existed"
 
     describe = &NotFound.describe/1

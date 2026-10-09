@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.GalaxyTest do
+defmodule Ascii.Pieces.GalaxyTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Galaxy
-  use AsciiArt.GoldenCase, slug: "galaxy", piece: AsciiArt.Pieces.Galaxy
+  use Ascii.ContractCase, piece: Ascii.Pieces.Galaxy
+  use Ascii.GoldenCase, slug: "galaxy", piece: Ascii.Pieces.Galaxy
 end

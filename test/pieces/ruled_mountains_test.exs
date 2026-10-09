@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.RuledMountainsTest do
+defmodule Ascii.Pieces.RuledMountainsTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.RuledMountains
-  use AsciiArt.GoldenCase, slug: "ruled-mountains", piece: AsciiArt.Pieces.RuledMountains
+  use Ascii.ContractCase, piece: Ascii.Pieces.RuledMountains
+  use Ascii.GoldenCase, slug: "ruled-mountains", piece: Ascii.Pieces.RuledMountains
 end

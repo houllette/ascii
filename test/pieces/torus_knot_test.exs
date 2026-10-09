@@ -1,10 +1,10 @@
-defmodule AsciiArt.Pieces.TorusKnotTest.Upstream do
+defmodule Ascii.Pieces.TorusKnotTest.Upstream do
   @moduledoc false
   # A plain port of upstream's torus-knot.ts, line for line: every point is
   # plotted in upstream's order into a Float32 depth buffer (a map here) and
   # shaded as it is written, with Math.pow. No fast paths, no margins.
 
-  alias AsciiArt.JSMath
+  alias Ascii.JSMath
 
   @cols 60
   @rows 28
@@ -204,13 +204,13 @@ defmodule AsciiArt.Pieces.TorusKnotTest.Upstream do
   end
 end
 
-defmodule AsciiArt.Pieces.TorusKnotTest do
+defmodule Ascii.Pieces.TorusKnotTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.TorusKnot
-  use AsciiArt.GoldenCase, slug: "torus-knot", piece: AsciiArt.Pieces.TorusKnot
+  use Ascii.ContractCase, piece: Ascii.Pieces.TorusKnot
+  use Ascii.GoldenCase, slug: "torus-knot", piece: Ascii.Pieces.TorusKnot
 
-  alias AsciiArt.Pieces.TorusKnot
-  alias AsciiArt.Pieces.TorusKnotTest.Upstream
+  alias Ascii.Pieces.TorusKnot
+  alias Ascii.Pieces.TorusKnotTest.Upstream
 
   # The port plots into a scratch depth buffer of float32 bits, shades only
   # the point that keeps each cell, and brackets Math.pow before taking it
@@ -248,7 +248,7 @@ defmodule AsciiArt.Pieces.TorusKnotTest do
 
   # Each a fresh instance, threading its state through the times in turn.
   defp play(mod, state, times, paper) do
-    env = %AsciiArt.Env{cols: 60, rows: 28, paper: paper}
+    env = %Ascii.Env{cols: 60, rows: 28, paper: paper}
 
     {frames, _} =
       Enum.map_reduce(times, state, fn t, state ->

@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.BonsaiTest do
+defmodule Ascii.Pieces.BonsaiTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Bonsai
-  use AsciiArt.GoldenCase, slug: "bonsai", piece: AsciiArt.Pieces.Bonsai
+  use Ascii.ContractCase, piece: Ascii.Pieces.Bonsai
+  use Ascii.GoldenCase, slug: "bonsai", piece: Ascii.Pieces.Bonsai
 end

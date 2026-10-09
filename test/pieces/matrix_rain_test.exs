@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.MatrixRainTest do
+defmodule Ascii.Pieces.MatrixRainTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.MatrixRain
-  use AsciiArt.GoldenCase, slug: "matrix-rain", piece: AsciiArt.Pieces.MatrixRain
+  use Ascii.ContractCase, piece: Ascii.Pieces.MatrixRain
+  use Ascii.GoldenCase, slug: "matrix-rain", piece: Ascii.Pieces.MatrixRain
 end

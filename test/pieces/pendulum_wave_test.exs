@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.PendulumWaveTest do
+defmodule Ascii.Pieces.PendulumWaveTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.PendulumWave
-  use AsciiArt.GoldenCase, slug: "pendulum-wave", piece: AsciiArt.Pieces.PendulumWave
+  use Ascii.ContractCase, piece: Ascii.Pieces.PendulumWave
+  use Ascii.GoldenCase, slug: "pendulum-wave", piece: Ascii.Pieces.PendulumWave
 end

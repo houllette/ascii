@@ -1,8 +1,8 @@
-defmodule AsciiArt.Pieces.ProgressBarTest do
+defmodule Ascii.Pieces.ProgressBarTest do
   use ExUnit.Case, async: true
 
-  use AsciiArt.ContractCase,
-    piece: AsciiArt.Pieces.ProgressBar,
+  use Ascii.ContractCase,
+    piece: Ascii.Pieces.ProgressBar,
     variants: [
       %{values: [42]},
       %{values: [0, 33.3, 100, 150, -5, 99.9, 12], style: 2},
@@ -12,10 +12,10 @@ defmodule AsciiArt.Pieces.ProgressBarTest do
       %{values: Enum.to_list(1..40), cols: 112.0}
     ]
 
-  use AsciiArt.GoldenCase, slug: "progress-bar", piece: AsciiArt.Pieces.ProgressBar
+  use Ascii.GoldenCase, slug: "progress-bar", piece: Ascii.Pieces.ProgressBar
 
   defp draw(options, t \\ 0.0) do
-    {frame, _} = "progress-bar" |> AsciiArt.new!(options: options) |> AsciiArt.frame(t)
+    {frame, _} = "progress-bar" |> Ascii.new!(options: options) |> Ascii.frame(t)
     frame
   end
 
@@ -42,15 +42,15 @@ defmodule AsciiArt.Pieces.ProgressBarTest do
   end
 
   test "values taken up while playing move the bars" do
-    anim = AsciiArt.new!("progress-bar", options: %{values: [10]})
-    anim = AsciiArt.put_options!(anim, values: [90])
-    {frame, _} = AsciiArt.frame(anim, 1.0)
+    anim = Ascii.new!("progress-bar", options: %{values: [10]})
+    anim = Ascii.put_options!(anim, values: [90])
+    {frame, _} = Ascii.frame(anim, 1.0)
     assert Enum.at(frame.lines, 1) =~ " 90%"
   end
 
   describe "in words" do
     defp told(options),
-      do: "progress-bar" |> AsciiArt.new!(options: options) |> AsciiArt.describe()
+      do: "progress-bar" |> Ascii.new!(options: options) |> Ascii.describe()
 
     test "each value given, its label and its percent as the bar shows it" do
       assert told(%{values: [34.7, 100, 150, -3], labels: ["fetch", "", "x"]}) ==
@@ -69,11 +69,11 @@ defmodule AsciiArt.Pieces.ProgressBarTest do
   end
 
   describe "parts" do
-    alias AsciiArt.Frame
-    alias AsciiArt.Pieces.ProgressBar
+    alias Ascii.Frame
+    alias Ascii.Pieces.ProgressBar
 
     defp parts(options, t \\ 0.0) do
-      {frame, anim} = "progress-bar" |> AsciiArt.new!(options: options) |> AsciiArt.frame(t)
+      {frame, anim} = "progress-bar" |> Ascii.new!(options: options) |> Ascii.frame(t)
       {frame, ProgressBar.parts(frame, anim.options)}
     end
 
@@ -163,8 +163,8 @@ defmodule AsciiArt.Pieces.ProgressBarTest do
     test "with parts: true, the fill is blue, the track and ends grey, a full bar green" do
       {frame, _} =
         "progress-bar"
-        |> AsciiArt.new!(options: %{values: [42, 100], style: 2}, parts: true)
-        |> AsciiArt.frame(0.0)
+        |> Ascii.new!(options: %{values: [42, 100], style: 2}, parts: true)
+        |> Ascii.frame(0.0)
 
       assert Frame.color_at(frame, 12, 1) == "#8b949e"
       assert Frame.color_at(frame, 13, 1) == "#58a6ff"

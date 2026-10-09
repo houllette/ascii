@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.SaptarishiTest do
+defmodule Ascii.Pieces.SaptarishiTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Saptarishi
-  use AsciiArt.GoldenCase, slug: "saptarishi", piece: AsciiArt.Pieces.Saptarishi
+  use Ascii.ContractCase, piece: Ascii.Pieces.Saptarishi
+  use Ascii.GoldenCase, slug: "saptarishi", piece: Ascii.Pieces.Saptarishi
 end

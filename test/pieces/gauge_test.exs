@@ -1,10 +1,10 @@
-defmodule AsciiArt.Pieces.GaugeTest do
+defmodule Ascii.Pieces.GaugeTest do
   use ExUnit.Case, async: true
 
-  alias AsciiArt.Pieces.Gauge
+  alias Ascii.Pieces.Gauge
 
-  use AsciiArt.ContractCase,
-    piece: AsciiArt.Pieces.Gauge,
+  use Ascii.ContractCase,
+    piece: Ascii.Pieces.Gauge,
     variants: [
       %{value: 40},
       %{value: -10},
@@ -19,22 +19,22 @@ defmodule AsciiArt.Pieces.GaugeTest do
       %{cols: 60.7, rows: 21.2}
     ]
 
-  use AsciiArt.GoldenCase, slug: "gauge", piece: AsciiArt.Pieces.Gauge
+  use Ascii.GoldenCase, slug: "gauge", piece: Ascii.Pieces.Gauge
 
-  defp text(anim, t), do: anim |> AsciiArt.frame(t) |> elem(0) |> Map.get(:text)
+  defp text(anim, t), do: anim |> Ascii.frame(t) |> elem(0) |> Map.get(:text)
 
   test "a value is a reading: the readout shows it, and the needle settles on it" do
-    anim = AsciiArt.new!("gauge", options: %{value: 72})
+    anim = Ascii.new!("gauge", options: %{value: 72})
     assert text(anim, 0.0) =~ "72%"
     # Settled: two late frames agree, and agree with a gauge that started at 72.
     assert text(anim, 9.0) == text(anim, 9.5)
   end
 
   test "a new reading taken up while playing swings the needle on from where it was" do
-    anim = AsciiArt.new!("gauge", options: %{value: 20})
-    {before, anim} = AsciiArt.frame(anim, 0.3)
-    anim = AsciiArt.put_options!(anim, value: 90)
-    {after_update, anim} = AsciiArt.frame(anim, 0.3)
+    anim = Ascii.new!("gauge", options: %{value: 20})
+    {before, anim} = Ascii.frame(anim, 0.3)
+    anim = Ascii.put_options!(anim, value: 90)
+    {after_update, anim} = Ascii.frame(anim, 0.3)
 
     # At once only the readout changes: the needle has not jumped.
     changed =
@@ -51,15 +51,15 @@ defmodule AsciiArt.Pieces.GaugeTest do
   defp count(text, s), do: length(String.split(text, s)) - 1
 
   test "without a value it plays upstream's readings" do
-    refute text(AsciiArt.new!("gauge"), 0.0) == text(AsciiArt.new!("gauge"), 2.0)
+    refute text(Ascii.new!("gauge"), 0.0) == text(Ascii.new!("gauge"), 2.0)
   end
 
   describe "cols and rows" do
     # A gauge settled on `value`, at a size.
     defp settled(options) do
-      anim = AsciiArt.new!("gauge", options: options)
-      {_, anim} = AsciiArt.frame(anim, 0.0)
-      {frame, _} = AsciiArt.frame(anim, 60.0)
+      anim = Ascii.new!("gauge", options: options)
+      {_, anim} = Ascii.frame(anim, 0.0)
+      {frame, _} = Ascii.frame(anim, 60.0)
       frame
     end
 
@@ -90,30 +90,30 @@ defmodule AsciiArt.Pieces.GaugeTest do
     end
 
     test "never smaller than the least dial, of radius 16" do
-      assert AsciiArt.new!("gauge", options: %{cols: 10, rows: 3}) |> then(&{&1.cols, &1.rows}) ==
+      assert Ascii.new!("gauge", options: %{cols: 10, rows: 3}) |> then(&{&1.cols, &1.rows}) ==
                {43, 15}
 
       assert Gauge.size(%{cols: 55.9, rows: 18.2}) == {55, 18}
     end
 
     test "upstream's size draws upstream's dial" do
-      assert text(AsciiArt.new!("gauge", options: %{cols: 55, rows: 18}), 1.0) ==
-               text(AsciiArt.new!("gauge"), 1.0)
+      assert text(Ascii.new!("gauge", options: %{cols: 55, rows: 18}), 1.0) ==
+               text(Ascii.new!("gauge"), 1.0)
     end
 
     test "taken up while playing, the needle carries on in the new dial" do
-      anim = AsciiArt.new!("gauge", options: %{value: 20})
-      {_, anim} = AsciiArt.frame(anim, 0.0)
-      {_, anim} = AsciiArt.frame(anim, 9.0)
-      anim = AsciiArt.put_options!(anim, cols: 120, rows: 30, value: 20)
+      anim = Ascii.new!("gauge", options: %{value: 20})
+      {_, anim} = Ascii.frame(anim, 0.0)
+      {_, anim} = Ascii.frame(anim, 9.0)
+      anim = Ascii.put_options!(anim, cols: 120, rows: 30, value: 20)
       assert {anim.cols, anim.rows} == {120, 30}
-      {frame, _} = AsciiArt.frame(anim, 9.1)
+      {frame, _} = Ascii.frame(anim, 9.1)
       assert frame.text == settled(%{value: 20, cols: 120, rows: 30}).text
     end
   end
 
   test "describe/1 tells the reading as the readout shows it" do
-    options = AsciiArt.meta!("gauge").options
+    options = Ascii.meta!("gauge").options
     assert Gauge.describe(options) == nil
     assert Gauge.describe(%{options | value: 71.6}) == "load: 72%"
 
@@ -127,8 +127,8 @@ defmodule AsciiArt.Pieces.GaugeTest do
     # The frame at the last of `times`, played in order, and its parts.
     defp parts(options, times) do
       {frame, anim} =
-        Enum.reduce(times, {nil, AsciiArt.new!("gauge", options: options)}, fn t, {_, anim} ->
-          AsciiArt.frame(anim, t)
+        Enum.reduce(times, {nil, Ascii.new!("gauge", options: options)}, fn t, {_, anim} ->
+          Ascii.frame(anim, t)
         end)
 
       {frame, Gauge.parts(frame, anim.options)}
@@ -206,8 +206,7 @@ defmodule AsciiArt.Pieces.GaugeTest do
       MapSet.new(0..56, fn j ->
         r = 2 + j * 0.25
 
-        {AsciiArt.JSMath.round(27 + r * :math.cos(a)),
-         AsciiArt.JSMath.round(27 - r * :math.sin(a))}
+        {Ascii.JSMath.round(27 + r * :math.cos(a)), Ascii.JSMath.round(27 - r * :math.sin(a))}
       end)
     end
 
@@ -246,8 +245,7 @@ defmodule AsciiArt.Pieces.GaugeTest do
       MapSet.new(0..(4 * (r - 8)), fn j ->
         d = 2 + j * 0.25
 
-        {AsciiArt.JSMath.round(cx + d * :math.cos(a)),
-         AsciiArt.JSMath.round(cy - d * :math.sin(a))}
+        {Ascii.JSMath.round(cx + d * :math.cos(a)), Ascii.JSMath.round(cy - d * :math.sin(a))}
       end)
     end
 
@@ -285,12 +283,12 @@ defmodule AsciiArt.Pieces.GaugeTest do
     end
 
     test "coloured through the animation" do
-      anim = AsciiArt.new!("gauge", options: %{value: 30}, parts: %{needle: "#d29922"})
-      {_, anim} = AsciiArt.frame(anim, 0.0)
-      {frame, _} = AsciiArt.frame(anim, 9.0)
-      assert AsciiArt.Frame.color_at(frame, 19, 7) == "#d29922"
-      assert AsciiArt.Frame.color_at(frame, 27, 13) == "#d29922"
-      assert AsciiArt.Frame.color_at(frame, 23, 2) == nil
+      anim = Ascii.new!("gauge", options: %{value: 30}, parts: %{needle: "#d29922"})
+      {_, anim} = Ascii.frame(anim, 0.0)
+      {frame, _} = Ascii.frame(anim, 9.0)
+      assert Ascii.Frame.color_at(frame, 19, 7) == "#d29922"
+      assert Ascii.Frame.color_at(frame, 27, 13) == "#d29922"
+      assert Ascii.Frame.color_at(frame, 23, 2) == nil
     end
   end
 end

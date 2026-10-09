@@ -1,23 +1,23 @@
-defmodule AsciiArt.Pieces.TypewriterTest do
+defmodule Ascii.Pieces.TypewriterTest do
   use ExUnit.Case, async: true
 
-  use AsciiArt.ContractCase,
-    piece: AsciiArt.Pieces.Typewriter,
+  use Ascii.ContractCase,
+    piece: Ascii.Pieces.Typewriter,
     variants: [
       %{prefix: "", phrases: ["hello, world", "a  b "]},
       %{prefix: "  $ ", phrases: ["ls -la", "▌ is a cursor"]},
       %{prefix: String.duplicate("long ", 10)}
     ]
 
-  use AsciiArt.GoldenCase, slug: "typewriter", piece: AsciiArt.Pieces.Typewriter
+  use Ascii.GoldenCase, slug: "typewriter", piece: Ascii.Pieces.Typewriter
 
-  alias AsciiArt.Frame
-  alias AsciiArt.Pieces.Typewriter
+  alias Ascii.Frame
+  alias Ascii.Pieces.Typewriter
 
   # A frame at `t` with `options`, and the part of each of its cells.
   defp parts_at(t, options \\ %{}) do
-    anim = AsciiArt.new!("typewriter", options: options)
-    {frame, _} = AsciiArt.frame(anim, t)
+    anim = Ascii.new!("typewriter", options: options)
+    {frame, _} = Ascii.frame(anim, t)
 
     names =
       for runs <- Typewriter.parts(frame, anim.options) do
@@ -85,7 +85,7 @@ defmodule AsciiArt.Pieces.TypewriterTest do
     end
 
     test "with parts: true, the phrase and the cursor take the suggested colours" do
-      {frame, _} = "typewriter" |> AsciiArt.new!(parts: true) |> AsciiArt.frame(0.0)
+      {frame, _} = "typewriter" |> Ascii.new!(parts: true) |> Ascii.frame(0.0)
       assert Frame.color_at(frame, 9, 1) == nil
       assert Frame.color_at(frame, 16, 1) == "#58a6ff"
       assert Frame.color_at(frame, 28, 1) == "#d29922"
@@ -93,7 +93,7 @@ defmodule AsciiArt.Pieces.TypewriterTest do
   end
 
   test "it says each phrase as typed after the prefix, four and a count of the rest" do
-    assert AsciiArt.describe(AsciiArt.new!("typewriter")) ==
+    assert Ascii.describe(Ascii.new!("typewriter")) ==
              "typewriter: i make small tools; i make quiet websites; " <>
                "i make things that last; i make notes for later"
 

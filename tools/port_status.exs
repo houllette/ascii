@@ -1,13 +1,13 @@
 # mix run tools/port_status.exs
 #
 # Writes PORT_STATUS.md: one row per upstream piece (every golden fixture),
-# with its status, its average frame time from Mix.Tasks.AsciiArt.Perf, and
+# with its status, its average frame time from Mix.Tasks.Ascii.Perf, and
 # notes from tools/port_notes.exs. A registered piece is green: the suite
-# requires its golden and contract tests (see AsciiArt.CoverageTest). One
+# requires its golden and contract tests (see Ascii.CoverageTest). One
 # with a tolerance in test/fixtures/tolerances.exs is "tolerance"; one
 # marked {:blocked, why} in the notes and not registered is "blocked"; any
 # other is "todo".
-alias AsciiArt.Registry
+alias Ascii.Registry
 
 fixtures = "test/fixtures/golden"
 slugs = fixtures |> File.ls!() |> Enum.filter(&String.ends_with?(&1, ".json")) |> Enum.map(&Path.rootname/1) |> Enum.sort()
@@ -30,7 +30,7 @@ rows =
     {status, ms} =
       case Map.fetch(registered, slug) do
         {:ok, mod} ->
-          r = Mix.Tasks.AsciiArt.Perf.measure(slug, mod)
+          r = Mix.Tasks.Ascii.Perf.measure(slug, mod)
           {if(Map.has_key?(tolerances, slug), do: "tolerance", else: "green"), r}
 
         :error ->

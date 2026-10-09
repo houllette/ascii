@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.SundialTest do
+defmodule Ascii.Pieces.SundialTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Sundial
-  use AsciiArt.GoldenCase, slug: "sundial", piece: AsciiArt.Pieces.Sundial
+  use Ascii.ContractCase, piece: Ascii.Pieces.Sundial
+  use Ascii.GoldenCase, slug: "sundial", piece: Ascii.Pieces.Sundial
 end

@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.CandleTest do
+defmodule Ascii.Pieces.CandleTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Candle
-  use AsciiArt.GoldenCase, slug: "candle", piece: AsciiArt.Pieces.Candle
+  use Ascii.ContractCase, piece: Ascii.Pieces.Candle
+  use Ascii.GoldenCase, slug: "candle", piece: Ascii.Pieces.Candle
 end

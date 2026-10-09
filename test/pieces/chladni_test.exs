@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.ChladniTest do
+defmodule Ascii.Pieces.ChladniTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Chladni
-  use AsciiArt.GoldenCase, slug: "chladni", piece: AsciiArt.Pieces.Chladni
+  use Ascii.ContractCase, piece: Ascii.Pieces.Chladni
+  use Ascii.GoldenCase, slug: "chladni", piece: Ascii.Pieces.Chladni
 end

@@ -1,13 +1,13 @@
-defmodule AsciiArt.GoldenCase do
+defmodule Ascii.GoldenCase do
   @moduledoc """
   Checks a piece frame for frame against upstream.
 
-      defmodule AsciiArt.Pieces.DonutTest do
+      defmodule Ascii.Pieces.DonutTest do
         use ExUnit.Case, async: true
-        use AsciiArt.GoldenCase, slug: "donut", piece: AsciiArt.Pieces.Donut
+        use Ascii.GoldenCase, slug: "donut", piece: Ascii.Pieces.Donut
       end
 
-  Loads `test/fixtures/golden/<slug>.json` (made by `mix ascii_art.golden`
+  Loads `test/fixtures/golden/<slug>.json` (made by `mix ascii.golden`
   from the upstream source) and defines three tests:
 
     * the piece's meta is upstream's meta (options this port adds aside);
@@ -21,7 +21,7 @@ defmodule AsciiArt.GoldenCase do
   `test/fixtures/tolerances.exs` allows, which is for libm differences only.
   """
 
-  alias AsciiArt.Env
+  alias Ascii.Env
 
   @golden_dir "test/fixtures/golden"
 
@@ -33,15 +33,15 @@ defmodule AsciiArt.GoldenCase do
       @moduletag :golden
 
       test "meta is upstream's" do
-        AsciiArt.GoldenCase.assert_meta(unquote(piece), unquote(slug))
+        Ascii.GoldenCase.assert_meta(unquote(piece), unquote(slug))
       end
 
       test "frames match upstream at the fixture's times" do
-        AsciiArt.GoldenCase.assert_runs(unquote(piece), unquote(slug))
+        Ascii.GoldenCase.assert_runs(unquote(piece), unquote(slug))
       end
 
       test "frames match upstream played at the frame rate" do
-        AsciiArt.GoldenCase.assert_play(unquote(piece), unquote(slug))
+        Ascii.GoldenCase.assert_play(unquote(piece), unquote(slug))
       end
     end
   end
@@ -49,7 +49,7 @@ defmodule AsciiArt.GoldenCase do
   @doc "The decoded fixture for a slug."
   @spec fixture(String.t()) :: map()
   def fixture(slug) do
-    AsciiArt.TestCache.fetch({:fixture, slug}, fn ->
+    Ascii.TestCache.fetch({:fixture, slug}, fn ->
       Path.join(@golden_dir, slug <> ".json") |> File.read!() |> JSON.decode!()
     end)
   end
@@ -64,7 +64,7 @@ defmodule AsciiArt.GoldenCase do
     |> Enum.sort()
   end
 
-  @doc "Upstream's meta, as an `AsciiArt.Meta` would hold it."
+  @doc "Upstream's meta, as an `Ascii.Meta` would hold it."
   @spec upstream_meta(map()) :: map()
   def upstream_meta(%{"meta" => m}) do
     %{
@@ -151,11 +151,11 @@ defmodule AsciiArt.GoldenCase do
 
     {_, failures} =
       Stream.iterate(0, &(&1 + 1))
-      |> Stream.map(&(AsciiArt.JSMath.round(&1 * step * 1.0e6) / 1.0e6))
+      |> Stream.map(&(Ascii.JSMath.round(&1 * step * 1.0e6) / 1.0e6))
       |> Stream.take_while(&(&1 <= last + 1.0e-9))
       |> Enum.reduce({initial(piece), []}, fn t, {state, failures} ->
-        mono? = not AsciiArt.Meta.colored?(meta)
-        clock = if meta.clock, do: fx["clock"]["start"] + AsciiArt.JSMath.round(t * 1000)
+        mono? = not Ascii.Meta.colored?(meta)
+        clock = if meta.clock, do: fx["clock"]["start"] + Ascii.JSMath.round(t * 1000)
         frame = %{"t" => t, "paper" => false, "mono" => mono?, "now" => clock}
         {got, state} = draw(piece, state, frame)
 
@@ -174,7 +174,7 @@ defmodule AsciiArt.GoldenCase do
 
   # A fresh instance: init/1 is pure, so one computed state serves every run.
   defp initial(piece),
-    do: AsciiArt.TestCache.fetch({:init, piece}, fn -> piece.init(piece.meta().options) end)
+    do: Ascii.TestCache.fetch({:init, piece}, fn -> piece.init(piece.meta().options) end)
 
   defp draw(piece, state, want) do
     meta = piece.meta()

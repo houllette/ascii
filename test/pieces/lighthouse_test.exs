@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.LighthouseTest do
+defmodule Ascii.Pieces.LighthouseTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Lighthouse
-  use AsciiArt.GoldenCase, slug: "lighthouse", piece: AsciiArt.Pieces.Lighthouse
+  use Ascii.ContractCase, piece: Ascii.Pieces.Lighthouse
+  use Ascii.GoldenCase, slug: "lighthouse", piece: Ascii.Pieces.Lighthouse
 end

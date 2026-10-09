@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.DoublePendulumTest do
+defmodule Ascii.Pieces.DoublePendulumTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.DoublePendulum
-  use AsciiArt.GoldenCase, slug: "double-pendulum", piece: AsciiArt.Pieces.DoublePendulum
+  use Ascii.ContractCase, piece: Ascii.Pieces.DoublePendulum
+  use Ascii.GoldenCase, slug: "double-pendulum", piece: Ascii.Pieces.DoublePendulum
 end

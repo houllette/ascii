@@ -1,10 +1,10 @@
-defmodule AsciiArt.Pieces.GlxgearsTest.Upstream do
+defmodule Ascii.Pieces.GlxgearsTest.Upstream do
   @moduledoc false
   # A plain port of upstream's glxgears.ts, line for line: every point is
   # plotted in upstream's order, with Math.sin and Math.cos of its angle,
   # into a Float32 depth buffer (a map here). No fast paths, no margins.
 
-  alias AsciiArt.JSMath
+  alias Ascii.JSMath
 
   @cols 56
   @rows 31
@@ -277,13 +277,13 @@ defmodule AsciiArt.Pieces.GlxgearsTest.Upstream do
   end
 end
 
-defmodule AsciiArt.Pieces.GlxgearsTest do
+defmodule Ascii.Pieces.GlxgearsTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Glxgears
-  use AsciiArt.GoldenCase, slug: "glxgears", piece: AsciiArt.Pieces.Glxgears
+  use Ascii.ContractCase, piece: Ascii.Pieces.Glxgears
+  use Ascii.GoldenCase, slug: "glxgears", piece: Ascii.Pieces.Glxgears
 
-  alias AsciiArt.Pieces.Glxgears
-  alias AsciiArt.Pieces.GlxgearsTest.Upstream
+  alias Ascii.Pieces.Glxgears
+  alias Ascii.Pieces.GlxgearsTest.Upstream
 
   # The port keeps a quantised depth per sample and settles near ties
   # exactly, places face points by rotation with an exact fallback near
@@ -323,7 +323,7 @@ defmodule AsciiArt.Pieces.GlxgearsTest do
 
   # Each a fresh instance, threading its state through the times in turn.
   defp play(mod, state, times, paper) do
-    env = %AsciiArt.Env{cols: 56, rows: 31, paper: paper}
+    env = %Ascii.Env{cols: 56, rows: 31, paper: paper}
 
     {frames, _} =
       Enum.map_reduce(times, state, fn t, state ->

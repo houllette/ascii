@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.DonutTest do
+defmodule Ascii.Pieces.DonutTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Donut
-  use AsciiArt.GoldenCase, slug: "donut", piece: AsciiArt.Pieces.Donut
+  use Ascii.ContractCase, piece: Ascii.Pieces.Donut
+  use Ascii.GoldenCase, slug: "donut", piece: Ascii.Pieces.Donut
 end

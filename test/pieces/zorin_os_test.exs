@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.ZorinOsTest do
+defmodule Ascii.Pieces.ZorinOsTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.ZorinOs
-  use AsciiArt.GoldenCase, slug: "zorin-os", piece: AsciiArt.Pieces.ZorinOs
+  use Ascii.ContractCase, piece: Ascii.Pieces.ZorinOs
+  use Ascii.GoldenCase, slug: "zorin-os", piece: Ascii.Pieces.ZorinOs
 end

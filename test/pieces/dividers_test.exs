@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.DividersTest do
+defmodule Ascii.Pieces.DividersTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Dividers
-  use AsciiArt.GoldenCase, slug: "dividers", piece: AsciiArt.Pieces.Dividers
+  use Ascii.ContractCase, piece: Ascii.Pieces.Dividers
+  use Ascii.GoldenCase, slug: "dividers", piece: Ascii.Pieces.Dividers
 end

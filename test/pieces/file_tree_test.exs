@@ -1,13 +1,13 @@
-defmodule AsciiArt.Pieces.FileTreeTest do
+defmodule Ascii.Pieces.FileTreeTest do
   use ExUnit.Case, async: true
 
-  alias AsciiArt.Pieces.FileTree
+  alias Ascii.Pieces.FileTree
 
   @all ["docs/", "public/", "src/", "src/components/", "src/lib/", "tests/"]
   @app ["lib/app.ex", "lib/app/repo.ex", "mix.exs", "README.md", "test/"]
 
-  use AsciiArt.ContractCase,
-    piece: AsciiArt.Pieces.FileTree,
+  use Ascii.ContractCase,
+    piece: Ascii.Pieces.FileTree,
     variants: [
       %{walk: false, open: ["src/", "src/lib/"], cursor: "src/lib/fetch.ts"},
       %{walk: false, open: @all, cursor: "src/index.ts", rows: 7},
@@ -20,12 +20,12 @@ defmodule AsciiArt.Pieces.FileTreeTest do
       %{paths: @app, root: "app"}
     ]
 
-  use AsciiArt.GoldenCase, slug: "file-tree", piece: AsciiArt.Pieces.FileTree
+  use Ascii.GoldenCase, slug: "file-tree", piece: Ascii.Pieces.FileTree
 
-  doctest AsciiArt.Pieces.FileTree
+  doctest Ascii.Pieces.FileTree
 
   defp lines(options, t \\ 0.0) do
-    {frame, _} = "file-tree" |> AsciiArt.new!(options: options) |> AsciiArt.frame(t)
+    {frame, _} = "file-tree" |> Ascii.new!(options: options) |> Ascii.frame(t)
     Enum.map(frame.lines, &String.trim_trailing/1)
   end
 
@@ -33,7 +33,7 @@ defmodule AsciiArt.Pieces.FileTreeTest do
 
   # The options after each event in turn, from these; every event used.
   defp events(options, events) do
-    Enum.reduce(events, Map.merge(AsciiArt.meta!("file-tree").options, still(options)), fn
+    Enum.reduce(events, Map.merge(Ascii.meta!("file-tree").options, still(options)), fn
       event, options ->
         case FileTree.handle_event(event, options) do
           {:ok, options} -> options
@@ -42,7 +42,7 @@ defmodule AsciiArt.Pieces.FileTreeTest do
     end)
   end
 
-  defp options(options), do: Map.merge(AsciiArt.meta!("file-tree").options, still(options))
+  defp options(options), do: Map.merge(Ascii.meta!("file-tree").options, still(options))
 
   describe "walk: false" do
     test "the tree stands as open and cursor say, the cursor the branch turned arrow" do
@@ -200,7 +200,7 @@ defmodule AsciiArt.Pieces.FileTreeTest do
 
     test "the walk takes no events" do
       for event <- [{:key, "down"}, {:click, 8, 3}] do
-        assert FileTree.handle_event(event, AsciiArt.meta!("file-tree").options) == :ignore
+        assert FileTree.handle_event(event, Ascii.meta!("file-tree").options) == :ignore
       end
     end
 
@@ -214,10 +214,10 @@ defmodule AsciiArt.Pieces.FileTreeTest do
     end
 
     test "through the animation, the frame follows" do
-      anim = AsciiArt.new!("file-tree", options: %{walk: false})
-      {:ok, anim} = AsciiArt.handle_event(anim, {:key, "down"})
-      {:ok, anim} = AsciiArt.handle_event(anim, {:key, "enter"})
-      {frame, _} = AsciiArt.frame(anim, 0.0)
+      anim = Ascii.new!("file-tree", options: %{walk: false})
+      {:ok, anim} = Ascii.handle_event(anim, {:key, "down"})
+      {:ok, anim} = Ascii.handle_event(anim, {:key, "enter"})
+      {frame, _} = Ascii.frame(anim, 0.0)
       assert anim.options.cursor == "docs/"
       assert Enum.at(frame.lines, 1) |> String.trim_trailing() == "      ├─> docs/"
       assert Enum.at(frame.lines, 2) |> String.trim_trailing() == "      │   ├── guide.md"
@@ -260,8 +260,8 @@ defmodule AsciiArt.Pieces.FileTreeTest do
 
   describe "cols and rows" do
     test "the size the options give, the listing centred in its width" do
-      anim = AsciiArt.new!("file-tree", options: %{cols: 50, rows: 30})
-      {frame, _} = AsciiArt.frame(anim, 0.0)
+      anim = Ascii.new!("file-tree", options: %{cols: 50, rows: 30})
+      {frame, _} = Ascii.frame(anim, 0.0)
       assert {frame.cols, frame.rows} == {50, 30}
       assert frame.lines |> Enum.at(0) |> String.trim_trailing() == "             ."
       assert frame.lines |> List.last() |> String.trim_trailing() =~ ~r/^ {13}6 directories/
@@ -281,18 +281,18 @@ defmodule AsciiArt.Pieces.FileTreeTest do
       assert FileTree.describe(options) ==
                "file tree of web: 6 folders, 14 files; at src/index.ts"
 
-      assert AsciiArt.new!("file-tree", options: %{walk: false, paths: ["a.ex"], root: ""})
-             |> AsciiArt.describe() == "file tree: 0 folders, 1 file"
+      assert Ascii.new!("file-tree", options: %{walk: false, paths: ["a.ex"], root: ""})
+             |> Ascii.describe() == "file tree: 0 folders, 1 file"
     end
 
     test "nothing of its own on the walk" do
-      assert FileTree.describe(AsciiArt.meta!("file-tree").options) == nil
+      assert FileTree.describe(Ascii.meta!("file-tree").options) == nil
     end
   end
 
   describe "parts" do
     defp parts(options) do
-      {frame, anim} = "file-tree" |> AsciiArt.new!(options: options) |> AsciiArt.frame(0.0)
+      {frame, anim} = "file-tree" |> Ascii.new!(options: options) |> Ascii.frame(0.0)
       FileTree.parts(frame, anim.options)
     end
 

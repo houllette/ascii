@@ -1,19 +1,19 @@
-defmodule AsciiArt.Pieces.MarqueeTest do
+defmodule Ascii.Pieces.MarqueeTest do
   use ExUnit.Case, async: true
 
-  use AsciiArt.ContractCase,
-    piece: AsciiArt.Pieces.Marquee,
+  use Ascii.ContractCase,
+    piece: Ascii.Pieces.Marquee,
     variants: [%{text: "ok? 42% · ÿ", speed: 40}]
 
-  use AsciiArt.GoldenCase, slug: "marquee", piece: AsciiArt.Pieces.Marquee
+  use Ascii.GoldenCase, slug: "marquee", piece: Ascii.Pieces.Marquee
 
-  alias AsciiArt.Frame
-  alias AsciiArt.Pieces.Marquee
+  alias Ascii.Frame
+  alias Ascii.Pieces.Marquee
 
   # The part of each cell of a frame at `t`, as rows of names.
   defp parts_at(t) do
-    anim = AsciiArt.new!("marquee")
-    {frame, _} = AsciiArt.frame(anim, t)
+    anim = Ascii.new!("marquee")
+    {frame, _} = Ascii.frame(anim, t)
 
     names =
       for runs <- Marquee.parts(frame, anim.options) do
@@ -56,7 +56,7 @@ defmodule AsciiArt.Pieces.MarqueeTest do
     end
 
     test "with parts: true, the bulbs take the colours the piece suggests" do
-      {frame, _} = "marquee" |> AsciiArt.new!(parts: true) |> AsciiArt.frame(0.0)
+      {frame, _} = "marquee" |> Ascii.new!(parts: true) |> Ascii.frame(0.0)
       assert Frame.color_at(frame, 2, 0) == "#d29922"
       assert Frame.color_at(frame, 0, 0) == "#8b949e"
       assert Frame.color_at(frame, 2, 1) == "#8b949e"
@@ -65,7 +65,7 @@ defmodule AsciiArt.Pieces.MarqueeTest do
   end
 
   test "it says the text, the dots between messages read as commas" do
-    assert AsciiArt.describe(AsciiArt.new!("marquee")) ==
+    assert Ascii.describe(Ascii.new!("marquee")) ==
              "marquee: now showing, doors open at 7:30"
 
     assert Marquee.describe(%{text: "· sale · today only ·", speed: 12}) ==

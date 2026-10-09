@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.PhpTest do
+defmodule Ascii.Pieces.PhpTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Php
-  use AsciiArt.GoldenCase, slug: "php", piece: AsciiArt.Pieces.Php
+  use Ascii.ContractCase, piece: Ascii.Pieces.Php
+  use Ascii.GoldenCase, slug: "php", piece: Ascii.Pieces.Php
 end

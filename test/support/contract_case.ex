@@ -1,10 +1,10 @@
-defmodule AsciiArt.ContractCase do
+defmodule Ascii.ContractCase do
   @moduledoc """
   Upstream's `scripts/check.ts`, for one piece.
 
-      defmodule AsciiArt.Pieces.DonutTest do
+      defmodule Ascii.Pieces.DonutTest do
         use ExUnit.Case, async: true
-        use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Donut
+        use Ascii.ContractCase, piece: Ascii.Pieces.Donut
       end
 
   Checks the meta against the contract, then plays fresh instances at
@@ -12,21 +12,21 @@ defmodule AsciiArt.ContractCase do
   every frame's size, characters and colours, and that the same `t` gives the
   same frame. A property does the same at random times.
 
-  A piece that labels its parts (`c:AsciiArt.Piece.parts/2`) has every
+  A piece that labels its parts (`c:Ascii.Piece.parts/2`) has every
   frame of a cycle (or of half a minute) labelled, with its defaults and each
   variant, fresh and taken up while playing, and the runs checked to make up
   each row exactly, in parts its meta lists.
 
   `variants:` is a list of options to check the same way, each from a fresh
-  start and taken up while playing (`AsciiArt.put_options/2`), against the
+  start and taken up while playing (`Ascii.put_options/2`), against the
   size the piece gives for those options:
 
-      use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Gauge, variants: [%{value: 40}]
+      use Ascii.ContractCase, piece: Ascii.Pieces.Gauge, variants: [%{value: 40}]
   """
 
   use ExUnitProperties
 
-  alias AsciiArt.{Env, Meta}
+  alias Ascii.{Env, Meta}
 
   @samples [0, 1, 2, 3, 4, 6]
   @ascii 0x20..0x7E
@@ -38,29 +38,29 @@ defmodule AsciiArt.ContractCase do
 
     quote do
       use ExUnitProperties
-      require AsciiArt.ContractCase
+      require Ascii.ContractCase
 
       @moduletag :contract
 
       test "meta follows the contract" do
-        AsciiArt.ContractCase.assert_meta(unquote(piece))
+        Ascii.ContractCase.assert_meta(unquote(piece))
       end
 
       test "frames have the exact size, allowed characters and valid colours" do
-        AsciiArt.ContractCase.assert_frames(unquote(piece))
+        Ascii.ContractCase.assert_frames(unquote(piece))
       end
 
       test "the same t gives the same frame" do
-        AsciiArt.ContractCase.assert_deterministic(unquote(piece))
+        Ascii.ContractCase.assert_deterministic(unquote(piece))
       end
 
       property "frames keep the contract at any time" do
-        AsciiArt.ContractCase.check_random_times(unquote(piece))
+        Ascii.ContractCase.check_random_times(unquote(piece))
       end
 
       if unquote(variants) != [] do
         test "frames keep the contract with other options, fresh and taken up while playing" do
-          AsciiArt.ContractCase.assert_variants(unquote(piece), unquote(variants))
+          Ascii.ContractCase.assert_variants(unquote(piece), unquote(variants))
         end
       end
 
@@ -70,7 +70,7 @@ defmodule AsciiArt.ContractCase do
         for {options, i} <- Enum.with_index([%{} | unquote(variants)]) do
           @parts_options options
           test "parts make up every frame, in parts the meta lists (options #{i})" do
-            AsciiArt.ContractCase.assert_parts(unquote(piece), @parts_options)
+            Ascii.ContractCase.assert_parts(unquote(piece), @parts_options)
           end
         end
       end
@@ -78,18 +78,18 @@ defmodule AsciiArt.ContractCase do
       if Code.ensure_loaded?(unquote(piece)) and
            function_exported?(unquote(piece), :describe, 1) do
         test "it tells what it shows in words, from its options" do
-          AsciiArt.ContractCase.assert_describe(unquote(piece), unquote(variants))
+          Ascii.ContractCase.assert_describe(unquote(piece), unquote(variants))
         end
       end
 
       if Code.ensure_loaded?(unquote(piece)) and
            function_exported?(unquote(piece), :handle_event, 2) do
         test "every key and every cell clicked gives options it takes, drawn to the contract" do
-          AsciiArt.ContractCase.assert_events(unquote(piece), unquote(variants))
+          Ascii.ContractCase.assert_events(unquote(piece), unquote(variants))
         end
 
         property "any run of events keeps the contract" do
-          AsciiArt.ContractCase.check_event_runs(unquote(piece), unquote(variants))
+          Ascii.ContractCase.check_event_runs(unquote(piece), unquote(variants))
         end
       end
     end
@@ -105,7 +105,7 @@ defmodule AsciiArt.ContractCase do
     m = piece.meta()
 
     for given <- [%{} | variants] do
-      {:ok, options} = AsciiArt.Options.cast(m, given)
+      {:ok, options} = Ascii.Options.cast(m, given)
       told = piece.describe(options)
       at = "#{m.name} (#{inspect(given)})"
 
@@ -132,7 +132,7 @@ defmodule AsciiArt.ContractCase do
     m = piece.meta()
 
     for given <- [%{} | variants] do
-      {frame, anim} = AsciiArt.frame(AsciiArt.new!(piece, options: given), 0.5)
+      {frame, anim} = Ascii.frame(Ascii.new!(piece, options: given), 0.5)
       clicks = for y <- 0..(frame.rows - 1), x <- 0..(frame.cols - 1), do: {:click, x, y}
 
       for event <- Enum.map(@keys, &{:key, &1}) ++ clicks do
@@ -148,11 +148,11 @@ defmodule AsciiArt.ContractCase do
 
       {:ok, options} ->
         ExUnit.Assertions.assert(
-          AsciiArt.Options.cast(m, options) == {:ok, options},
+          Ascii.Options.cast(m, options) == {:ok, options},
           "#{at}: options its own checks change: #{inspect(options)}"
         )
 
-        {:ok, anim} = AsciiArt.handle_event(anim, event)
+        {:ok, anim} = Ascii.handle_event(anim, event)
         assert_drawn(m, piece, anim, 1.0, at)
 
       other ->
@@ -161,7 +161,7 @@ defmodule AsciiArt.ContractCase do
   end
 
   defp assert_drawn(m, piece, anim, t, at) do
-    {frame, anim} = AsciiArt.frame(anim, t)
+    {frame, anim} = Ascii.frame(anim, t)
     assert_frame(m, {anim.cols, anim.rows}, {t, frame.text, frame.colors, anim.color?}, at)
 
     if function_exported?(piece, :parts, 2) do
@@ -193,7 +193,7 @@ defmodule AsciiArt.ContractCase do
                 ),
               max_runs: 25
             ) do
-        AsciiArt.ContractCase.assert_event_run(unquote(piece), given, events)
+        Ascii.ContractCase.assert_event_run(unquote(piece), given, events)
       end
     end
   end
@@ -201,7 +201,7 @@ defmodule AsciiArt.ContractCase do
   @doc false
   def assert_event_run(piece, given, events) do
     m = piece.meta()
-    anim = AsciiArt.new!(piece, options: given)
+    anim = Ascii.new!(piece, options: given)
 
     events
     |> Enum.with_index()
@@ -295,11 +295,11 @@ defmodule AsciiArt.ContractCase do
         {anim, start} =
           case how do
             :fresh ->
-              {AsciiArt.new!(piece, options: options, paper: paper), 0}
+              {Ascii.new!(piece, options: options, paper: paper), 0}
 
             :taken_up ->
-              {_, playing} = AsciiArt.frame(AsciiArt.new!(piece, paper: paper), 1.0)
-              {AsciiArt.put_options!(playing, options), 1}
+              {_, playing} = Ascii.frame(Ascii.new!(piece, paper: paper), 1.0)
+              {Ascii.put_options!(playing, options), 1}
           end
 
         {anim, start, "#{inspect(options)}, paper: #{paper}, #{how}"}
@@ -307,7 +307,7 @@ defmodule AsciiArt.ContractCase do
 
     for {anim, start, run} <- runs do
       Enum.reduce(times, anim, fn t, anim ->
-        {frame, anim} = AsciiArt.frame(anim, start + t)
+        {frame, anim} = Ascii.frame(anim, start + t)
         at = "#{m.name} at t=#{start + t} (#{run})"
         rows = piece.parts(frame, anim.options)
 
@@ -363,7 +363,7 @@ defmodule AsciiArt.ContractCase do
   # while in it; one run's worth is enough. assert_deterministic/1 checks
   # that two fresh inits agree.
   defp initial(piece),
-    do: AsciiArt.TestCache.fetch({:init, piece}, fn -> piece.init(piece.meta().options) end)
+    do: Ascii.TestCache.fetch({:init, piece}, fn -> piece.init(piece.meta().options) end)
 
   @doc false
   def assert_frames(piece) do
@@ -435,13 +435,13 @@ defmodule AsciiArt.ContractCase do
     for options <- variants, paper <- [false, true], color <- [true, false] do
       opts = [paper: paper, color: color]
       run = "#{inspect(options)}, paper: #{paper}, colour: #{color}"
-      fresh = AsciiArt.new!(piece, [options: options] ++ opts)
-      {_, playing} = AsciiArt.frame(AsciiArt.new!(piece, opts), 1.0)
-      updated = AsciiArt.put_options!(playing, options)
+      fresh = Ascii.new!(piece, [options: options] ++ opts)
+      {_, playing} = Ascii.frame(Ascii.new!(piece, opts), 1.0)
+      updated = Ascii.put_options!(playing, options)
 
       for {anim, start, how} <- [{fresh, 0, "fresh"}, {updated, 1, "taken up"}] do
         Enum.reduce(@samples, anim, fn t, anim ->
-          {f, anim} = AsciiArt.frame(anim, start + t)
+          {f, anim} = Ascii.frame(anim, start + t)
 
           ExUnit.Assertions.assert(
             {f.cols, f.rows} == {anim.cols, anim.rows},
@@ -492,7 +492,7 @@ defmodule AsciiArt.ContractCase do
               color? <- boolean(),
               max_runs: 15
             ) do
-        AsciiArt.ContractCase.assert_times(unquote(piece), times, paper, color?)
+        Ascii.ContractCase.assert_times(unquote(piece), times, paper, color?)
       end
     end
   end

@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.ScalaTest do
+defmodule Ascii.Pieces.ScalaTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Scala
-  use AsciiArt.GoldenCase, slug: "scala", piece: AsciiArt.Pieces.Scala
+  use Ascii.ContractCase, piece: Ascii.Pieces.Scala
+  use Ascii.GoldenCase, slug: "scala", piece: Ascii.Pieces.Scala
 end

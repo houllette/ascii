@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.MoonPhasesTest do
+defmodule Ascii.Pieces.MoonPhasesTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.MoonPhases
-  use AsciiArt.GoldenCase, slug: "moon-phases", piece: AsciiArt.Pieces.MoonPhases
+  use Ascii.ContractCase, piece: Ascii.Pieces.MoonPhases
+  use Ascii.GoldenCase, slug: "moon-phases", piece: Ascii.Pieces.MoonPhases
 end

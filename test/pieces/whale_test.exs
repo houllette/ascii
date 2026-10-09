@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.WhaleTest do
+defmodule Ascii.Pieces.WhaleTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Whale
-  use AsciiArt.GoldenCase, slug: "whale", piece: AsciiArt.Pieces.Whale
+  use Ascii.ContractCase, piece: Ascii.Pieces.Whale
+  use Ascii.GoldenCase, slug: "whale", piece: Ascii.Pieces.Whale
 end

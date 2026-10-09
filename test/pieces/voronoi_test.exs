@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.VoronoiTest do
+defmodule Ascii.Pieces.VoronoiTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Voronoi
-  use AsciiArt.GoldenCase, slug: "voronoi", piece: AsciiArt.Pieces.Voronoi
+  use Ascii.ContractCase, piece: Ascii.Pieces.Voronoi
+  use Ascii.GoldenCase, slug: "voronoi", piece: Ascii.Pieces.Voronoi
 end

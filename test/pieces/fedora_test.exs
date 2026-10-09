@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.FedoraTest do
+defmodule Ascii.Pieces.FedoraTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Fedora
-  use AsciiArt.GoldenCase, slug: "fedora", piece: AsciiArt.Pieces.Fedora
+  use Ascii.ContractCase, piece: Ascii.Pieces.Fedora
+  use Ascii.GoldenCase, slug: "fedora", piece: Ascii.Pieces.Fedora
 end

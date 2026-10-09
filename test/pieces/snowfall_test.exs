@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.SnowfallTest do
+defmodule Ascii.Pieces.SnowfallTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Snowfall
-  use AsciiArt.GoldenCase, slug: "snowfall", piece: AsciiArt.Pieces.Snowfall
+  use Ascii.ContractCase, piece: Ascii.Pieces.Snowfall
+  use Ascii.GoldenCase, slug: "snowfall", piece: Ascii.Pieces.Snowfall
 end

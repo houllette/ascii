@@ -1,8 +1,8 @@
-defmodule AsciiArt.Pieces.WaveTextTest do
+defmodule Ascii.Pieces.WaveTextTest do
   use ExUnit.Case, async: true
 
-  use AsciiArt.ContractCase,
-    piece: AsciiArt.Pieces.WaveText,
+  use Ascii.ContractCase,
+    piece: Ascii.Pieces.WaveText,
     variants: [
       %{text: "hi there", spacing: 1},
       %{text: "a much longer line of text than fits the frame"},
@@ -11,14 +11,14 @@ defmodule AsciiArt.Pieces.WaveTextTest do
       %{settle: false, amp: 2}
     ]
 
-  use AsciiArt.GoldenCase, slug: "wave-text", piece: AsciiArt.Pieces.WaveText
+  use Ascii.GoldenCase, slug: "wave-text", piece: Ascii.Pieces.WaveText
 
-  alias AsciiArt.Frame
-  alias AsciiArt.Pieces.WaveText
+  alias Ascii.Frame
+  alias Ascii.Pieces.WaveText
 
   # Each mark's part and character at `t`, by {x, y}.
   defp marks(options, t) do
-    {frame, anim} = "wave-text" |> AsciiArt.new!(options: options) |> AsciiArt.frame(t)
+    {frame, anim} = "wave-text" |> Ascii.new!(options: options) |> Ascii.frame(t)
 
     for {runs, y} <- frame |> WaveText.parts(anim.options) |> Enum.with_index(),
         {{name, ch}, x} <-
@@ -58,14 +58,14 @@ defmodule AsciiArt.Pieces.WaveTextTest do
 
     test "with parts: true the trail is grey; numbered letters take theirs" do
       marks = marks(%{}, 1.5)
-      {frame, _} = "wave-text" |> AsciiArt.new!(parts: true) |> AsciiArt.frame(1.5)
+      {frame, _} = "wave-text" |> Ascii.new!(parts: true) |> Ascii.frame(1.5)
 
       for {{x, y}, {name, _ch}} <- marks do
         assert Frame.color_at(frame, x, y) == if(name == "trail", do: "#8b949e")
       end
 
       parts = %{"letter.1" => "#ff0000", "trail" => "#00ff00"}
-      {frame, _} = "wave-text" |> AsciiArt.new!(parts: parts) |> AsciiArt.frame(1.5)
+      {frame, _} = "wave-text" |> Ascii.new!(parts: parts) |> Ascii.frame(1.5)
 
       for {{x, y}, {name, _ch}} <- marks do
         want =
@@ -81,7 +81,7 @@ defmodule AsciiArt.Pieces.WaveTextTest do
   end
 
   test "it says the text" do
-    assert AsciiArt.describe(AsciiArt.new!("wave-text")) == "wave text: making waves"
+    assert Ascii.describe(Ascii.new!("wave-text")) == "wave text: making waves"
     assert WaveText.describe(%{text: " "}) == nil
   end
 end

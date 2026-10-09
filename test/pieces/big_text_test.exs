@@ -1,8 +1,8 @@
-defmodule AsciiArt.Pieces.BigTextTest do
+defmodule Ascii.Pieces.BigTextTest do
   use ExUnit.Case, async: true
 
-  use AsciiArt.ContractCase,
-    piece: AsciiArt.Pieces.BigText,
+  use Ascii.ContractCase,
+    piece: Ascii.Pieces.BigText,
     variants: [
       %{text: "hi world"},
       %{text: "a1 ?! ~é ß"},
@@ -10,14 +10,14 @@ defmodule AsciiArt.Pieces.BigTextTest do
       %{text: ""}
     ]
 
-  use AsciiArt.GoldenCase, slug: "big-text", piece: AsciiArt.Pieces.BigText
+  use Ascii.GoldenCase, slug: "big-text", piece: Ascii.Pieces.BigText
 
-  alias AsciiArt.Frame
-  alias AsciiArt.Pieces.BigText
+  alias Ascii.Frame
+  alias Ascii.Pieces.BigText
 
   # Each cell's part and character at `t`, by {x, y}.
   defp cells(options, t \\ 0.0) do
-    {frame, anim} = "big-text" |> AsciiArt.new!(options: options) |> AsciiArt.frame(t)
+    {frame, anim} = "big-text" |> Ascii.new!(options: options) |> Ascii.frame(t)
 
     for {runs, y} <- frame |> BigText.parts(anim.options) |> Enum.with_index(),
         {{name, ch}, x} <-
@@ -72,12 +72,12 @@ defmodule AsciiArt.Pieces.BigTextTest do
       [{ex, ey} | _] = named(cells, "letter.2")
       [{sx, sy} | _] = named(cells, "shadow")
 
-      {frame, _} = "big-text" |> AsciiArt.new!(parts: true) |> AsciiArt.frame(0.0)
+      {frame, _} = "big-text" |> Ascii.new!(parts: true) |> Ascii.frame(0.0)
       assert Frame.color_at(frame, hx, hy) == nil
       assert Frame.color_at(frame, sx, sy) == "#8b949e"
 
       parts = %{"letter" => "#00ff00", "letter.1" => "#ff0000"}
-      {frame, _} = "big-text" |> AsciiArt.new!(parts: parts) |> AsciiArt.frame(0.0)
+      {frame, _} = "big-text" |> Ascii.new!(parts: parts) |> Ascii.frame(0.0)
       assert Frame.color_at(frame, hx, hy) == "#ff0000"
       assert Frame.color_at(frame, ex, ey) == "#00ff00"
       assert Frame.color_at(frame, sx, sy) == nil
@@ -85,9 +85,9 @@ defmodule AsciiArt.Pieces.BigTextTest do
   end
 
   test "it says the text" do
-    assert AsciiArt.describe(AsciiArt.new!("big-text")) == "big text: hello"
+    assert Ascii.describe(Ascii.new!("big-text")) == "big text: hello"
 
-    assert AsciiArt.describe(AsciiArt.new!("big-text", options: %{text: " hi\n  there "})) ==
+    assert Ascii.describe(Ascii.new!("big-text", options: %{text: " hi\n  there "})) ==
              "big text: hi there"
 
     assert BigText.describe(%{text: "  "}) == nil

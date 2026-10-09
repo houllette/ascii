@@ -1,4 +1,4 @@
-defmodule AsciiArt.Pieces.CalendarTest do
+defmodule Ascii.Pieces.CalendarTest do
   use ExUnit.Case, async: true
 
   @french %{
@@ -7,8 +7,8 @@ defmodule AsciiArt.Pieces.CalendarTest do
     weekdays: ~w(dimanche lundi mardi mercredi jeudi vendredi samedi)
   }
 
-  use AsciiArt.ContractCase,
-    piece: AsciiArt.Pieces.Calendar,
+  use Ascii.ContractCase,
+    piece: Ascii.Pieces.Calendar,
     variants: [
       %{monday: true},
       %{time: false},
@@ -28,18 +28,18 @@ defmodule AsciiArt.Pieces.CalendarTest do
       %{date: "0001-01", cols: 200, rows: 60}
     ]
 
-  use AsciiArt.GoldenCase, slug: "calendar", piece: AsciiArt.Pieces.Calendar
+  use Ascii.GoldenCase, slug: "calendar", piece: Ascii.Pieces.Calendar
 
   describe "parts" do
-    alias AsciiArt.Frame
-    alias AsciiArt.Pieces.Calendar
+    alias Ascii.Frame
+    alias Ascii.Pieces.Calendar
 
     # Saturday the 14th of March 2026: the 1st is a Sunday.
     @now ~U[2026-03-14 15:09:26Z]
 
     defp parts(options \\ %{}) do
       {frame, anim} =
-        "calendar" |> AsciiArt.new!(options: options) |> AsciiArt.frame(0.0, now: @now)
+        "calendar" |> Ascii.new!(options: options) |> Ascii.frame(0.0, now: @now)
 
       {frame, Calendar.parts(frame, anim.options)}
     end
@@ -105,7 +105,7 @@ defmodule AsciiArt.Pieces.CalendarTest do
 
     test "a one-digit today keeps its brackets together" do
       {frame, anim} =
-        "calendar" |> AsciiArt.new!() |> AsciiArt.frame(0.0, now: ~U[2026-03-09 08:00:00Z])
+        "calendar" |> Ascii.new!() |> Ascii.frame(0.0, now: ~U[2026-03-09 08:00:00Z])
 
       rows = Calendar.parts(frame, anim.options)
       x = column(frame, "[9]", 5)
@@ -149,7 +149,7 @@ defmodule AsciiArt.Pieces.CalendarTest do
 
     test "with parts: true, today is blue and the rules grey" do
       {frame, _} =
-        "calendar" |> AsciiArt.new!(parts: true) |> AsciiArt.frame(0.0, now: @now)
+        "calendar" |> Ascii.new!(parts: true) |> Ascii.frame(0.0, now: @now)
 
       x = column(frame, "[14]", 5)
       assert Frame.color_at(frame, x, 5) == "#58a6ff"
@@ -159,13 +159,13 @@ defmodule AsciiArt.Pieces.CalendarTest do
   end
 
   describe "options" do
-    alias AsciiArt.Pieces.Calendar
+    alias Ascii.Pieces.Calendar
 
     @now ~U[2026-03-14 15:09:26Z]
 
     defp draw(options, now \\ @now) do
       {frame, _anim} =
-        "calendar" |> AsciiArt.new!(options: options) |> AsciiArt.frame(0.0, now: now)
+        "calendar" |> Ascii.new!(options: options) |> Ascii.frame(0.0, now: now)
 
       frame
     end
@@ -207,7 +207,7 @@ defmodule AsciiArt.Pieces.CalendarTest do
     end
 
     test "a bigger frame widens the cells and centres the page" do
-      anim = AsciiArt.new!("calendar", options: %{cols: 45, rows: 16})
+      anim = Ascii.new!("calendar", options: %{cols: 45, rows: 16})
       assert {anim.cols, anim.rows} == {45, 16}
       frame = draw(%{cols: 45, rows: 16})
       assert Enum.at(frame.lines, 0) == String.duplicate(" ", 45)

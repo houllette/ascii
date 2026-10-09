@@ -1,8 +1,8 @@
-defmodule AsciiArt.Pieces.GlitchTest do
+defmodule Ascii.Pieces.GlitchTest do
   use ExUnit.Case, async: true
 
-  use AsciiArt.ContractCase,
-    piece: AsciiArt.Pieces.Glitch,
+  use Ascii.ContractCase,
+    piece: Ascii.Pieces.Glitch,
     variants: [
       %{text: "no signal"},
       %{text: "a&b ~ é 42"},
@@ -10,14 +10,14 @@ defmodule AsciiArt.Pieces.GlitchTest do
       %{text: ""}
     ]
 
-  use AsciiArt.GoldenCase, slug: "glitch", piece: AsciiArt.Pieces.Glitch
+  use Ascii.GoldenCase, slug: "glitch", piece: Ascii.Pieces.Glitch
 
-  alias AsciiArt.Frame
-  alias AsciiArt.Pieces.Glitch
+  alias Ascii.Frame
+  alias Ascii.Pieces.Glitch
 
   # Each mark's part and character at `t`, by {x, y}.
   defp marks(options, t) do
-    {frame, anim} = "glitch" |> AsciiArt.new!(options: options) |> AsciiArt.frame(t)
+    {frame, anim} = "glitch" |> Ascii.new!(options: options) |> Ascii.frame(t)
 
     marks =
       for {runs, y} <- frame |> Glitch.parts(anim.options) |> Enum.with_index(),
@@ -76,12 +76,12 @@ defmodule AsciiArt.Pieces.GlitchTest do
     end
 
     test "with parts: true, noise red, ghosts cyan, tears grey, letters in the ink" do
-      anim = AsciiArt.new!("glitch", parts: true)
+      anim = Ascii.new!("glitch", parts: true)
 
       found =
         for i <- 0..104, reduce: %{} do
           found ->
-            {frame, _} = AsciiArt.frame(anim, i / 15)
+            {frame, _} = Ascii.frame(anim, i / 15)
             {_, marks} = marks(%{}, i / 15)
 
             for {{x, y}, {name, _ch}} <- marks, reduce: found do
@@ -99,7 +99,7 @@ defmodule AsciiArt.Pieces.GlitchTest do
   end
 
   test "it says the text" do
-    assert AsciiArt.describe(AsciiArt.new!("glitch")) == "glitch: noise"
+    assert Ascii.describe(Ascii.new!("glitch")) == "glitch: noise"
     assert Glitch.describe(%{text: " no\tsignal "}) == "glitch: no signal"
     assert Glitch.describe(%{text: ""}) == nil
   end

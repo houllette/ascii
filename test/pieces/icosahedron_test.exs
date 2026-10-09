@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.IcosahedronTest do
+defmodule Ascii.Pieces.IcosahedronTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Icosahedron
-  use AsciiArt.GoldenCase, slug: "icosahedron", piece: AsciiArt.Pieces.Icosahedron
+  use Ascii.ContractCase, piece: Ascii.Pieces.Icosahedron
+  use Ascii.GoldenCase, slug: "icosahedron", piece: Ascii.Pieces.Icosahedron
 end

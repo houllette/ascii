@@ -1,4 +1,4 @@
-defmodule AsciiArt.ReadmeTest do
+defmodule Ascii.ReadmeTest do
   # Runs the README's examples, which start processes and write to stdio.
   use ExUnit.Case
 
@@ -32,9 +32,9 @@ defmodule AsciiArt.ReadmeTest do
       |> List.flatten()
       |> Enum.sort()
 
-    assert listed == AsciiArt.pieces(), "run: mix run tools/readme_pieces.exs"
+    assert listed == Ascii.pieces(), "run: mix run tools/readme_pieces.exs"
 
-    for {slug, mod} <- AsciiArt.Registry.all() do
+    for {slug, mod} <- Ascii.Registry.all() do
       [row] = for line <- String.split(table, "\n"), line =~ "`#{slug}`", do: line
       assert row =~ "| #{mod.meta().category} |"
     end

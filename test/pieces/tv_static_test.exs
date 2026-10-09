@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.TvStaticTest do
+defmodule Ascii.Pieces.TvStaticTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.TvStatic
-  use AsciiArt.GoldenCase, slug: "tv-static", piece: AsciiArt.Pieces.TvStatic
+  use Ascii.ContractCase, piece: Ascii.Pieces.TvStatic
+  use Ascii.GoldenCase, slug: "tv-static", piece: Ascii.Pieces.TvStatic
 end

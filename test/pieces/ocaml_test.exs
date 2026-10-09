@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.OcamlTest do
+defmodule Ascii.Pieces.OcamlTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Ocaml
-  use AsciiArt.GoldenCase, slug: "ocaml", piece: AsciiArt.Pieces.Ocaml
+  use Ascii.ContractCase, piece: Ascii.Pieces.Ocaml
+  use Ascii.GoldenCase, slug: "ocaml", piece: Ascii.Pieces.Ocaml
 end

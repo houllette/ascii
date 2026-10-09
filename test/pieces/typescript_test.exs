@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.TypescriptTest do
+defmodule Ascii.Pieces.TypescriptTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Typescript
-  use AsciiArt.GoldenCase, slug: "typescript", piece: AsciiArt.Pieces.Typescript
+  use Ascii.ContractCase, piece: Ascii.Pieces.Typescript
+  use Ascii.GoldenCase, slug: "typescript", piece: Ascii.Pieces.Typescript
 end

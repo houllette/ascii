@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.CssTest do
+defmodule Ascii.Pieces.CssTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Css
-  use AsciiArt.GoldenCase, slug: "css", piece: AsciiArt.Pieces.Css
+  use Ascii.ContractCase, piece: Ascii.Pieces.Css
+  use Ascii.GoldenCase, slug: "css", piece: Ascii.Pieces.Css
 end

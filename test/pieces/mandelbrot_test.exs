@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.MandelbrotTest do
+defmodule Ascii.Pieces.MandelbrotTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Mandelbrot
-  use AsciiArt.GoldenCase, slug: "mandelbrot", piece: AsciiArt.Pieces.Mandelbrot
+  use Ascii.ContractCase, piece: Ascii.Pieces.Mandelbrot
+  use Ascii.GoldenCase, slug: "mandelbrot", piece: Ascii.Pieces.Mandelbrot
 end

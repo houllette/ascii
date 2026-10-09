@@ -1,4 +1,4 @@
-defmodule AsciiArt.PieceDocsTest do
+defmodule Ascii.PieceDocsTest do
   # Every component's docs (the UI, data and type pieces) say how to make it
   # yours, in the same sections in the same order: its options, its colours
   # and parts, the keys and clicks it takes (or that it takes none), what it
@@ -13,12 +13,12 @@ defmodule AsciiArt.PieceDocsTest do
   @sections ["Options", "Colours", "Keys and clicks", "Screen readers", "Example"]
   @art_sections ["Options", "Colours", "Screen readers", "Example"]
 
-  for category <- [:ui, :data, :type], slug <- AsciiArt.pieces(category: category) do
+  for category <- [:ui, :data, :type], slug <- Ascii.pieces(category: category) do
     describe "#{slug}" do
       # The module looked up as the test runs, so nothing is known of it
       # when this compiles.
       setup do
-        {:ok, module} = AsciiArt.resolve(unquote(slug))
+        {:ok, module} = Ascii.resolve(unquote(slug))
         {:docs_v1, _, _, _, %{"en" => doc}, _, _} = Code.fetch_docs(module)
         {:ok, module: module, sections: sections(doc)}
       end
@@ -63,12 +63,12 @@ defmodule AsciiArt.PieceDocsTest do
         keys = section(sections, "Keys and clicks")
 
         if function_exported?(module, :handle_event, 2),
-          do: assert(keys =~ "`AsciiArt.handle_event/2`" and keys =~ "interactive"),
+          do: assert(keys =~ "`Ascii.handle_event/2`" and keys =~ "interactive"),
           else: assert(keys =~ "takes none")
       end
 
       test "says what it tells a screen reader", %{sections: sections} do
-        assert section(sections, "Screen readers") =~ "`AsciiArt.describe/1`"
+        assert section(sections, "Screen readers") =~ "`Ascii.describe/1`"
       end
 
       test "has examples that run", %{sections: sections} do
@@ -79,13 +79,13 @@ defmodule AsciiArt.PieceDocsTest do
     end
   end
 
-  for slug <- AsciiArt.pieces(),
-      {:ok, module} = AsciiArt.resolve(slug),
+  for slug <- Ascii.pieces(),
+      {:ok, module} = Ascii.resolve(slug),
       module.meta().category not in [:ui, :data, :type],
       module.meta().options != %{} do
     describe "#{slug}" do
       setup do
-        {:ok, module} = AsciiArt.resolve(unquote(slug))
+        {:ok, module} = Ascii.resolve(unquote(slug))
         {:docs_v1, _, _, _, %{"en" => doc}, _, _} = Code.fetch_docs(module)
         {:ok, module: module, sections: sections(doc)}
       end
@@ -109,7 +109,7 @@ defmodule AsciiArt.PieceDocsTest do
       end
 
       test "says what it tells a screen reader", %{sections: sections} do
-        assert section(sections, "Screen readers") =~ "`AsciiArt.describe/1`"
+        assert section(sections, "Screen readers") =~ "`Ascii.describe/1`"
       end
 
       test "has examples that run", %{sections: sections} do
@@ -123,8 +123,8 @@ defmodule AsciiArt.PieceDocsTest do
   test "the components guide lists every component" do
     guide = File.read!("guides/components.md")
 
-    for category <- [:ui, :data, :type], slug <- AsciiArt.pieces(category: category) do
-      {:ok, module} = AsciiArt.resolve(slug)
+    for category <- [:ui, :data, :type], slug <- Ascii.pieces(category: category) do
+      {:ok, module} = Ascii.resolve(slug)
 
       assert guide =~ "| `#{inspect(module)}` |",
              "guides/components.md: #{slug} is not in the table"

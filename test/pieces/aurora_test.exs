@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.AuroraTest do
+defmodule Ascii.Pieces.AuroraTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Aurora
-  use AsciiArt.GoldenCase, slug: "aurora", piece: AsciiArt.Pieces.Aurora
+  use Ascii.ContractCase, piece: Ascii.Pieces.Aurora
+  use Ascii.GoldenCase, slug: "aurora", piece: Ascii.Pieces.Aurora
 end

@@ -1,4 +1,4 @@
-defmodule AsciiArt.Pieces.BootLogTest do
+defmodule Ascii.Pieces.BootLogTest do
   use ExUnit.Case, async: true
 
   @steps [
@@ -10,8 +10,8 @@ defmodule AsciiArt.Pieces.BootLogTest do
     %{text: "an odd status", status: "maybe"}
   ]
 
-  use AsciiArt.ContractCase,
-    piece: AsciiArt.Pieces.BootLog,
+  use Ascii.ContractCase,
+    piece: Ascii.Pieces.BootLog,
     variants: [
       %{steps: @steps, title: "deploy web"},
       %{steps: for(i <- 1..30, do: %{text: "step #{i}", status: "ok"}), cols: 30, rows: 5},
@@ -21,13 +21,13 @@ defmodule AsciiArt.Pieces.BootLogTest do
       %{cols: 120, rows: 30}
     ]
 
-  use AsciiArt.GoldenCase, slug: "boot-log", piece: AsciiArt.Pieces.BootLog
+  use Ascii.GoldenCase, slug: "boot-log", piece: Ascii.Pieces.BootLog
 
-  alias AsciiArt.Frame
-  alias AsciiArt.Pieces.BootLog
+  alias Ascii.Frame
+  alias Ascii.Pieces.BootLog
 
   defp draw(options, t \\ 0.0) do
-    {frame, anim} = "boot-log" |> AsciiArt.new!(options: options) |> AsciiArt.frame(t)
+    {frame, anim} = "boot-log" |> Ascii.new!(options: options) |> Ascii.frame(t)
     {frame, anim}
   end
 
@@ -95,8 +95,8 @@ defmodule AsciiArt.Pieces.BootLogTest do
 
     test "new steps while playing take their place; the stars and cursor keep play time" do
       {_frame, anim} = draw(%{steps: Enum.take(@steps, 2)}, 1.0)
-      anim = AsciiArt.put_options!(anim, steps: @steps)
-      {frame, _anim} = AsciiArt.frame(anim, 1.3)
+      anim = Ascii.put_options!(anim, steps: @steps)
+      {frame, _anim} = Ascii.frame(anim, 1.3)
       assert frame.text == elem(draw(%{steps: @steps}, 1.3), 0).text
     end
 
@@ -168,7 +168,7 @@ defmodule AsciiArt.Pieces.BootLogTest do
 
     test "with parts: true, failures red, warnings yellow" do
       {frame, _} =
-        "boot-log" |> AsciiArt.new!(options: %{steps: @steps}, parts: true) |> AsciiArt.frame(0.0)
+        "boot-log" |> Ascii.new!(options: %{steps: @steps}, parts: true) |> Ascii.frame(0.0)
 
       assert Frame.color_at(frame, 1, 2) == "#f85149"
       assert Frame.color_at(frame, 1, 1) == "#d29922"
@@ -180,24 +180,24 @@ defmodule AsciiArt.Pieces.BootLogTest do
   describe "describe" do
     test "nil for upstream's boot" do
       assert BootLog.describe(BootLog.meta().options) == nil
-      assert AsciiArt.describe(AsciiArt.new!("boot-log")) =~ "boot log: a self test"
+      assert Ascii.describe(Ascii.new!("boot-log")) =~ "boot log: a self test"
     end
 
     test "the steps counted, a failure and a step under way named" do
-      anim = AsciiArt.new!("boot-log", options: %{steps: @steps, title: "deploy web"})
+      anim = Ascii.new!("boot-log", options: %{steps: @steps, title: "deploy web"})
 
-      assert AsciiArt.describe(anim) ==
+      assert Ascii.describe(anim) ==
                "deploy web: 6 steps, 1 ok, 1 warning, 1 failed (copy assets), " <>
                  "1 running (migrating database)"
 
       anim =
-        AsciiArt.new!("boot-log",
+        Ascii.new!("boot-log",
           options: %{steps: [%{text: "a", status: "ok"}, %{text: "b", status: "ok"}]}
         )
 
-      assert AsciiArt.describe(anim) == "boot log: 2 steps, 2 ok"
+      assert Ascii.describe(anim) == "boot log: 2 steps, 2 ok"
 
-      assert AsciiArt.describe(AsciiArt.new!("boot-log", options: %{title: "setup"})) ==
+      assert Ascii.describe(Ascii.new!("boot-log", options: %{title: "setup"})) ==
                "setup: no steps yet"
     end
   end

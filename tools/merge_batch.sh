@@ -4,9 +4,9 @@
 # regenerates the registry. Existing files are never overwritten.
 set -e
 W="$1"
-for f in "$W"/lib/ascii_art/pieces/*.ex; do
+for f in "$W"/lib/ascii/pieces/*.ex; do
   b=$(basename "$f")
-  [ -e "lib/ascii_art/pieces/$b" ] || { cp "$f" "lib/ascii_art/pieces/$b"; echo "added $b"; }
+  [ -e "lib/ascii/pieces/$b" ] || { cp "$f" "lib/ascii/pieces/$b"; echo "added $b"; }
 done
 for f in "$W"/test/pieces/*_test.exs; do
   b=$(basename "$f")

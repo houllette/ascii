@@ -1,15 +1,15 @@
-defmodule AsciiArt.Pieces.EqualizerTest do
+defmodule Ascii.Pieces.EqualizerTest do
   use ExUnit.Case, async: true
 
-  use AsciiArt.ContractCase,
-    piece: AsciiArt.Pieces.Equalizer,
+  use Ascii.ContractCase,
+    piece: Ascii.Pieces.Equalizer,
     variants: [
       %{levels: Enum.map(0..18, &(&1 / 18))},
       %{levels: [0.9]},
       %{levels: [2, -1, 0.5]}
     ]
 
-  use AsciiArt.GoldenCase, slug: "equalizer", piece: AsciiArt.Pieces.Equalizer
+  use Ascii.GoldenCase, slug: "equalizer", piece: Ascii.Pieces.Equalizer
 
   defp heights(frame) do
     # Each bar's filled rows, from the bars' columns over the axis.
@@ -20,7 +20,7 @@ defmodule AsciiArt.Pieces.EqualizerTest do
   end
 
   test "describe/1 tells the levels given, low to high" do
-    alias AsciiArt.Pieces.Equalizer
+    alias Ascii.Pieces.Equalizer
     assert Equalizer.describe(%{bpm: 120, levels: []}) == nil
 
     assert Equalizer.describe(%{bpm: 120, levels: [0.9]}) ==
@@ -34,36 +34,36 @@ defmodule AsciiArt.Pieces.EqualizerTest do
   end
 
   test "levels set the bars, low to high" do
-    anim = AsciiArt.new!("equalizer", options: %{levels: Enum.map(0..18, &(&1 / 18))})
-    {frame, _} = AsciiArt.frame(anim, 1.0)
+    anim = Ascii.new!("equalizer", options: %{levels: Enum.map(0..18, &(&1 / 18))})
+    {frame, _} = Ascii.frame(anim, 1.0)
     h = heights(frame)
     assert h == Enum.sort(h)
     assert List.first(h) == 0 and List.last(h) >= 11
   end
 
   test "new levels taken up while playing: the bars sink from where they were" do
-    anim = AsciiArt.new!("equalizer", options: %{levels: [1.0]})
-    {full, anim} = AsciiArt.frame(anim, 1.0)
-    anim = AsciiArt.put_options!(anim, levels: [0.0])
-    {sinking, anim} = AsciiArt.frame(anim, 1.1)
+    anim = Ascii.new!("equalizer", options: %{levels: [1.0]})
+    {full, anim} = Ascii.frame(anim, 1.0)
+    anim = Ascii.put_options!(anim, levels: [0.0])
+    {sinking, anim} = Ascii.frame(anim, 1.1)
     # Played on, a frame at a time, as the bars fall at most 0.1 s a frame.
     {sunk, _} =
-      Enum.reduce(1..60, {nil, anim}, fn i, {_, anim} -> AsciiArt.frame(anim, 1.1 + i / 30) end)
+      Enum.reduce(1..60, {nil, anim}, fn i, {_, anim} -> Ascii.frame(anim, 1.1 + i / 30) end)
 
     [a, b, c] = Enum.map([full, sinking, sunk], &(&1 |> heights() |> hd()))
     assert a > b and b > c and c == 0
   end
 
   describe "parts" do
-    alias AsciiArt.Pieces.Equalizer
+    alias Ascii.Pieces.Equalizer
 
     # The frame at the last of `times`, played in order (`{:put, options}`
     # takes options up), and its parts.
     defp parts(options, times) do
       {frame, anim} =
-        Enum.reduce(times, {nil, AsciiArt.new!("equalizer", options: options)}, fn
-          {:put, o}, {f, anim} -> {f, AsciiArt.put_options!(anim, o)}
-          t, {_, anim} -> AsciiArt.frame(anim, t)
+        Enum.reduce(times, {nil, Ascii.new!("equalizer", options: options)}, fn
+          {:put, o}, {f, anim} -> {f, Ascii.put_options!(anim, o)}
+          t, {_, anim} -> Ascii.frame(anim, t)
         end)
 
       {frame, Equalizer.parts(frame, anim.options)}
@@ -107,12 +107,12 @@ defmodule AsciiArt.Pieces.EqualizerTest do
     end
 
     test "coloured through the animation" do
-      anim = AsciiArt.new!("equalizer", options: %{levels: [1.0]}, parts: true)
-      {frame, _} = AsciiArt.frame(anim, 1.0)
-      assert AsciiArt.Frame.color_at(frame, 3, 12) == "#3fb950"
-      assert AsciiArt.Frame.color_at(frame, 3, 4) == "#d29922"
-      assert AsciiArt.Frame.color_at(frame, 3, 1) == "#f85149"
-      assert AsciiArt.Frame.color_at(frame, 3, 13) == "#8b949e"
+      anim = Ascii.new!("equalizer", options: %{levels: [1.0]}, parts: true)
+      {frame, _} = Ascii.frame(anim, 1.0)
+      assert Ascii.Frame.color_at(frame, 3, 12) == "#3fb950"
+      assert Ascii.Frame.color_at(frame, 3, 4) == "#d29922"
+      assert Ascii.Frame.color_at(frame, 3, 1) == "#f85149"
+      assert Ascii.Frame.color_at(frame, 3, 13) == "#8b949e"
     end
   end
 end

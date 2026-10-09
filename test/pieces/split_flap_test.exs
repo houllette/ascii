@@ -1,8 +1,8 @@
-defmodule AsciiArt.Pieces.SplitFlapTest do
+defmodule Ascii.Pieces.SplitFlapTest do
   use ExUnit.Case, async: true
 
-  use AsciiArt.ContractCase,
-    piece: AsciiArt.Pieces.SplitFlap,
+  use Ascii.ContractCase,
+    piece: Ascii.Pieces.SplitFlap,
     variants: [
       %{
         title: "late arrivals & co",
@@ -18,15 +18,15 @@ defmodule AsciiArt.Pieces.SplitFlapTest do
       %{flights: []}
     ]
 
-  use AsciiArt.GoldenCase, slug: "split-flap", piece: AsciiArt.Pieces.SplitFlap
+  use Ascii.GoldenCase, slug: "split-flap", piece: Ascii.Pieces.SplitFlap
 
-  alias AsciiArt.Frame
-  alias AsciiArt.Pieces.SplitFlap
+  alias Ascii.Frame
+  alias Ascii.Pieces.SplitFlap
 
   # A frame at `t` with `options`, and the part of each of its cells.
   defp parts_at(t, options \\ %{}) do
-    anim = AsciiArt.new!("split-flap", options: options)
-    {frame, _} = AsciiArt.frame(anim, t)
+    anim = Ascii.new!("split-flap", options: options)
+    {frame, _} = Ascii.frame(anim, t)
 
     names =
       for runs <- SplitFlap.parts(frame, anim.options) do
@@ -146,7 +146,7 @@ defmodule AsciiArt.Pieces.SplitFlapTest do
     end
 
     test "with parts: true, remarks take the colours the piece suggests" do
-      {frame, _} = "split-flap" |> AsciiArt.new!(parts: true) |> AsciiArt.frame(3.0)
+      {frame, _} = "split-flap" |> Ascii.new!(parts: true) |> Ascii.frame(3.0)
       assert Frame.color_at(frame, 42, 9) == "#3fb950"
       assert Frame.color_at(frame, 42, 15) == "#f85149"
       assert Frame.color_at(frame, 42, 5) == "#39c5cf"
@@ -156,7 +156,7 @@ defmodule AsciiArt.Pieces.SplitFlapTest do
   end
 
   test "it says the board, its clock and its first flights" do
-    assert AsciiArt.describe(AsciiArt.new!("split-flap")) ==
+    assert Ascii.describe(Ascii.new!("split-flap")) ==
              "departures at 14:03: 14:05 lisbon, gate a4, on time; " <>
                "14:15 oslo, gate b12, on time; 14:20 nairobi, gate c7, delayed; and 9 more"
 

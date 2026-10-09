@@ -1,5 +1,5 @@
-defmodule AsciiArt.Pieces.SynthwaveTest do
+defmodule Ascii.Pieces.SynthwaveTest do
   use ExUnit.Case, async: true
-  use AsciiArt.ContractCase, piece: AsciiArt.Pieces.Synthwave
-  use AsciiArt.GoldenCase, slug: "synthwave", piece: AsciiArt.Pieces.Synthwave
+  use Ascii.ContractCase, piece: Ascii.Pieces.Synthwave
+  use Ascii.GoldenCase, slug: "synthwave", piece: Ascii.Pieces.Synthwave
 end
