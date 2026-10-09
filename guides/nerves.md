@@ -9,7 +9,7 @@ on a display.
 # needs: a Nerves project's mix.exs
 def deps do
   [
-    {:ascii_art, github: "houllette/ascii_art"},
+    {:ascii_art, "~> 0.2"},
     # ...
   ]
 end

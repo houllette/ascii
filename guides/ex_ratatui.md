@@ -11,7 +11,7 @@ library: add it to your project to have both. Written against ExRatatui 0.17.
 
 ```elixir
 # needs: mix.exs
-{:ascii_art, github: "houllette/ascii_art"},
+{:ascii_art, "~> 0.2"},
 {:ex_ratatui, "~> 0.17"}
 ```
 

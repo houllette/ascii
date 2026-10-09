@@ -63,13 +63,14 @@ distros, 3D shapes, simulations and type.
 
 ## Installation
 
-Not on Hex. Add it from git or a path:
+From [Hex](https://hex.pm/packages/ascii_art), with the docs on
+[HexDocs](https://ascii-art.hexdocs.pm/):
 
 ```elixir
 # in mix.exs
 def deps do
   [
-    {:ascii_art, github: "houllette/ascii_art"},
+    {:ascii_art, "~> 0.2"},
     # optional, for the Phoenix components and the LiveView player:
     {:phoenix_live_view, "~> 1.1"},
     # optional, for ratatui widgets and the full-screen terminal viewer:

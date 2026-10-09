@@ -19,7 +19,7 @@ the Phoenix components.
 # needs: a mix.exs to put it in
 def deps do
   [
-    {:ascii_art, github: "houllette/ascii_art"},
+    {:ascii_art, "~> 0.2"},
     # optional:
     {:phoenix_live_view, "~> 1.1"}
   ]

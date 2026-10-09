@@ -8,7 +8,7 @@ written against Kino 0.19.
 # needs: a notebook's setup cell
 Mix.install([
   {:kino, "~> 0.19"},
-  {:ascii_art, github: "houllette/ascii_art"}
+  {:ascii_art, "~> 0.2"}
 ])
 ```
 

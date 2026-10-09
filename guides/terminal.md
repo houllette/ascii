@@ -243,7 +243,7 @@ A one-off script needs nothing else:
 
 ```elixir
 # needs: a file, run with `elixir clock.exs`
-Mix.install([{:ascii_art, github: "houllette/ascii_art"}])
+Mix.install([{:ascii_art, "~> 0.2"}])
 
 alias AsciiArt.Render.ANSI
 IO.write([ANSI.hide_cursor(), ANSI.clear()])
