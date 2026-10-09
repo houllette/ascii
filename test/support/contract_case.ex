@@ -64,9 +64,14 @@ defmodule AsciiArt.ContractCase do
         end
       end
 
+      # A test for the defaults and one for each variant: each plays every
+      # frame of a cycle, and together they are too long for one test's time.
       if Code.ensure_loaded?(unquote(piece)) and function_exported?(unquote(piece), :parts, 2) do
-        test "parts make up every frame, in parts the meta lists" do
-          AsciiArt.ContractCase.assert_parts(unquote(piece), unquote(variants))
+        for {options, i} <- Enum.with_index([%{} | unquote(variants)]) do
+          @parts_options options
+          test "parts make up every frame, in parts the meta lists (options #{i})" do
+            AsciiArt.ContractCase.assert_parts(unquote(piece), @parts_options)
+          end
         end
       end
 
@@ -162,11 +167,9 @@ defmodule AsciiArt.ContractCase do
     if function_exported?(piece, :parts, 2) do
       rows = piece.parts(frame, anim.options)
 
-      for {{runs, line}, y} <- rows |> Enum.zip(frame.lines) |> Enum.with_index() do
-        ExUnit.Assertions.assert(
-          Enum.map_join(runs, &elem(&1, 1)) == line,
-          "#{at}: row #{y}'s parts do not make it up: #{inspect(runs)}"
-        )
+      for {{runs, line}, y} <- rows |> Enum.zip(frame.lines) |> Enum.with_index(),
+          Enum.map_join(runs, &elem(&1, 1)) != line do
+        ExUnit.Assertions.flunk("#{at}: row #{y}'s parts do not make it up: #{inspect(runs)}")
       end
     end
 
@@ -276,17 +279,17 @@ defmodule AsciiArt.ContractCase do
   @doc false
   # Every frame of a cycle, or of half a minute, a tenth of a second apart,
   # labelled: the runs make up each row, and every part's first word is one
-  # the meta lists. Each variant from a fresh start, and taken up a second
-  # into playing the defaults, for the frames between one and the other.
-  def assert_parts(piece, variants) do
+  # the meta lists. The defaults from a fresh start; a variant from a fresh
+  # start, and taken up a second into playing the defaults, for the frames
+  # between one and the other.
+  def assert_parts(piece, options) do
     m = piece.meta()
     known = MapSet.new(m.parts, fn {name, _} -> name |> String.split(".") |> hd() end)
     span = m.loop || 30
     times = for i <- 0..round(span * 10), do: i / 10
 
     runs =
-      for options <- [%{} | variants],
-          paper <- [false, true],
+      for paper <- [false, true],
           how <- [:fresh, :taken_up],
           options != %{} or how == :fresh do
         {anim, start} =
@@ -313,15 +316,17 @@ defmodule AsciiArt.ContractCase do
           "#{at}: #{length(rows)} rows of parts, rows is #{frame.rows}"
         )
 
+        # The messages are built only on failure: assert/2 takes its message
+        # eagerly, and inspecting every row of every frame doubles the run.
         for {{runs, line}, y} <- rows |> Enum.zip(frame.lines) |> Enum.with_index() do
-          ExUnit.Assertions.assert(
-            Enum.map_join(runs, &elem(&1, 1)) == line,
-            "#{at}: row #{y}'s parts do not make it up: #{inspect(runs)}"
-          )
+          if Enum.map_join(runs, &elem(&1, 1)) != line do
+            ExUnit.Assertions.flunk("#{at}: row #{y}'s parts do not make it up: #{inspect(runs)}")
+          end
 
-          for {name, _text} <- runs, name != nil do
-            ExUnit.Assertions.assert(
-              is_binary(name) and MapSet.member?(known, name |> String.split(".") |> hd()),
+          for {name, _text} <- runs,
+              name != nil,
+              not (is_binary(name) and MapSet.member?(known, name |> String.split(".") |> hd())) do
+            ExUnit.Assertions.flunk(
               "#{at}: row #{y} has a part the meta does not list: #{inspect(name)}"
             )
           end
