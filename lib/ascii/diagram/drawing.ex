@@ -1,6 +1,6 @@
 defmodule Ascii.Diagram.Drawing do
   @moduledoc false
-  alias Ascii.Diagram.{Style, Text}
+  alias Ascii.Diagram.Text
 
   @spec wrap(text :: String.t(), width :: pos_integer()) :: [String.t()]
   def wrap(text, width) do
@@ -22,6 +22,7 @@ defmodule Ascii.Diagram.Drawing do
   end
 
   defp dimensions(:diamond, width, rows), do: {width + 2 * rows + 6, 2 * rows + 5}
+  defp dimensions(shape, _width, _rows) when shape in [:initial, :final], do: {5, 3}
   defp dimensions(_shape, width, rows), do: {width + 4, rows + 2}
 
   @spec box(node :: map(), role :: atom()) :: tuple()
@@ -33,11 +34,7 @@ defmodule Ascii.Diagram.Drawing do
   @spec edge_label(edge :: map()) :: [tuple()]
   def edge_label(%{label: ""}), do: []
 
-  def edge_label(edge),
-    do: [
-      {:text, edge.label_x, edge.label_y, edge.label_lines, :edge_label,
-       Style.ink(edge, :edge_label)}
-    ]
+  def edge_label(edge), do: [{:edge_label, edge}]
 
   @spec extent(nodes :: map(), edges :: [map()], boundaries :: map()) ::
           {pos_integer(), pos_integer()}

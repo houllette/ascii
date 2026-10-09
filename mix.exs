@@ -4,7 +4,7 @@ defmodule Ascii.MixProject do
   def project do
     [
       app: :ascii,
-      version: "0.3.0",
+      version: "0.4.0",
       elixir: "~> 1.18",
       elixirc_paths: elixirc_paths(Mix.env()),
       test_ignore_filters: [&String.starts_with?(&1, "test/fixtures/")],
@@ -20,7 +20,7 @@ defmodule Ascii.MixProject do
       description:
         "ASCII-art components for Elixir: native diagrams, live-data widgets and " <>
           "exact ascii.rest animations for Phoenix LiveView, terminal UIs and Nerves.",
-      source_url: "https://github.com/houllette/ascii_art",
+      source_url: "https://github.com/houllette/ascii",
       package: package(),
       docs: docs()
     ]
@@ -30,7 +30,7 @@ defmodule Ascii.MixProject do
     [
       licenses: ["MIT"],
       links: %{
-        "GitHub" => "https://github.com/houllette/ascii_art",
+        "GitHub" => "https://github.com/houllette/ascii",
         "ascii.rest" => "https://ascii.rest"
       },
       files:
@@ -86,7 +86,7 @@ defmodule Ascii.MixProject do
             Ascii.Player
           ],
           "Live data": [Ascii.BEAM, Ascii.Telemetry],
-          Diagrams: [Ascii.Diagram, Ascii.Diagram.Layout, Ascii.Mermaid],
+          Diagrams: [Ascii.Diagram, Ascii.Diagram.Layout, Ascii.Diagram.Viewport, Ascii.Mermaid],
           Phoenix: [
             Ascii.Phoenix,
             Ascii.Phoenix.Components,

@@ -2,6 +2,15 @@ defmodule Ascii.Mermaid.Syntax do
   @moduledoc false
   @type position :: {String.t(), pos_integer(), pos_integer()}
 
+  @spec match(regex :: Regex.t(), text :: String.t(), groups :: pos_integer()) ::
+          [String.t()] | nil
+  def match(regex, text, groups) do
+    case Regex.run(regex, text) do
+      nil -> nil
+      matches -> matches ++ List.duplicate("", max(0, groups + 1 - length(matches)))
+    end
+  end
+
   @spec statements(source :: String.t()) :: [position()]
   def statements(source), do: scan(String.to_charlist(source), [], [], 1, 1, 1, 1, false)
 

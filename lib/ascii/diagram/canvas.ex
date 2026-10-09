@@ -8,8 +8,15 @@ defmodule Ascii.Diagram.Canvas do
   @spec frame(layout :: Ascii.Diagram.Layout.t(), opts :: keyword()) ::
           {:ok, Frame.t()} | Ascii.Diagram.error()
   def frame(layout, opts) do
+    frame(layout, opts, %{x: 0, y: 0, cols: layout.cols, rows: layout.rows})
+  end
+
+  @spec frame(layout :: Ascii.Diagram.Layout.t(), opts :: keyword(), region :: map()) ::
+          {:ok, Frame.t()} | Ascii.Diagram.error()
+  def frame(layout, opts, region) do
     canvas = %{
-      grid: Grid.new(layout.cols, layout.rows),
+      grid: Grid.new(region.cols, region.rows),
+      origin: {region.x, region.y},
       roles: %{},
       overrides: %{},
       strokes: %{},
@@ -24,8 +31,8 @@ defmodule Ascii.Diagram.Canvas do
        %Frame{
          text: text,
          lines: String.split(text, "\n"),
-         cols: layout.cols,
-         rows: layout.rows,
+         cols: region.cols,
+         rows: region.rows,
          t: 0.0,
          colors: colors,
          palette: palette
@@ -62,6 +69,64 @@ defmodule Ascii.Diagram.Canvas do
   end
 
   defp draw({:box, %{shape: :diamond} = box, role}, canvas), do: diamond(canvas, box, role)
+
+  defp draw({:box, %{shape: shape} = box, role}, canvas) when shape in [:initial, :final] do
+    glyph =
+      case {canvas.charset, shape} do
+        {:ascii, :initial} -> "[*]"
+        {:ascii, :final} -> "(*)"
+        {:unicode, :initial} -> " ● "
+        {:unicode, :final} -> " ◉ "
+      end
+
+    text(canvas, box.x + 1, box.y + 1, [glyph], role, Style.ink(box, role))
+  end
+
+  defp draw({:box, %{shape: :entity} = box, role}, canvas) do
+    blank = Map.merge(box, %{shape: :rectangle, lines: List.duplicate("", box.height - 2)})
+    canvas = draw({:box, blank, role}, canvas)
+
+    canvas =
+      Enum.reduce(Enum.with_index(box.header_lines, 1), canvas, fn {line, row}, acc ->
+        text(
+          acc,
+          box.x + div(box.width - Text.width(line), 2),
+          box.y + row,
+          [line],
+          :label,
+          Style.ink(box, :label)
+        )
+      end)
+
+    {_, _, _, _, h, _} = border(canvas.charset)
+    row = box.y + length(box.header_lines) + 1
+
+    canvas =
+      Enum.reduce(
+        (box.x + 1)..(box.x + box.width - 2),
+        canvas,
+        &put(&2, &1, row, h, role, Style.ink(box, role))
+      )
+
+    left = if canvas.charset == :ascii, do: "+", else: "├"
+    right = if canvas.charset == :ascii, do: "+", else: "┤"
+
+    canvas =
+      canvas
+      |> put(box.x, row, left, role, Style.ink(box, role))
+      |> put(box.x + box.width - 1, row, right, role, Style.ink(box, role))
+
+    Enum.reduce(box.attributes, canvas, fn attribute, acc ->
+      text(
+        acc,
+        box.x + 2,
+        box.y + attribute.row,
+        attribute.lines,
+        :label,
+        Style.ink(attribute, :label) || Style.ink(box, :label)
+      )
+    end)
+  end
 
   defp draw({:box, box, role}, canvas) do
     style = if canvas.charset == :ascii, do: :ascii, else: box_style(box.shape)
@@ -112,6 +177,20 @@ defmodule Ascii.Diagram.Canvas do
   defp draw({:text, x, y, lines, role}, canvas), do: text(canvas, x, y, lines, role)
   defp draw({:text, x, y, lines, role, color}, canvas), do: text(canvas, x, y, lines, role, color)
 
+  defp draw({:edge_label, edge}, canvas),
+    do:
+      text(
+        canvas,
+        edge.label_x,
+        edge.label_y,
+        edge.label_lines,
+        :edge_label,
+        Style.ink(edge, :edge_label)
+      )
+
+  defp draw({:lifeline, _id, x, y1, y2, color}, canvas),
+    do: draw({:lifeline, x, y1, y2, color}, canvas)
+
   defp draw({:lifeline, x, y1, y2}, canvas), do: draw({:lifeline, x, y1, y2, nil}, canvas)
 
   defp draw({:lifeline, x, y1, y2, color}, canvas) do
@@ -134,6 +213,8 @@ defmodule Ascii.Diagram.Canvas do
         stroke(acc, x, y, directions, edge)
       end)
 
+    canvas = cardinalities(canvas, edge, points)
+
     if edge.arrow and length(points) > 1 do
       {x, y} = List.last(points)
       ch = arrow(canvas.charset, direction(Enum.at(points, -2), {x, y}))
@@ -142,6 +223,45 @@ defmodule Ascii.Diagram.Canvas do
       canvas
     end
   end
+
+  defp cardinalities(canvas, %{from_cardinality: from, to_cardinality: to} = edge, points) do
+    canvas |> marker(from, points, edge) |> marker(to, Enum.reverse(points), edge)
+  end
+
+  defp cardinalities(canvas, _edge, _points), do: canvas
+
+  defp marker(canvas, cardinality, [a, b | _] = points, edge) do
+    toward = direction(b, a)
+
+    {min, max} =
+      case cardinality do
+        :one -> {:one, :one}
+        :zero_or_one -> {:zero, :one}
+        :one_or_more -> {:one, :many}
+        :zero_or_more -> {:zero, :many}
+      end
+
+    Enum.zip(Enum.take(points, 2), [max, min])
+    |> Enum.reduce(canvas, fn {{x, y}, kind}, acc ->
+      put(acc, x, y, cardinal_glyph(canvas.charset, kind, toward), :edge, Style.ink(edge, :edge))
+    end)
+  end
+
+  defp marker(canvas, _cardinality, _points, _edge), do: canvas
+  defp cardinal_glyph(:ascii, :zero, _direction), do: "o"
+  defp cardinal_glyph(:unicode, :zero, _direction), do: "○"
+  defp cardinal_glyph(:ascii, :one, direction) when direction in [:east, :west], do: "|"
+  defp cardinal_glyph(:ascii, :one, _direction), do: "-"
+  defp cardinal_glyph(:unicode, :one, direction) when direction in [:east, :west], do: "│"
+  defp cardinal_glyph(:unicode, :one, _direction), do: "─"
+  defp cardinal_glyph(:ascii, :many, :east), do: "{"
+  defp cardinal_glyph(:ascii, :many, :west), do: "}"
+  defp cardinal_glyph(:ascii, :many, :north), do: "v"
+  defp cardinal_glyph(:ascii, :many, :south), do: "^"
+  defp cardinal_glyph(:unicode, :many, :east), do: "‹"
+  defp cardinal_glyph(:unicode, :many, :west), do: "›"
+  defp cardinal_glyph(:unicode, :many, :north), do: "∨"
+  defp cardinal_glyph(:unicode, :many, :south), do: "∧"
 
   defp draw_border(canvas, box, role) do
     {tl, tr, bl, br, h, v} = border(canvas.charset)
@@ -174,17 +294,53 @@ defmodule Ascii.Diagram.Canvas do
   defp direction(_point, _other), do: :north
 
   defp stroke(canvas, x, y, directions, edge) do
-    key = y * canvas.grid.cols + x
-    previous = Map.get(canvas.strokes, key)
+    {ox, oy} = canvas.origin
 
-    ch =
-      if previous && elem(previous, 0) != edge.id,
-        do: crossing(canvas.charset),
-        else: glyph(canvas.charset, directions, edge.style)
+    if x >= ox and y >= oy and x < ox + canvas.grid.cols and y < oy + canvas.grid.rows do
+      key = {x, y}
+      previous = Map.get(canvas.strokes, key)
 
-    canvas = put(canvas, x, y, ch, :edge, Style.ink(edge, :edge))
-    %{canvas | strokes: Map.put(canvas.strokes, key, {edge.id, directions})}
+      crossing? =
+        previous != nil and
+          (previous.crossing? or
+             (previous.edge.id != edge.id and not shared_channel?(previous.edge, edge, {x, y})))
+
+      directions =
+        if previous && not crossing?,
+          do: MapSet.union(previous.directions, directions),
+          else: directions
+
+      ch =
+        if crossing?,
+          do: crossing(canvas.charset),
+          else: glyph(canvas.charset, directions, edge.style)
+
+      canvas = put(canvas, x, y, ch, :edge, Style.ink(edge, :edge))
+
+      %{
+        canvas
+        | strokes:
+            Map.put(canvas.strokes, key, %{
+              edge: edge,
+              directions: directions,
+              crossing?: crossing?
+            })
+      }
+    else
+      canvas
+    end
   end
+
+  defp shared_channel?(a, b, point) do
+    (a.from == b.from and on_end?(point, a.points) and on_end?(point, b.points)) or
+      (a.to == b.to and on_end?(point, Enum.reverse(a.points)) and
+         on_end?(point, Enum.reverse(b.points)))
+  end
+
+  defp on_end?({x, y}, [{ax, ay}, {bx, by} | _]),
+    do: x >= min(ax, bx) and x <= max(ax, bx) and y >= min(ay, by) and y <= max(ay, by)
+
+  defp on_end?(_point, _points), do: false
 
   defp glyph(:ascii, dirs, style) do
     horizontal? = Enum.all?(dirs, &(&1 in [:east, :west]))
@@ -276,6 +432,12 @@ defmodule Ascii.Diagram.Canvas do
   end
 
   defp put(canvas, x, y, ch, role, color) do
+    {ox, oy} = canvas.origin
+    cell(canvas, x - ox, y - oy, ch, role, color)
+  end
+
+  defp cell(canvas, x, y, ch, role, color)
+       when x >= 0 and y >= 0 and x < canvas.grid.cols and y < canvas.grid.rows do
     %{
       canvas
       | grid: Grid.put(canvas.grid, x, y, ch),
@@ -287,6 +449,8 @@ defmodule Ascii.Diagram.Canvas do
           )
     }
   end
+
+  defp cell(canvas, _x, _y, _ch, _role, _color), do: canvas
 
   defp box_style(:rounded), do: :rounded
   defp box_style(_shape), do: :single

@@ -58,7 +58,7 @@ defmodule Ascii.Diagram.Style do
   end
 
   def update(%{type: type, data: data} = diagram, :edge, id, style)
-      when type in [:flowchart, :c4] do
+      when type in [:flowchart, :c4, :state, :er] do
     with {:ok, records} <- apply_records(data.edges, id, style),
          do: {:ok, %{diagram | data: %{data | edges: records}}}
   end
@@ -68,11 +68,24 @@ defmodule Ascii.Diagram.Style do
          do: {:ok, %{diagram | data: %{data | boundaries: records}}}
   end
 
+  def update(%{type: :flowchart, data: data} = diagram, :boundary, id, style) do
+    with {:ok, records} <- apply_records(data.groups, id, style),
+         do: {:ok, %{diagram | data: %{data | groups: records}}}
+  end
+
+  def update(%{type: :state, data: data} = diagram, :boundary, id, style) do
+    if Enum.any?(data.states, &(&1.id == id and &1.kind == :composite)),
+      do: update(diagram, :node, id, style),
+      else: missing(id)
+  end
+
   def update(_diagram, _kind, id, _style), do: missing(id)
 
   defp node_key(:flowchart), do: :nodes
   defp node_key(:sequence), do: :participants
   defp node_key(:c4), do: :elements
+  defp node_key(:state), do: :states
+  defp node_key(:er), do: :entities
 
   defp update_events(events, kind, id, style) do
     Enum.map_reduce(events, false, fn event, found? ->

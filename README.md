@@ -50,12 +50,12 @@ distros, 3D shapes, simulations and type.
   plain terminal or a device's screen; out as SVG for a README or an email
   (`Ascii.Render.SVG`, `mix ascii.svg`); and `mix ascii.top`
   watches your BEAM, htop-style, made of the pieces themselves.
-- **Native diagrams.** Build flowcharts, sequence diagrams and C4 views
-  from Elixir data or supported Mermaid source (`Ascii.Diagram`,
+- **Native diagrams.** Build flowcharts with nested groups, sequence diagrams, C4 views,
+  state diagrams and entity relationship diagrams from Elixir data or supported Mermaid source (`Ascii.Diagram`,
   `Ascii.Mermaid`). The result is a frame for the same renderers, with
   nested boundaries and sequence fragments, optional colours per element,
-  and retained geometry for hit testing. See the [diagram guide](guides/diagrams.md)
-  for the syntax support matrix and runnable examples.
+  and retained geometry for hit testing, selection styling and panned viewports.
+  See the [diagram guide](guides/diagrams.md) for the syntax support matrix and runnable examples.
 - **Accessible.** Each component says what it shows, from its data, for
   screen readers ("load: 72%", "deploy: 6 steps, 1 failed"), and the
   Phoenix players label the picture with it (`Ascii.describe/1`).
@@ -78,7 +78,7 @@ From [Hex](https://hex.pm/packages/ascii), with the docs on
 # in mix.exs
 def deps do
   [
-    {:ascii, "~> 0.3.0"},
+    {:ascii, "~> 0.4.0"},
     # optional, for the Phoenix components and the LiveView player:
     {:phoenix_live_view, "~> 1.1"},
     # optional, for ratatui widgets and the full-screen terminal viewer:
@@ -88,6 +88,9 @@ def deps do
   ]
 end
 ```
+
+Version 0.4.0 adds nested flowchart groups, state and ER diagrams, compact
+layouts, selection styling and panned viewports.
 
 Version 0.3.0 renames `ascii_art` to `ascii` and `AsciiArt.*` to `Ascii.*`.
 Existing consumers should follow the [migration guide](guides/migrating-to-ascii.md).

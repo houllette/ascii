@@ -243,7 +243,7 @@ A one-off script needs nothing else:
 
 ```elixir
 # needs: a file, run with `elixir clock.exs`
-Mix.install([{:ascii, "~> 0.3.0"}])
+Mix.install([{:ascii, "~> 0.4.0"}])
 
 alias Ascii.Render.ANSI
 IO.write([ANSI.hide_cursor(), ANSI.clear()])

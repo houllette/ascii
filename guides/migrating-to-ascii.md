@@ -11,7 +11,7 @@ Replace the `ascii_art` dependency with:
 
 ```elixir
 # needs: a mix.exs to put it in
-{:ascii, "~> 0.3.0"}
+{:ascii, "~> 0.4.0"}
 ```
 
 Replace `AsciiArt` with `Ascii` in aliases, imports, function calls, struct
@@ -67,12 +67,12 @@ and their optional element colours are available through `Ascii.Diagram` and
 
 ## Publishing the renamed library
 
-Publish `ascii` 0.3.0 as a new Hex package. Its version continues the library's
-release history; the existing `ascii_art` releases remain under their original
-package name. The repository's existing GitHub URL remains the source URL.
+The first `ascii` release was 0.3.0. Subsequent releases continue under `ascii`;
+the existing `ascii_art` releases retain their original package name. The
+repository is now [houllette/ascii](https://github.com/houllette/ascii).
 
 Before publishing, run `mix precommit`, inspect `mix hex.build --unpack`, and
-run `mix hex.publish --dry-run`. Verify the built package in a fresh consumer,
+run `mix hex.publish --dry-run --yes`. Verify the built package in a fresh consumer,
 including its optional integrations and static assets. After publishing with
 `mix hex.publish`, repeat the consumer check with the dependency fetched from
 Hex.

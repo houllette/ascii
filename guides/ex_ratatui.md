@@ -11,7 +11,7 @@ library: add it to your project to have both. Written against ExRatatui 0.17.
 
 ```elixir
 # needs: mix.exs
-{:ascii, "~> 0.3.0"},
+{:ascii, "~> 0.4.0"},
 {:ex_ratatui, "~> 0.17"}
 ```
 

@@ -9,7 +9,9 @@ defmodule Ascii.Diagram.Layout do
   or layout work.
   """
 
-  alias Ascii.Diagram.{Canvas, Options, Text}
+  alias Ascii.Diagram.{Canvas, LayoutStyle, Options, Style, Text, Viewport}
+
+  @type target :: {atom(), String.t()} | {:attribute, String.t(), String.t()}
 
   @type t :: %__MODULE__{
           cols: pos_integer(),
@@ -46,8 +48,19 @@ defmodule Ascii.Diagram.Layout do
          do: Canvas.frame(layout, opts)
   end
 
-  @doc "The node, note, activation, edge, fragment or boundary at a cell, as `{kind, id}`, or `nil`."
-  @spec hit_at(layout :: t(), x :: integer(), y :: integer()) :: {atom(), String.t()} | nil
+  @doc "Creates a reusable window with `:x`, `:y`, `:cols` and `:rows` cell coordinates."
+  @spec viewport(layout :: t(), opts :: keyword()) :: {:ok, Viewport.t()} | Ascii.Diagram.error()
+  def viewport(%__MODULE__{} = layout, opts \\ []), do: Viewport.new(layout, opts)
+
+  @doc "Changes an element's foreground style without parsing, placement or routing. `nil` clears an override."
+  @spec put_style(layout :: t(), target :: target(), style :: map() | keyword()) ::
+          {:ok, t()} | Ascii.Diagram.error()
+  def put_style(%__MODULE__{} = layout, target, style) do
+    with {:ok, style} <- Style.cast(style), do: LayoutStyle.put(layout, target, style)
+  end
+
+  @doc "The element at a cell, as `{kind, id}`, an ER `{:attribute, entity_id, name}`, or `nil`."
+  @spec hit_at(layout :: t(), x :: integer(), y :: integer()) :: target() | nil
   def hit_at(%__MODULE__{cols: cols, rows: rows} = layout, x, y)
       when is_integer(x) and is_integer(y) and x >= 0 and y >= 0 and x < cols and y < rows do
     node = Enum.find(layout.nodes, fn {_id, bounds} -> inside?(bounds, x, y) end)
@@ -56,12 +69,24 @@ defmodule Ascii.Diagram.Layout do
     edge = Enum.find(layout.edges, &on_edge?(&1, x, y))
     boundary = at_border(layout.boundaries, x, y)
     fragment = at_border(layout.fragments, x, y)
-    hit(node, note, activation, edge, fragment, boundary)
+
+    if node,
+      do: node_target(node, x, y),
+      else: hit(nil, note, activation, edge, fragment, boundary)
   end
 
   def hit_at(_layout, _x, _y), do: nil
 
-  defp hit({id, _}, _note, _activation, _edge, _fragment, _boundary), do: {:node, id}
+  defp node_target({id, node}, x, y) do
+    attribute =
+      Enum.find(Map.get(node, :attributes, []), fn attribute ->
+        x > node.x and x < node.x + node.width - 1 and y >= node.y + attribute.row and
+          y < node.y + attribute.row + length(attribute.lines)
+      end)
+
+    if attribute, do: {:attribute, id, attribute.name}, else: {:node, id}
+  end
+
   defp hit(nil, {id, _}, _activation, _edge, _fragment, _boundary), do: {:note, id}
   defp hit(nil, nil, {id, _}, _edge, _fragment, _boundary), do: {:activation, id}
   defp hit(nil, nil, nil, %{id: id}, _fragment, _boundary), do: {:edge, id}

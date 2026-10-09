@@ -47,7 +47,7 @@ defmodule Ascii.Diagram.Sequence do
     lifelines =
       Enum.map(participants, fn p ->
         n = nodes[p.id]
-        {:lifeline, n.x + div(n.width, 2), n.height, rows - 1, Style.ink(n, :lifeline)}
+        {:lifeline, n.id, n.x + div(n.width, 2), n.height, rows - 1, Style.ink(n, :lifeline)}
       end)
 
     fragments = state.fragments |> Map.values() |> Enum.sort_by(&(-&1.width * &1.height))

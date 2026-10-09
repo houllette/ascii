@@ -2,7 +2,8 @@ defmodule Ascii.Mermaid do
   @moduledoc """
   Parses a documented subset of Mermaid into native `Ascii.Diagram`s.
 
-  Supports flowcharts, sequences and C4 context/container/component views.
+  Supports flowcharts, sequences, C4 context/container/component views,
+  state diagrams and entity relationship diagrams.
   Unsupported statements are errors, with source line and column; they are
   never silently ignored. This is a character renderer with its own layout,
   rather than pixel or layout parity with Mermaid's SVG output. See the
@@ -14,7 +15,7 @@ defmodule Ascii.Mermaid do
   """
 
   alias Ascii.Diagram
-  alias Ascii.Mermaid.{C4, Flowchart, Sequence, Syntax}
+  alias Ascii.Mermaid.{C4, ER, Flowchart, Sequence, State, Syntax}
 
   @type error ::
           Diagram.error()
@@ -43,6 +44,9 @@ defmodule Ascii.Mermaid do
       "C4Context" -> C4.parse(rest, :context, position)
       "C4Container" -> C4.parse(rest, :container, position)
       "C4Component" -> C4.parse(rest, :component, position)
+      "stateDiagram-v2" -> State.parse(rest, position)
+      "stateDiagram" -> State.parse(rest, position)
+      "erDiagram" -> ER.parse(rest, position)
       _ -> parse_flowchart(header, position, rest)
     end
   end

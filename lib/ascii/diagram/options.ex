@@ -45,7 +45,14 @@ defmodule Ascii.Diagram.Options do
 
   defp valid?(_key, _value), do: false
 
-  @spec fits(layout :: Ascii.Diagram.Layout.t(), opts :: keyword()) ::
+  @spec fits(
+          size :: %{
+            required(:cols) => pos_integer(),
+            required(:rows) => pos_integer(),
+            optional(atom()) => term()
+          },
+          opts :: keyword()
+        ) ::
           :ok | Ascii.Diagram.error()
   def fits(layout, opts) do
     if layout.cols <= opts[:max_cols] and layout.rows <= opts[:max_rows] and
