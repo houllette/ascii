@@ -4,8 +4,8 @@ defmodule AsciiArt.MixProject do
   def project do
     [
       app: :ascii_art,
-      version: "0.2.1",
-      elixir: "~> 1.20",
+      version: "0.2.2",
+      elixir: "~> 1.18",
       elixirc_paths: elixirc_paths(Mix.env()),
       test_ignore_filters: [&String.starts_with?(&1, "test/fixtures/")],
       start_permanent: Mix.env() == :prod,

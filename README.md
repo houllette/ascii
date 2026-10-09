@@ -63,6 +63,8 @@ distros, 3D shapes, simulations and type.
 
 ## Installation
 
+Requires Elixir 1.18 or later.
+
 From [Hex](https://hex.pm/packages/ascii_art), with the docs on
 [HexDocs](https://ascii-art.hexdocs.pm/):
 

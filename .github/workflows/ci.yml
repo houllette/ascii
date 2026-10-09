@@ -117,8 +117,8 @@ jobs:
         run: mix test.distributed
 
   # The pinned versions above are the project's own (.tool-versions, the one
-  # place to bump them). This checks the library on the latest Elixir 1.20
-  # with each recent OTP as well, since users pick their own. Tests only: the
+  # place to bump them). This checks the minimum supported Elixir and the
+  # latest Elixir with recent compatible OTPs. Tests only: the
   # golden fixtures are committed, so nothing here needs Node.
   compat:
     name: Test (Elixir ${{ matrix.elixir }}, OTP ${{ matrix.otp }})
@@ -129,6 +129,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - elixir: "1.18"
+            otp: "27"
           - elixir: "1.20"
             otp: "28"
           - elixir: "1.20"

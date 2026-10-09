@@ -123,13 +123,18 @@ defmodule AsciiArt.JSMathTest do
     assert_raise ArithmeticError, fn -> JSMath.sqrt(-1) end
 
     # The pieces call :math for the rest, and guard these cases as upstream
-    # relies on them.
-    assert_raise ArithmeticError, fn -> :math.exp(710) end
-    assert_raise ArithmeticError, fn -> :math.log(0) end
-    assert_raise ArithmeticError, fn -> :math.log(-1) end
-    assert_raise ArithmeticError, fn -> :math.pow(0, -1) end
-    assert_raise ArithmeticError, fn -> :math.pow(-2, 0.5) end
-    assert_raise ArithmeticError, fn -> :math.asin(1.5) end
+    # relies on them. Evaluate at runtime so OTP 27 does not warn about
+    # these deliberately invalid constant calls during compilation.
+    for {function, args} <- [
+          {:exp, [710]},
+          {:log, [0]},
+          {:log, [-1]},
+          {:pow, [0, -1]},
+          {:pow, [-2, 0.5]},
+          {:asin, [1.5]}
+        ] do
+      assert_raise ArithmeticError, fn -> apply(:math, function, args) end
+    end
   end
 
   test ":math.exp underflows to zero as JS does" do
