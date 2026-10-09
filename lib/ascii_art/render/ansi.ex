@@ -11,7 +11,10 @@ defmodule AsciiArt.Render.ANSI do
   picture.
 
   Frames without colours (text pieces, or `color: false`) are plain text in
-  every mode, in the terminal's own colours.
+  every mode, in the terminal's own colours. A `nil` in a palette (cells in
+  no coloured part of a piece, see `AsciiArt.Parts`) is the terminal's own
+  foreground too, and a CSS variable (see `AsciiArt.Ink`) is its fallback
+  colour, or the terminal's own without one.
 
   To animate in place, move the cursor home before each frame:
 
@@ -23,7 +26,7 @@ defmodule AsciiArt.Render.ANSI do
   `AsciiArt.Player` and `mix ascii_art.play` do this for you.
   """
 
-  alias AsciiArt.Frame
+  alias AsciiArt.{Frame, Ink}
   alias AsciiArt.Kit.Palette
 
   @type mode :: :truecolor | :ansi256 | :mono
@@ -52,7 +55,7 @@ defmodule AsciiArt.Render.ANSI do
          mode,
          ground?
        ) do
-    inks = palette |> Enum.map(&sgr(mode, 38, Palette.rgb255(&1))) |> List.to_tuple()
+    inks = inks(palette, mode)
     bg = if ground? and frame.ground, do: sgr(mode, 48, Palette.rgb255(frame.ground)), else: []
 
     lines
@@ -97,7 +100,7 @@ defmodule AsciiArt.Render.ANSI do
   defp painter(_frame, :mono, _ground?), do: fn text, _colors -> text end
 
   defp painter(%Frame{palette: palette} = frame, mode, ground?) do
-    inks = palette |> Enum.map(&sgr(mode, 38, Palette.rgb255(&1))) |> List.to_tuple()
+    inks = inks(palette, mode)
     bg = if ground? and frame.ground, do: sgr(mode, 48, Palette.rgb255(frame.ground)), else: []
 
     fn text, colors ->
@@ -115,6 +118,17 @@ defmodule AsciiArt.Render.ANSI do
 
   defp runs([ch | chars], [i | indices], inks, _current, acc),
     do: runs(chars, indices, inks, i, [ch, elem(inks, i) | acc])
+
+  defp inks(palette, mode), do: palette |> Enum.map(&ink(mode, &1)) |> List.to_tuple()
+
+  # The terminal's own foreground for nil, and for a CSS variable without a
+  # fallback.
+  defp ink(mode, color) do
+    case Ink.resolve(color) do
+      nil -> "\e[39m"
+      hex -> sgr(mode, 38, Palette.rgb255(hex))
+    end
+  end
 
   defp sgr(:truecolor, layer, {r, g, b}), do: "\e[#{layer};2;#{r};#{g};#{b}m"
   defp sgr(:ansi256, layer, rgb), do: "\e[#{layer};5;#{xterm256(rgb)}m"

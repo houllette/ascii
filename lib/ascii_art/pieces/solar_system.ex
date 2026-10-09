@@ -5,6 +5,43 @@ defmodule AsciiArt.Pieces.SolarSystem do
   Planets seen from above on dotted circular orbits. Each period goes as the
   orbit's radius to the power 1.5, Kepler's third law.
 
+  ## Options
+
+  Give them to `AsciiArt.new/2` as `options:`, and new ones while it plays
+  with `AsciiArt.put_options/2` (or a Phoenix player's `options`): it starts
+  afresh with them.
+
+    * `speed` - how fast the planets go round, -100 to 100: 2 twice as fast, a
+      negative speed backwards, 0 holds them where they stand. Default 1, at
+      which the innermost goes round in 3 seconds.
+
+  The picture is always 61 by 29.
+
+  ## Colours
+
+  In one ink, or a gradient, with `:ink` and `:gradient` (see `AsciiArt.Ink`),
+  or on a page a CSS variable. It has no parts to colour one by one.
+
+  ## Screen readers
+
+  `AsciiArt.describe/1` gives its name and note, "solar system: four planets
+  on dotted orbits, periods by kepler's third law". A player's or a
+  component's `label` gives words of your own, as "planets on their orbits".
+
+  ## Example
+
+  ```elixir
+  still = AsciiArt.new!("solar-system", options: %{speed: 0})
+  {first, still} = AsciiArt.frame(still, 0.0)
+  {later, _} = AsciiArt.frame(still, 5.0)
+  first.text == later.text
+  #=> true
+  ```
+
+  ```heex
+  <AsciiArt.Phoenix.player socket={@socket} id="orbits" piece="solar-system" options={%{speed: 0.25}} />
+  ```
+
   Ported from `src/pieces/solar-system.ts` in bas3line/ascii (MIT).
   """
   @behaviour AsciiArt.Piece

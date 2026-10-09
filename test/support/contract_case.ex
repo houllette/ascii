@@ -12,6 +12,11 @@ defmodule AsciiArt.ContractCase do
   every frame's size, characters and colours, and that the same `t` gives the
   same frame. A property does the same at random times.
 
+  A piece that labels its parts (`c:AsciiArt.Piece.parts/2`) has every
+  frame of a cycle (or of half a minute) labelled, with its defaults and each
+  variant, fresh and taken up while playing, and the runs checked to make up
+  each row exactly, in parts its meta lists.
+
   `variants:` is a list of options to check the same way, each from a fresh
   start and taken up while playing (`AsciiArt.put_options/2`), against the
   size the piece gives for those options:
@@ -58,7 +63,150 @@ defmodule AsciiArt.ContractCase do
           AsciiArt.ContractCase.assert_variants(unquote(piece), unquote(variants))
         end
       end
+
+      if Code.ensure_loaded?(unquote(piece)) and function_exported?(unquote(piece), :parts, 2) do
+        test "parts make up every frame, in parts the meta lists" do
+          AsciiArt.ContractCase.assert_parts(unquote(piece), unquote(variants))
+        end
+      end
+
+      if Code.ensure_loaded?(unquote(piece)) and
+           function_exported?(unquote(piece), :describe, 1) do
+        test "it tells what it shows in words, from its options" do
+          AsciiArt.ContractCase.assert_describe(unquote(piece), unquote(variants))
+        end
+      end
+
+      if Code.ensure_loaded?(unquote(piece)) and
+           function_exported?(unquote(piece), :handle_event, 2) do
+        test "every key and every cell clicked gives options it takes, drawn to the contract" do
+          AsciiArt.ContractCase.assert_events(unquote(piece), unquote(variants))
+        end
+
+        property "any run of events keeps the contract" do
+          AsciiArt.ContractCase.check_event_runs(unquote(piece), unquote(variants))
+        end
+      end
     end
+  end
+
+  @keys ~w(up down left right enter esc tab back_tab backspace delete home end page_up page_down) ++
+          [" ", "a", "Z", "7", "-", "/"]
+
+  @doc false
+  # The words for the defaults and each variant: text, or nil for the
+  # piece's name and note; the same for the same options; one line.
+  def assert_describe(piece, variants) do
+    m = piece.meta()
+
+    for given <- [%{} | variants] do
+      {:ok, options} = AsciiArt.Options.cast(m, given)
+      told = piece.describe(options)
+      at = "#{m.name} (#{inspect(given)})"
+
+      ExUnit.Assertions.assert(
+        told == nil or (is_binary(told) and told != "" and String.valid?(told)),
+        "#{at}: describe/1 gave #{inspect(told)}"
+      )
+
+      if told do
+        ExUnit.Assertions.assert(String.length(told) <= 500, "#{at}: over 500 characters")
+        ExUnit.Assertions.refute(told =~ "\n", "#{at}: more than one line")
+      end
+
+      ExUnit.Assertions.assert(told == piece.describe(options), "#{at}: not the same twice")
+    end
+  end
+
+  @doc false
+  # Every key, and a click on every cell, from the defaults and each
+  # variant: the piece ignores it, or gives options that its own checks
+  # take as they are, and the animation, taking them up, draws frames to the
+  # contract that its parts (if it knows them) make up.
+  def assert_events(piece, variants) do
+    m = piece.meta()
+
+    for given <- [%{} | variants] do
+      {frame, anim} = AsciiArt.frame(AsciiArt.new!(piece, options: given), 0.5)
+      clicks = for y <- 0..(frame.rows - 1), x <- 0..(frame.cols - 1), do: {:click, x, y}
+
+      for event <- Enum.map(@keys, &{:key, &1}) ++ clicks do
+        assert_event(m, piece, anim, event, "#{m.name} (#{inspect(given)}) on #{inspect(event)}")
+      end
+    end
+  end
+
+  defp assert_event(m, piece, anim, event, at) do
+    case piece.handle_event(event, anim.options) do
+      :ignore ->
+        anim
+
+      {:ok, options} ->
+        ExUnit.Assertions.assert(
+          AsciiArt.Options.cast(m, options) == {:ok, options},
+          "#{at}: options its own checks change: #{inspect(options)}"
+        )
+
+        {:ok, anim} = AsciiArt.handle_event(anim, event)
+        assert_drawn(m, piece, anim, 1.0, at)
+
+      other ->
+        ExUnit.Assertions.flunk("#{at}: handle_event/2 gave #{inspect(other)}")
+    end
+  end
+
+  defp assert_drawn(m, piece, anim, t, at) do
+    {frame, anim} = AsciiArt.frame(anim, t)
+    assert_frame(m, {anim.cols, anim.rows}, {t, frame.text, frame.colors, anim.color?}, at)
+
+    if function_exported?(piece, :parts, 2) do
+      rows = piece.parts(frame, anim.options)
+
+      for {{runs, line}, y} <- rows |> Enum.zip(frame.lines) |> Enum.with_index() do
+        ExUnit.Assertions.assert(
+          Enum.map_join(runs, &elem(&1, 1)) == line,
+          "#{at}: row #{y}'s parts do not make it up: #{inspect(runs)}"
+        )
+      end
+    end
+
+    anim
+  end
+
+  @doc false
+  defmacro check_event_runs(piece, variants) do
+    quote do
+      variants = [%{} | unquote(variants)]
+
+      check all(
+              given <- member_of(variants),
+              events <-
+                list_of(
+                  one_of([
+                    map(member_of(unquote(@keys)), &{:key, &1}),
+                    map({integer(0..90), integer(0..40)}, fn {x, y} -> {:click, x, y} end)
+                  ]),
+                  max_length: 40
+                ),
+              max_runs: 25
+            ) do
+        AsciiArt.ContractCase.assert_event_run(unquote(piece), given, events)
+      end
+    end
+  end
+
+  @doc false
+  def assert_event_run(piece, given, events) do
+    m = piece.meta()
+    anim = AsciiArt.new!(piece, options: given)
+
+    events
+    |> Enum.with_index()
+    |> Enum.reduce(anim, fn {event, i}, anim ->
+      at = "#{m.name} (#{inspect(given)}) after #{inspect(Enum.take(events, i + 1))}"
+      anim = assert_event(m, piece, anim, event, at)
+      assert_drawn(m, piece, anim, i * 0.25, at)
+    end)
   end
 
   @doc false
@@ -86,15 +234,102 @@ defmodule AsciiArt.ContractCase do
         {m.cell in [1, 2], "cell must be 1 or 2"},
         {not scene? or (m.palette != nil and m.ground != nil),
          "a scene needs a palette and a ground"},
-        {Enum.all?(m.bounds, fn {k, {lo, hi}} -> Map.has_key?(m.options, k) and lo <= hi end),
-         "bounds must name options"},
+        {Enum.all?(m.bounds, fn {k, b} ->
+           Map.has_key?(m.options, k) and bound?(b, Map.get(m.shapes, k, m.options[k]))
+         end), "bounds must name options, with ranges, or ranges by key the option's maps have"},
         {Enum.all?(Map.keys(m.shapes), &Map.has_key?(m.options, &1)), "shapes must name options"},
-        {m.loop == nil or (is_number(m.loop) and m.loop > 0), "loop must be seconds"}
+        {m.loop == nil or (is_number(m.loop) and m.loop > 0), "loop must be seconds"},
+        {parts?(m.parts), "parts must be {name, nil or #rrggbb}, each name once"},
+        {m.parts != [] == function_exported?(piece, :parts, 2),
+         "a piece lists parts if and only if it labels them"},
+        {m.parts == [] or m.palette == nil, "only a piece in one ink has parts"}
       ]
       |> Enum.reject(&elem(&1, 0))
       |> Enum.map(&elem(&1, 1))
 
     ExUnit.Assertions.assert(errors == [], "#{m.name}: #{Enum.join(errors, "; ")}")
+  end
+
+  # A range; or ranges by key, each a key of the maps the option holds.
+  defp bound?({lo, hi}, _shape), do: is_number(lo) and is_number(hi) and lo <= hi
+
+  defp bound?(bounds, [first | _] = shape) when is_map(bounds) and is_map(first),
+    do: bound?(bounds, Enum.reduce(shape, %{}, &Map.merge(&2, &1)))
+
+  defp bound?(bounds, shape) when is_map(bounds) and is_map(shape),
+    do: Enum.all?(bounds, fn {k, b} -> Map.has_key?(shape, k) and bound?(b, shape[k]) end)
+
+  defp bound?(_bounds, _shape), do: false
+
+  defp parts?(parts) do
+    is_list(parts) and
+      Enum.all?(parts, fn
+        {name, color} ->
+          is_binary(name) and name =~ ~r/^[a-z0-9_-]+(\.[a-z0-9_+-]+)*$/ and
+            (color == nil or (is_binary(color) and color =~ ~r/^#[0-9a-f]{6}$/))
+
+        _ ->
+          false
+      end) and parts |> Enum.map(&elem(&1, 0)) |> Enum.uniq() |> length() == length(parts)
+  end
+
+  @doc false
+  # Every frame of a cycle, or of half a minute, a tenth of a second apart,
+  # labelled: the runs make up each row, and every part's first word is one
+  # the meta lists. Each variant from a fresh start, and taken up a second
+  # into playing the defaults, for the frames between one and the other.
+  def assert_parts(piece, variants) do
+    m = piece.meta()
+    known = MapSet.new(m.parts, fn {name, _} -> name |> String.split(".") |> hd() end)
+    span = m.loop || 30
+    times = for i <- 0..round(span * 10), do: i / 10
+
+    runs =
+      for options <- [%{} | variants],
+          paper <- [false, true],
+          how <- [:fresh, :taken_up],
+          options != %{} or how == :fresh do
+        {anim, start} =
+          case how do
+            :fresh ->
+              {AsciiArt.new!(piece, options: options, paper: paper), 0}
+
+            :taken_up ->
+              {_, playing} = AsciiArt.frame(AsciiArt.new!(piece, paper: paper), 1.0)
+              {AsciiArt.put_options!(playing, options), 1}
+          end
+
+        {anim, start, "#{inspect(options)}, paper: #{paper}, #{how}"}
+      end
+
+    for {anim, start, run} <- runs do
+      Enum.reduce(times, anim, fn t, anim ->
+        {frame, anim} = AsciiArt.frame(anim, start + t)
+        at = "#{m.name} at t=#{start + t} (#{run})"
+        rows = piece.parts(frame, anim.options)
+
+        ExUnit.Assertions.assert(
+          length(rows) == frame.rows,
+          "#{at}: #{length(rows)} rows of parts, rows is #{frame.rows}"
+        )
+
+        for {{runs, line}, y} <- rows |> Enum.zip(frame.lines) |> Enum.with_index() do
+          ExUnit.Assertions.assert(
+            Enum.map_join(runs, &elem(&1, 1)) == line,
+            "#{at}: row #{y}'s parts do not make it up: #{inspect(runs)}"
+          )
+
+          for {name, _text} <- runs, name != nil do
+            ExUnit.Assertions.assert(
+              is_binary(name) and MapSet.member?(known, name |> String.split(".") |> hd()),
+              "#{at}: row #{y} has a part the meta does not list: #{inspect(name)}"
+            )
+          end
+        end
+
+        anim
+      end)
+    end
   end
 
   @doc "Plays a fresh instance at each of `times`, returning `{text, colors}` for each."

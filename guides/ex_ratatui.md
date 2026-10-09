@@ -4,8 +4,9 @@
 [ratatui](https://ratatui.rs) terminal UI library to Elixir: widgets, layout,
 key and mouse events, and supervised TUI apps that run in a local terminal,
 over SSH or across distributed Erlang. `AsciiArt.ExRatatui` makes frames into
-ratatui widgets, and `AsciiArt.ExRatatui.Viewer` is a ready-made app that
-plays pieces full screen. ExRatatui is an optional dependency of this
+ratatui widgets, so the components (a file tree, meters, gauges, a boot log)
+sit in your terminal UI beside ratatui's own, and `AsciiArt.ExRatatui.Viewer`
+is a ready-made app that plays pieces full screen. ExRatatui is an optional dependency of this
 library: add it to your project to have both. Written against ExRatatui 0.17.
 
 ```elixir
@@ -28,6 +29,14 @@ to step through, options for the first, and how to draw colour:
 ```elixir
 # needs: a real terminal
 AsciiArt.ExRatatui.Viewer.run(pieces: ~w(donut elixir matrix-rain), mode: :ansi256)
+```
+
+With `interactive: true`, keys go to a piece that can be used first (a file
+tree's arrows, a form's typing), and those it has no use for to the viewer:
+
+```elixir
+# needs: a real terminal
+AsciiArt.ExRatatui.Viewer.run(piece: "file-tree", options: %{walk: false}, interactive: true)
 ```
 
 Coloured pieces want a terminal with 24-bit colour, which most modern ones
@@ -95,6 +104,40 @@ end
 Start it under a supervisor, `{MyApp.ArtTUI, piece: "night-coast"}`, or from a
 script with `MyApp.ArtTUI.start_link(piece: "donut")`. In a standalone script,
 add a `terminate/2` that calls `System.stop(0)` so quitting ends the program.
+
+## Keys and clicks
+
+A piece that can be used (see
+[Keys and clicks](getting-started.md#keys-and-clicks)) takes ExRatatui's
+events through `AsciiArt.ExRatatui.handle_event/3`: a key by its code, and
+a left click as the frame's cell under it, wherever `place/3` put the
+picture (its box, centring and scroll allowed for). Keep the animation in
+your state rather than a player, and what was chosen is in its options:
+
+```elixir
+alias ExRatatui.Event.{Key, Mouse}
+alias ExRatatui.Layout.Rect
+
+tree = AsciiArt.new!("file-tree", options: %{walk: false, paths: ["lib/app.ex", "mix.exs"], root: "app"})
+{picture, tree} = AsciiArt.frame(tree, 0.0)
+placed = AsciiArt.ExRatatui.place(picture, %Rect{x: 0, y: 0, width: 80, height: 30}, title: "files")
+
+{:ok, tree} = AsciiArt.ExRatatui.handle_event(tree, %Key{code: "down", kind: "press"}, placed)
+tree.options.cursor
+#=> "lib/"
+
+# A click on the row of mix.exs, where it is on the screen.
+{_paragraph, rect} = placed
+{:ok, tree} = AsciiArt.ExRatatui.handle_event(tree, %Mouse{kind: "down", button: "left", x: rect.x + 15, y: rect.y + 3}, placed)
+tree.options.cursor
+#=> "mix.exs"
+```
+
+In an `ExRatatui.App`, call it from `handle_event/2` with the `placed` your
+`render/2` used (keep the screen's size in state from `%ExRatatui.Event.Resize{}`
+events, or lay the screen out the same way in both), and start the app with
+`mouse_capture: true` for clicks. `AsciiArt.ExRatatui.event/2` gives the
+piece's event alone, for a key you want to look at first.
 
 ## A live dashboard
 
@@ -174,6 +217,24 @@ between draws.
 
 A piece is just a `{widget, rect}` in the list `render/2` returns, so it can
 sit beside lists, tables and ratatui's own gauges in any `ExRatatui.Layout`.
+
+## Colouring parts
+
+Pieces that know their parts (a file tree's folders and files, a boot log's
+statuses, a meter's bars; see `AsciiArt.Parts`) take a colour for each with
+`:parts`, so a widget can match the rest of your UI: files by type, warnings
+in your warning colour. Pass it to `AsciiArt.new/2` or the player, or
+`parts: true` for the colours each piece suggests. Parts given no colour are
+drawn in the terminal's own.
+
+```elixir
+parts = %{"folder" => "#58a6ff", "file.md" => "#d29922", "branch" => "#8b949e"}
+{tree, _} = AsciiArt.new!("file-tree", parts: parts) |> AsciiArt.frame(3.0)
+
+[_root, _docs, guide | _] = AsciiArt.ExRatatui.lines(tree)
+Enum.map(guide.spans, &{String.trim(&1.content), &1.style.fg})
+#=> [{"│   ├──", {:rgb, 139, 148, 158}}, {"guide.md", {:rgb, 210, 153, 34}}]
+```
 
 ## Over SSH and across nodes
 

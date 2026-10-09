@@ -4,7 +4,7 @@ defmodule AsciiArt.Animation do
   state so far. Made by `AsciiArt.new/2` and advanced by `AsciiArt.frame/3`.
   """
 
-  alias AsciiArt.{Env, Frame, Meta}
+  alias AsciiArt.{Env, Frame, Ink, Meta}
 
   @type t :: %__MODULE__{
           module: module(),
@@ -15,11 +15,12 @@ defmodule AsciiArt.Animation do
           rows: pos_integer(),
           paper: boolean(),
           color?: boolean(),
+          ink: Ink.t() | nil,
           state: term()
         }
 
   @enforce_keys [:module, :meta, :options, :fps, :cols, :rows, :paper, :color?, :state]
-  defstruct [:module, :meta, :options, :fps, :cols, :rows, :paper, :color?, :state]
+  defstruct [:module, :meta, :options, :fps, :cols, :rows, :paper, :color?, :state, ink: nil]
 
   @doc false
   @spec new(module :: module(), meta :: Meta.t(), options :: map(), keyword()) :: t()
@@ -36,6 +37,8 @@ defmodule AsciiArt.Animation do
       rows: rows,
       paper: paper(meta, color?, Keyword.get(opts, :paper, false)),
       color?: color?,
+      # A piece drawn in its own colours has no use for an ink.
+      ink: if(not color?, do: Ink.fit(Keyword.get(opts, :ink), cols, rows, meta.cell)),
       state: nil
     }
   end
@@ -58,7 +61,8 @@ defmodule AsciiArt.Animation do
         do: module.update(anim.state, options),
         else: module.init(options)
 
-    %{anim | options: options, cols: cols, rows: rows, state: state}
+    ink = Ink.fit(anim.ink, cols, rows, meta.cell)
+    %{anim | options: options, cols: cols, rows: rows, ink: ink, state: state}
   end
 
   defp size(module, meta, options) do
@@ -95,6 +99,8 @@ defmodule AsciiArt.Animation do
   def cycle(%__MODULE__{}), do: nil
 
   @doc false
+  # The piece's frame, in the animation's ink if it has one: laid over the
+  # picture, which the piece draws as ever.
   @spec frame(anim :: t(), t :: number(), now :: DateTime.t() | nil) :: {Frame.t(), t()}
   def frame(%__MODULE__{meta: meta, cols: cols, rows: rows} = anim, t, now) do
     t = t * 1.0
@@ -114,6 +120,22 @@ defmodule AsciiArt.Animation do
       t: t
     }
 
-    {frame, %{anim | state: state}}
+    {paint(anim, frame), %{anim | state: state}}
   end
+
+  @doc false
+  # A frame of the piece's in the animation's ink, its parts read off it if
+  # the ink colours any.
+  @spec paint(anim :: t(), frame :: Frame.t()) :: Frame.t()
+  def paint(%__MODULE__{ink: nil}, frame), do: frame
+
+  def paint(%__MODULE__{ink: ink, module: module, options: options}, %Frame{colors: nil} = frame) do
+    parts =
+      if Ink.parts?(ink) and function_exported?(module, :parts, 2),
+        do: module.parts(frame, options)
+
+    Ink.tint(frame, ink, parts)
+  end
+
+  def paint(_anim, frame), do: frame
 end

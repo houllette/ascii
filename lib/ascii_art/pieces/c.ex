@@ -6,9 +6,56 @@ defmodule AsciiArt.Pieces.C do
 
   Drawn from devicon's c-original.svg (MIT): each cell holds the character
   whose shape best matches the logo's edge through it, and 8 where the logo is
-  solid. On a canvas it takes the logo's colours, lifted on a dark page where
-  they would sink into it; in a <pre> it is one ink, from c-plain.svg. The
-  logo is a trademark of its owner, shown here to name the language.
+  solid. In colour it takes the logo's colours, lifted on a dark page where
+  they would sink into it; in one ink it is drawn from c-plain.svg. The logo
+  is a trademark of its owner, shown here to name the language.
+
+  ## Options
+
+  Give them to `AsciiArt.new/2` as `options:`, and new ones while it plays
+  with `AsciiArt.put_options/2` (or a Phoenix player's `options`): it starts
+  afresh with them.
+
+    * `shine` - seconds from one glint to the next, 0 to 3600; default 5. A
+      glint takes two seconds to cross the logo, so it comes at most every two
+      and a half; 0 keeps the logo still. At the default the piece closes a
+      loop every 5 seconds, which a player draws once and repeats (see
+      `AsciiArt.loop/1`).
+
+  The picture is always 49 by 28.
+
+  ## Colours
+
+  In the logo's own colours, its palette: a set for a dark page, and with
+  `paper: true` one for a light page, the glint lifting them as it passes.
+  Drawn in one ink instead (`color: false`, or `mono` in Phoenix), `:ink` and
+  `:gradient` colour it, one colour, a gradient, or on a page a CSS variable
+  (see `AsciiArt.Ink`). It has no parts to colour one by one.
+
+  ## Screen readers
+
+  `AsciiArt.describe/1` gives its name and note, "c: a c on a blue hexagon,
+  glinting now and then". A player's or a component's `label` gives words of
+  your own, as "the C logo".
+
+  ## Example
+
+  ```elixir
+  still = AsciiArt.new!("c", options: %{shine: 0})
+  {first, still} = AsciiArt.frame(still, 0.0)
+  {later, _still} = AsciiArt.frame(still, 4.0)
+  first.text == later.text
+  #=> true
+
+  {frame, _} = AsciiArt.new!("c", color: false, ink: "var(--brand, #7c3aed)") |> AsciiArt.frame(0.0)
+  {frame.cols, frame.rows, frame.palette}
+  #=> {49, 28, ["var(--brand, #7c3aed)"]}
+  ```
+
+  ```heex
+  <AsciiArt.Phoenix.Components.ascii piece="c" label="the C logo" />
+  <AsciiArt.Phoenix.player socket={@socket} id="c" piece="c" options={%{shine: 10}} />
+  ```
 
   Ported from `src/pieces/c.ts` in bas3line/ascii (MIT).
   """

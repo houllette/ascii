@@ -51,8 +51,18 @@ if Code.ensure_loaded?(Phoenix.LiveView) do
       * `"options"` - the piece's options, checked against its defaults.
       * `"fps"` - frames a second, 0 to 60.
       * `"mono"`, `"paper"` - as for `AsciiArt.new/2`.
+      * `"ink"`, `"gradient"` - as for `AsciiArt.new/2`: a colour, or
+        several as a list or comma-separated; `"horizontal"`, `"vertical"`
+        or `"diagonal"`.
+      * `"parts"` - as for `AsciiArt.new/2`: a map of part names to colours,
+        or `true`.
       * `"render"` - `"client"` (default) or `"server"`.
-      * `"label"` - what the picture shows, for screen readers.
+      * `"label"` - what the picture shows, for screen readers. By default
+        the piece tells it from its options (`AsciiArt.describe/1`).
+      * `"interactive"` - keys and clicks go to the piece (see
+        `AsciiArt.handle_event/2`).
+      * `"notify"` - the LiveView that embeds the player is sent each key
+        and click (see `AsciiArt.Phoenix.player/1`).
 
     Only available when `phoenix_live_view` is a dependency.
     """
@@ -64,7 +74,16 @@ if Code.ensure_loaded?(Phoenix.LiveView) do
     def mount(_params, session, socket) do
       session = if is_map(session), do: session, else: %{}
 
-      how = %{render: session["render"], label: label(session), id: socket.id, owner: :live}
+      how = %{
+        render: session["render"],
+        label: label(session),
+        id: socket.id,
+        owner: :live,
+        interactive: truthy?(session["interactive"]),
+        notify: truthy?(session["notify"]),
+        name: socket.id
+      }
+
       {:ok, Playback.init(socket, piece(session), opts(session), how)}
     end
 
@@ -75,7 +94,10 @@ if Code.ensure_loaded?(Phoenix.LiveView) do
       [
         options: options(session["options"]),
         paper: truthy?(session["paper"]),
-        color: not truthy?(session["mono"])
+        color: not truthy?(session["mono"]),
+        ink: session["ink"],
+        gradient: session["gradient"],
+        parts: session["parts"]
       ] ++ if(session["fps"] != nil, do: [fps: session["fps"]], else: [])
     end
 
@@ -103,6 +125,12 @@ if Code.ensure_loaded?(Phoenix.LiveView) do
 
     def handle_event("ascii_art:visible", %{"visible" => visible}, socket),
       do: {:noreply, Playback.visible(socket, visible)}
+
+    def handle_event("ascii_art:key", params, socket),
+      do: {:noreply, Playback.key(socket, params)}
+
+    def handle_event("ascii_art:click", params, socket),
+      do: {:noreply, Playback.click(socket, params)}
 
     def handle_event(_event, _params, socket), do: {:noreply, socket}
 

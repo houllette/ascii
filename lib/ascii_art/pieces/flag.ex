@@ -3,8 +3,46 @@ defmodule AsciiArt.Pieces.Flag do
   A striped flag rippling on a pole, folds catching the light.
 
   A striped flag on a pole in a steady wind. Folds run from the pole to the
-  free edge and grow as they go; faces turned to the light are bright, the
-  far sides of folds dark.
+  free edge and grow as they go; faces turned to the light are bright, the far
+  sides of folds dark.
+
+  ## Options
+
+  Give them to `AsciiArt.new/2` as `options:`, and new ones while it plays
+  with `AsciiArt.put_options/2` (or a Phoenix player's `options`): it starts
+  afresh with them.
+
+    * `stripes` - horizontal bands, light and dark in turn, 0 to 100, rounded
+      and at least 2. Default 5.
+
+  The picture is always 62 by 21. At the default it closes a loop every 12
+  seconds, which a player draws once and repeats (see `AsciiArt.loop/1`).
+
+  ## Colours
+
+  In one ink, or a gradient, with `:ink` and `:gradient` (see `AsciiArt.Ink`),
+  or on a page a CSS variable. On a light page, give it `paper: true`: its
+  shading reads from the other end of its ramp, so dense characters still mean
+  dark. It has no parts to colour one by one.
+
+  ## Screen readers
+
+  `AsciiArt.describe/1` gives its name and note, "flag: a striped flag
+  rippling on a pole, folds catching the light". A player's or a component's
+  `label` gives words of your own, as "a striped flag in the wind".
+
+  ## Example
+
+  ```elixir
+  anim = AsciiArt.new!("flag", options: %{stripes: 3}, ink: ["#0055a4", "#ef4135"], gradient: :vertical)
+  {frame, _} = AsciiArt.frame(anim, 2.0)
+  {frame.cols, frame.rows}
+  #=> {62, 21}
+  ```
+
+  ```heex
+  <AsciiArt.Phoenix.player socket={@socket} id="flag" piece="flag" options={%{stripes: 2}} ink="#ef4135" />
+  ```
 
   Ported from `src/pieces/flag.ts` in bas3line/ascii (MIT).
   """

@@ -84,6 +84,52 @@ defmodule AsciiArtTest do
     end
   end
 
+  describe "ink" do
+    alias AsciiArt.TestPieces.Bar
+
+    test "colours a piece drawn in one ink, its text exactly as without" do
+      {plain, _} = "big-text" |> AsciiArt.new!() |> AsciiArt.frame(1.0)
+
+      {inked, _} =
+        "big-text" |> AsciiArt.new!(ink: ["#ff5f6d", "#ffc371"]) |> AsciiArt.frame(1.0)
+
+      assert inked.text == plain.text
+      assert byte_size(inked.colors) == plain.cols * plain.rows
+      assert hd(inked.palette) == "#ff5f6d" and List.last(inked.palette) == "#ffc371"
+      assert Frame.color_at(inked, 0, 0) == "#ff5f6d"
+      assert Frame.color_at(inked, plain.cols - 1, 0) == "#ffc371"
+      assert inked.ground == nil
+    end
+
+    test "a coloured piece keeps its own palette, unless drawn in one ink" do
+      {own, _} = "elixir" |> AsciiArt.new!(ink: "#ff8800") |> AsciiArt.frame(0.0)
+      assert own.palette == AsciiArt.meta!("elixir").palette
+
+      {inked, _} =
+        "night-coast" |> AsciiArt.new!(ink: "#ff8800", color: false) |> AsciiArt.frame(0.0)
+
+      assert inked.palette == ["#ff8800"] and inked.ground == nil
+    end
+
+    test "follows a piece's size as its options change it" do
+      anim = AsciiArt.new!(Bar, options: %{width: 3}, ink: "#000,#fff")
+      {frame, anim} = AsciiArt.frame(anim, 0.0)
+      assert byte_size(frame.colors) == 3
+
+      {frame, _} = anim |> AsciiArt.put_options!(width: 5) |> AsciiArt.frame(0.0)
+      assert byte_size(frame.colors) == 5
+      assert Frame.color_at(frame, 2, 0) == "#808080"
+      assert Frame.color_at(frame, 4, 0) == "#ffffff"
+    end
+
+    test "is checked" do
+      assert AsciiArt.new("donut", ink: "red") == {:error, {:invalid_option, :ink}}
+
+      assert AsciiArt.new("donut", ink: "#fff", gradient: "up") ==
+               {:error, {:invalid_option, :gradient}}
+    end
+  end
+
   describe "put_options/2" do
     alias AsciiArt.TestPieces.{Bar, Blink}
 
@@ -153,6 +199,17 @@ defmodule AsciiArtTest do
       {:ok, mono} = AsciiArt.still("elixir", color: false)
       assert ink.colors != nil and mono.colors == nil
       assert ink.text == AsciiArt.render!("elixir")
+    end
+
+    test "in ink, the kept still coloured: inks are not kept apart" do
+      Process.put(:init_watch, true)
+      {:ok, plain} = AsciiArt.still(Noted)
+      {:ok, inked} = AsciiArt.still(Noted, ink: "#ff8800")
+      {:ok, other} = AsciiArt.still(Noted, ink: "#00ff88")
+      assert inits() <= 1
+      assert inked.text == plain.text and plain.colors == nil
+      assert {inked.palette, other.palette} == {["#ff8800"], ["#00ff88"]}
+      assert AsciiArt.still(Noted) == {:ok, plain}
     end
 
     test "a piece that reads the clock is never kept" do

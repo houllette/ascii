@@ -7,7 +7,10 @@ defmodule AsciiArt.Phoenix.ComponentsTest do
 
   test "a text piece is a pre holding frame 0, labelled for screen readers" do
     html = render_component(&Components.ascii/1, piece: "donut")
-    assert html =~ ~s(<pre role="img" aria-label="donut")
+
+    assert html =~
+             ~s(<pre role="img" aria-label="donut: a lit torus turning on two axes, after donut.c")
+
     assert html =~ AsciiArt.render!("donut") |> String.split("\n") |> Enum.at(10)
   end
 
@@ -34,6 +37,32 @@ defmodule AsciiArt.Phoenix.ComponentsTest do
     html = render_component(&Components.ascii/1, piece: "elixir", mono: true)
     refute html =~ "<span"
     assert html =~ "q88888888,"
+  end
+
+  test "ink colours a piece drawn in one ink, with no ground behind" do
+    html = render_component(&Components.ascii/1, piece: "big-text", ink: ["#ff5f6d", "#ffc371"])
+    assert html =~ ~s(<span style="color:#ff5f6d">)
+    colours = ~r/color:#\w+/ |> Regex.scan(html) |> Enum.uniq()
+    assert length(colours) > 2
+    refute html =~ "background:"
+
+    html = render_component(&Components.ascii/1, piece: "elixir", mono: true, ink: "#ff8800")
+    assert html =~ ~s(<span style="color:#ff8800">)
+  end
+
+  test "colours for parts, the rest in the page's own" do
+    html =
+      render_component(&Components.ascii/1,
+        piece: "boot-log",
+        parts: %{"status.warn" => "#d29922"}
+      )
+
+    assert html =~ ~s(<span style="color:#d29922">[ WARN ])
+    assert html =~ "started system logger"
+    assert length(Regex.scan(~r/<span/, html)) == 1
+
+    assert render_component(&Components.ascii/1, piece: "boot-log", parts: true) =~
+             ~s(<span style="color:#3fb950">[  OK  ])
   end
 
   test "extra attributes pass through" do

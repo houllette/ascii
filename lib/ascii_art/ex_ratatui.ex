@@ -36,9 +36,10 @@ if Code.ensure_loaded?(ExRatatui) do
     Only available when `ex_ratatui` is a dependency.
     """
 
-    alias AsciiArt.Frame
+    alias AsciiArt.{Frame, Ink}
     alias AsciiArt.Kit.Palette
     alias AsciiArt.Render.ANSI
+    alias ExRatatui.Event.{Key, Mouse}
     alias ExRatatui.Layout.Rect
     alias ExRatatui.Style
     alias ExRatatui.Text.{Line, Span}
@@ -82,12 +83,17 @@ if Code.ensure_loaded?(ExRatatui) do
       end)
     end
 
-    defp color(hex, mode) do
-      case {Palette.rgb255(hex), mode} do
-        {{r, g, b}, :truecolor} -> {:rgb, r, g, b}
-        {rgb, :ansi256} -> {:indexed, ANSI.xterm256(rgb)}
+    # The terminal's own for nil, a cell in no coloured part, and for a CSS
+    # variable without a fallback.
+    defp color(color, mode) do
+      case Ink.resolve(color) do
+        nil -> nil
+        hex -> rgb(Palette.rgb255(hex), mode)
       end
     end
+
+    defp rgb({r, g, b}, :truecolor), do: {:rgb, r, g, b}
+    defp rgb(rgb, :ansi256), do: {:indexed, ANSI.xterm256(rgb)}
 
     # Runs of one ink along a line, cut from it: `rest` is what is left of
     # `line`, the run so far starts at byte `start`, and `ink` is its palette
@@ -166,6 +172,91 @@ if Code.ensure_loaded?(ExRatatui) do
 
     defp fit(start, room, edge, _want, size),
       do: {start, room, max(div(size - max(room - edge, 0), 2), 0)}
+
+    @doc """
+    An ExRatatui event as one for a piece (`t:AsciiArt.event/0`), or `nil`:
+
+      * a key pressed or held, by its code (`"up"`, `"enter"`, `"a"`), unless
+        ctrl, alt or super is held with it;
+      * a left click inside the picture, as the frame's cell clicked.
+        `placed` says where the picture is: what `place/3` returned (its
+        border, centring and scroll allowed for), or the rect whose top
+        left cell is the frame's (as `[{frame, rect}]` draws it).
+
+    Mouse events need `mouse_capture: true` (see `ExRatatui.run/2`).
+    """
+    @spec event(
+            event :: ExRatatui.Event.Key.t() | ExRatatui.Event.Mouse.t() | term(),
+            placed :: {Paragraph.t(), Rect.t()} | Rect.t()
+          ) :: AsciiArt.event() | nil
+    def event(event, placed)
+
+    def event(%Key{code: code, kind: kind, modifiers: mods}, _placed)
+        when kind in ["press", "repeat"] and is_binary(code) and code != "" do
+      if Enum.any?(mods, &(&1 in ["ctrl", "alt", "super", "hyper", "meta"])),
+        do: nil,
+        else: {:key, code}
+    end
+
+    def event(%Mouse{kind: "down", button: "left", x: x, y: y}, placed) do
+      {x0, y0, cols, rows, %Rect{} = shown} = origin(placed)
+      {cx, cy} = {x - x0, y - y0}
+
+      if x >= shown.x and y >= shown.y and x < shown.x + shown.width and
+           y < shown.y + shown.height and cx >= 0 and cy >= 0 and cx < cols and cy < rows,
+         do: {:click, cx, cy}
+    end
+
+    def event(_event, _placed), do: nil
+
+    # Where the frame's top left cell is on screen, its size, and the rect
+    # it shows in.
+    defp origin(%Rect{x: x, y: y, width: w, height: h} = rect), do: {x, y, w, h, rect}
+
+    defp origin({%Paragraph{} = paragraph, %Rect{} = rect}) do
+      edge = if paragraph.block, do: 1, else: 0
+      {top, left} = paragraph.scroll || {0, 0}
+
+      inner = %Rect{
+        x: rect.x + edge,
+        y: rect.y + edge,
+        width: max(rect.width - 2 * edge, 0),
+        height: max(rect.height - 2 * edge, 0)
+      }
+
+      cols = paragraph.text |> List.first(%Line{spans: []}) |> width()
+
+      # A box wider than the picture, for its title, centres it.
+      shift = if paragraph.alignment == :center, do: max(div(inner.width - cols, 2), 0), else: 0
+      {inner.x + shift - left, inner.y - top, cols, length(paragraph.text), inner}
+    end
+
+    defp width(%Line{spans: spans}),
+      do: spans |> Enum.map(&String.length(&1.content)) |> Enum.sum()
+
+    @doc """
+    An ExRatatui event for a playing piece (see `event/2`), taken up as
+    `AsciiArt.handle_event/2` takes it: `{:ok, anim}`, or `:ignore` for an
+    event that is not one for a piece, or that it had no use for.
+
+        def handle_event(event, state) do
+          case AsciiArt.ExRatatui.handle_event(state.tree, event, state.placed) do
+            {:ok, tree} -> {:noreply, %{state | tree: tree}}
+            :ignore -> {:noreply, state}
+          end
+        end
+    """
+    @spec handle_event(
+            anim :: AsciiArt.Animation.t(),
+            event :: term(),
+            placed :: {Paragraph.t(), Rect.t()} | Rect.t()
+          ) :: {:ok, AsciiArt.Animation.t()} | :ignore
+    def handle_event(anim, event, placed) do
+      case event(event, placed) do
+        nil -> :ignore
+        event -> AsciiArt.handle_event(anim, event)
+      end
+    end
   end
 
   defimpl ExRatatui.Widget, for: AsciiArt.Frame do

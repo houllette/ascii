@@ -3,7 +3,55 @@ defmodule AsciiArt.Pieces.Dividers do
   Rules and ornaments for between sections, plain to fancy.
 
   A sheet of rules to set between sections of a page, from a plain line
-  through short centred rules down to ornaments, chains and waves.
+  through short centred rules down to ornaments, chains and waves. For one
+  rule of your own, as wide as you like and with a label in it, see
+  `AsciiArt.Compose.divider/2`.
+
+  ## Options
+
+  Give them to `AsciiArt.new/2` as `options:`, and new ones while it plays
+  with `AsciiArt.put_options/2` (or a Phoenix player's `options`): the
+  sheet is drawn anew at the new measure.
+
+    * `width` - the rules' measure in cells, 13 to the sheet's 63; the
+      ornaments run a fraction of it each, so they shrink with it. Default
+      `59`; `0` takes the default.
+
+  The sheet is always 63 by 25, its rules centred, and still (0 frames a
+  second).
+
+  ## Colours
+
+  It has no parts to colour one by one: in one ink, or a gradient, with
+  `:ink` and `:gradient` (see `AsciiArt.Ink`). A vertical gradient gives
+  each rule a colour of its own.
+
+  ## Keys and clicks
+
+  It takes none: it is a sheet to copy from, and `AsciiArt.handle_event/2`
+  ignores every event. A Phoenix player given `interactive` and `notify`
+  still tells your LiveView where it was clicked.
+
+  ## Screen readers
+
+  `AsciiArt.describe/1` gives the piece's name and note: "dividers: rules
+  and ornaments for between sections, plain to fancy".
+
+  ## Example
+
+  ```elixir
+  {:ok, sheet} = AsciiArt.still("dividers", options: %{width: 31}, ink: "#8b949e")
+  sheet.lines |> Enum.at(1) |> String.trim()
+  #=> "───────────────────────────────"
+
+  # One rule of your own, with a label in it.
+  AsciiArt.Compose.divider(24, label: "logs", style: :dashed).lines
+  #=> ["┄┄ logs ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄"]
+  ```
+
+  ```heex
+  <AsciiArt.Phoenix.Components.ascii piece="dividers" options={%{width: 41}} ink="#8b949e" />
+  ```
 
   Ported from `src/pieces/dividers.ts` in bas3line/ascii (MIT).
   """

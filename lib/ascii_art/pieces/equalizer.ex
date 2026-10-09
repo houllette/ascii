@@ -3,21 +3,72 @@ defmodule AsciiArt.Pieces.Equalizer do
   Spectrum bars bouncing to a beat, peak caps falling slowly.
 
   A spectrum analyser over a short drum and bass loop. Bars jump to each
-  band's level and sink back, and peak caps hold, then drop slowly.
+  band's level and sink back, and peak caps hold, then drop slowly. As
+  upstream draws it, it plays its own loop; give it `levels` and it shows
+  yours, from real audio.
 
   ## Options
 
-  `bpm` is upstream's. This port adds `levels`, for real audio: each band's
-  level from 0 to 1, low to high, spread over the nineteen bars whatever
-  their number. The bars jump to them and sink back, the caps hold and
-  drop, as they do to the loop; take new levels up as they come
-  (`AsciiArt.put_options/2`) and the bars carry on from where they were.
+  Give them to `AsciiArt.new/2` as `options:`, and new ones while it plays
+  with `AsciiArt.put_options/2` (or a Phoenix player's `options`): the bars
+  carry on from where they were, jumping to the new levels and sinking
+  back, the caps holding and dropping, as they do to the loop.
+
+    * `levels` - each band's level from 0 to 1, low to high, spread over
+      the nineteen bars whatever their number. Default `[]`: upstream's
+      loop.
+    * `bpm` - the loop's tempo, 60 to 180. Default 120.
+
+  The frame is always 62 by 16.
+
+  ## Colours
+
+  In one ink, or a gradient, with `:ink` and `:gradient` (see
+  `AsciiArt.Ink`); part by part with `:parts` (see `AsciiArt.Parts`),
+  `parts: true` taking the colours suggested here:
+
+    * `bar` - the bars, by height as on a meter: `bar.low`, the bottom
+      seven rows, green; `bar.mid`, the three above them, yellow; and
+      `bar.high`, the top two, red.
+    * `peak` - the caps.
+    * `axis` - the axis, grey.
+    * `scale` - the frequencies, grey.
+
+  ## Keys and clicks
+
+  It takes none: it shows levels, and `AsciiArt.handle_event/2` ignores
+  every event. A Phoenix player given `interactive` and `notify` still tells
+  your LiveView where it was clicked, and on which part
+  (`AsciiArt.part_at/4`): a bar, or the `scale` under it.
+
+  ## Screen readers
+
+  `AsciiArt.describe/1` reads the levels given, low to high, the first
+  eight then how many more: "equalizer: 3 levels, low to high: 100%, 50%,
+  25%". Playing its loop, it gives the piece's name and note.
+
+  ## Example
+
+  ```elixir
+  eq = AsciiArt.new!("equalizer", options: %{levels: [1.0, 0.5, 0.25]}, parts: true)
+
+  AsciiArt.describe(eq)
+  #=> "equalizer: 3 levels, low to high: 100%, 50%, 25%"
+
+  eq = AsciiArt.put_options!(eq, levels: [0.2, 0.9, 0.6])
+  AsciiArt.describe(eq)
+  #=> "equalizer: 3 levels, low to high: 20%, 90%, 60%"
+  ```
+
+  ```heex
+  <AsciiArt.Phoenix.live_player id="audio" piece="equalizer" options={%{levels: @levels}} parts />
+  ```
 
   Ported from `src/pieces/equalizer.ts` in bas3line/ascii (MIT).
   """
   @behaviour AsciiArt.Piece
 
-  alias AsciiArt.{Int32, JSMath}
+  alias AsciiArt.{Int32, JSMath, Parts}
   alias AsciiArt.Kit.Grid
   import Bitwise
 
@@ -30,7 +81,16 @@ defmodule AsciiArt.Pieces.Equalizer do
     fps: 30,
     options: %{bpm: 120, levels: []},
     bounds: %{bpm: {60, 180}},
-    shapes: %{levels: [0.0]}
+    shapes: %{levels: [0.0]},
+    parts: [
+      {"bar", nil},
+      {"bar.low", "#3fb950"},
+      {"bar.mid", "#d29922"},
+      {"bar.high", "#f85149"},
+      {"peak", nil},
+      {"axis", "#8b949e"},
+      {"scale", "#8b949e"}
+    ]
   }
 
   # Half octaves from 31 Hz to 16 kHz.
@@ -121,6 +181,22 @@ defmodule AsciiArt.Pieces.Equalizer do
     given = List.to_tuple(levels)
     n = tuple_size(given)
     for b <- 0..(@bands - 1), do: given |> elem(div(b * n, @bands)) |> max(0) |> min(1)
+  end
+
+  # The levels given, low to high, as the bars take them; the first eight.
+  @impl true
+  def describe(%{levels: []}), do: nil
+
+  def describe(%{levels: levels}) do
+    n = length(levels)
+
+    shown =
+      levels
+      |> Enum.take(8)
+      |> Enum.map_join(", ", &"#{&1 |> max(0) |> min(1) |> Kernel.*(100) |> round()}%")
+
+    more = if n > 8, do: " and #{n - 8} more", else: ""
+    "equalizer: #{n} level#{if n == 1, do: "", else: "s"}, low to high: #{shown}#{more}"
   end
 
   defp pattern(bars),
@@ -261,4 +337,47 @@ defmodule AsciiArt.Pieces.Equalizer do
   end
 
   defp pair(g, x, r, ch), do: g |> Grid.put(x, r, ch) |> Grid.put(x + 1, r, ch)
+
+  # This port's own: the parts of a frame, read off its lines. Above the
+  # axis everything drawn is a bar or a cap, and a bar's part is its row's
+  # band. A cap is a thin line with a clear cell under it, which a bar's own
+  # thin top never has.
+
+  @bar_points String.to_charlist("█" <> Enum.join(Tuple.to_list(@eighths)))
+  @word ~r/\S+/u
+  # Rows up from the axis that are low, then mid; the rest are high.
+  @low 7
+  @mid 10
+
+  @impl true
+  def parts(%{lines: lines}, _options) do
+    {plot, [axis, scale | rest]} = Enum.split(lines, @ay)
+
+    plot =
+      plot
+      |> Enum.zip(tl(plot) ++ [axis])
+      |> Enum.with_index()
+      |> Enum.map(fn {{line, under}, r} ->
+        under = under |> String.to_charlist() |> List.to_tuple()
+        band = band(@ay - r)
+        Parts.cells(line, &plot_part(&1, &2, under, band))
+      end)
+
+    plot ++
+      [Parts.matches(axis, @word, "axis"), Parts.matches(scale, @word, "scale")] ++
+      Enum.map(rest, &Parts.line(&1, nil))
+  end
+
+  defp band(height) when height <= @low, do: "bar.low"
+  defp band(height) when height <= @mid, do: "bar.mid"
+  defp band(_height), do: "bar.high"
+
+  # A plot cell's part: a cap sits on a blank, a bar's top never does.
+  defp plot_part(cp, c, under, band) do
+    cond do
+      cp == ?▁ and elem(under, c) == ?\s -> "peak"
+      cp in @bar_points -> band
+      true -> nil
+    end
+  end
 end

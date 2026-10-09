@@ -32,7 +32,11 @@ palette into a tuple once a frame and read colours a row at a time with
 A few rules every renderer here follows:
 
   * `colors` is `nil` for text pieces, and for coloured ones made with
-    `color: false`: draw `text` in a single ink of your choice.
+    `color: false`: draw `text` in a single ink of your choice. Given an
+    `:ink` or `:parts` (see `AsciiArt.Ink` and `AsciiArt.Parts`), they have
+    colours too.
+  * A palette entry can be `nil`: those cells are in your own ink, as a
+    piece's parts are when only some of them have colours.
   * `ground` is the colour behind a scene. Fill it behind a coloured frame;
     blank cells show it.
   * A space is blank, whatever its colour index. Merging spaces into the run
@@ -95,63 +99,25 @@ player sends them to the browser.
 
 ## SVG
 
-An SVG still keeps the characters as text, so it scales and can be copied:
-handy for a README, an Open Graph image or an email that allows SVG. Each row
-is a `<text>` of `<tspan>`s; a monospaced font keeps the columns straight.
+An SVG keeps the characters as text, so it scales and can be copied: for a
+README, an Open Graph image, or an email that allows SVG.
+`AsciiArt.Render.SVG` writes one: each row a `<text>`, each run of one
+colour a `<tspan>` placed at its column and held to its width, so the
+columns line up in whatever monospace font the reader has.
 
 ```elixir
-defmodule MyApp.SVG do
-  @size 12
-  @advance 0.6 * @size
-
-  def render(%AsciiArt.Frame{} = frame) do
-    # Square cells for scenes, a character's shape otherwise.
-    line_height = if frame.cell == 1, do: @advance, else: 1.2 * @size
-    width = frame.cols * @advance
-    height = frame.rows * line_height
-
-    rows =
-      if frame.colors,
-        do: MyApp.Runs.rows(frame),
-        else: Enum.map(frame.lines, &[{"currentColor", &1}])
-
-    texts =
-      for {runs, y} <- Enum.with_index(rows) do
-        tspans = for {color, text} <- runs, do: [~s(<tspan fill="), color, ~s(">), escape(text), "</tspan>"]
-        [~s(<text x="0" y="), num((y + 0.8) * line_height), ~s(" textLength="), num(width), ~s(">), tspans, "</text>\n"]
-      end
-
-    ground = if frame.colors && frame.ground, do: [~s(<rect width="100%" height="100%" fill="), frame.ground, ~s("/>)], else: []
-
-    IO.iodata_to_binary([
-      ~s(<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ), num(width), " ", num(height),
-      ~s(" font-family="ui-monospace, Menlo, Consolas, monospace" font-size="), num(@size),
-      ~s(">\n),
-      ground,
-      texts,
-      "</svg>\n"
-    ])
-  end
-
-  defp num(x), do: :erlang.float_to_binary(x * 1.0, decimals: 2)
-
-  # Spaces become no-break spaces, which no renderer collapses.
-  defp escape(text) do
-    text
-    |> String.replace("&", "&amp;")
-    |> String.replace("<", "&lt;")
-    |> String.replace(">", "&gt;")
-    |> String.replace(" ", "&#160;")
-  end
-end
-
 {frame, _} = AsciiArt.new!("elixir") |> AsciiArt.frame(0.0)
-svg = MyApp.SVG.render(frame)
-length(String.split(svg, "<text ")) - 1 == frame.rows
+svg = frame |> AsciiArt.Render.SVG.render(title: "the Elixir logo") |> IO.iodata_to_binary()
+String.starts_with?(svg, "<svg") and svg =~ "<title>the Elixir logo</title>"
 #=> true
 ```
 
-`File.write!("elixir.svg", svg)` and open it in a browser.
+`File.write!("elixir.svg", svg)` and open it in a browser, or from the
+command line, `mix ascii_art.svg elixir`. Text pieces take `:foreground`
+(the colour of the text around an inline SVG by default) and anything
+`:background`; a CSS variable in a palette stays one, so an SVG inlined in a
+page takes the page's colours. Frames put together with `AsciiArt.Compose`
+are frames like any other: a dashboard as one picture.
 
 ## A terminal recording
 

@@ -3,28 +3,83 @@ defmodule AsciiArt.Pieces.ProgressBar do
   Five bar styles filling at uneven paces, percent at right.
 
   Five progress bar styles stacked. Each fills at its own uneven pace, easing
-  into short stalls the way real jobs do, holds at 100%, restarts.
+  into short stalls the way real jobs do, holds at 100%, restarts. As
+  upstream draws it, the bars play runs of their own; give it `values` and
+  it shows your jobs' progress instead, for a dashboard or a terminal UI.
 
   ## Options
 
-    * `labels` - each bar's label (upstream's).
+  Give them to `AsciiArt.new/2` as `options:`, and new ones while it plays
+  with `AsciiArt.put_options/2` (or a Phoenix player's `options`): it starts
+  afresh with them, and values given are drawn as they are, so each new
+  reading shows at once.
 
-  This port's additions, for a terminal UI showing real progress:
+    * `values` - a percentage for each bar, 0 to 100 (outside it, held to
+      it): one bar for each, up to 32, shown as given rather than played.
+      Default `[]`: upstream's five bars, each filling at its own pace.
+    * `labels` - each bar's label, in order, cut to 9 characters; a bar
+      without one has none. Default `["fetching", "unpacking", "indexing",
+      "building", "linking"]`.
+    * `style` - one of the five styles, 0 to 4, for every bar: 0 `[===>  ]`,
+      1 a smooth bar of eighth blocks, 2 `[###...]`, 3 lamps that light in
+      whole steps, 4 a heavy line running on into a light one. Default
+      `nil`: each bar its own, in turn.
+    * `cols` - the frame's width, 24 to 200; the bars take all but 20 of
+      it. Default 48. The frame is two rows a bar and one more.
 
-    * `values` - a percentage for each bar, 0 to 100: one bar for each, up
-      to 32, shown as given rather than played, the five styles taking
-      turns. Update them as work goes with `AsciiArt.put_options/2`.
-    * `style` - one of the five styles, 0 to 4, for every bar (by default
-      each bar has its own, in turn).
-    * `cols` - the frame's width, 24 to 200; the bars take all but 20 of it.
+  ## Colours
 
-  The frame is two rows a bar and one more.
+  In one ink, or a gradient, with `:ink` and `:gradient` (see
+  `AsciiArt.Ink`); part by part with `:parts` (see `AsciiArt.Parts`),
+  `parts: true` taking the colours suggested here:
+
+    * `label` - a bar's label.
+    * `frame` - a bar's ends where its style has them (brackets, or
+      edges), grey.
+    * `bar` - its filled cells (and the arrow head, the part filled cell, a
+      half step), blue; `bar.done` when it reads 100%, green.
+    * `track` - its empty cells, grey.
+    * `value`, `unit` - the percent, its `%` grey.
+
+  ## Keys and clicks
+
+  It takes none: it shows progress, and `AsciiArt.handle_event/2` ignores
+  every event. A Phoenix player given `interactive` and `notify` still
+  tells your LiveView where it was clicked, and on which part
+  (`AsciiArt.part_at/4`): which bar's label, say.
+
+  ## Screen readers
+
+  `AsciiArt.describe/1` reads each bar's label and percent, as the bars
+  show them: "progress: copying 42%, verifying 100%"; past eight bars,
+  "and N more". Playing its own runs, it gives the piece's name and note.
+
+  ## Example
+
+  ```elixir
+  options = %{values: [42, 100], labels: ["copying", "verifying"], style: 1}
+  bars = AsciiArt.new!("progress-bar", options: options, parts: true)
+  {frame, _bars} = AsciiArt.frame(bars, 0.0)
+  {frame.cols, frame.rows}
+  #=> {48, 5}
+
+  AsciiArt.describe(bars)
+  #=> "progress: copying 42%, verifying 100%"
+
+  bars = AsciiArt.put_options!(bars, values: [80, 100])
+  AsciiArt.describe(bars)
+  #=> "progress: copying 80%, verifying 100%"
+  ```
+
+  ```heex
+  <AsciiArt.Phoenix.live_player id="jobs" piece="progress-bar" options={%{values: @progress, labels: @jobs}} parts />
+  ```
 
   Ported from `src/pieces/progress-bar.ts` in bas3line/ascii (MIT).
   """
   @behaviour AsciiArt.Piece
 
-  alias AsciiArt.{Int32, JSMath}
+  alias AsciiArt.{Int32, JSMath, Parts}
 
   @meta %AsciiArt.Meta{
     name: "progress bar",
@@ -40,7 +95,16 @@ defmodule AsciiArt.Pieces.ProgressBar do
       cols: 48
     },
     bounds: %{style: {0, 4}, cols: {24, 200}},
-    shapes: %{values: [0.0]}
+    shapes: %{values: [0.0]},
+    parts: [
+      {"label", nil},
+      {"frame", "#8b949e"},
+      {"bar", "#58a6ff"},
+      {"bar.done", "#3fb950"},
+      {"track", "#8b949e"},
+      {"value", nil},
+      {"unit", "#8b949e"}
+    ]
   }
 
   # Every bar is the frame's width but this many cells, ends included.
@@ -200,4 +264,84 @@ defmodule AsciiArt.Pieces.ProgressBar do
 
     List.to_tuple([{0, 0} | List.replace_at(points, legs - 1, {1, 1})])
   end
+
+  # This port's own: in words, each value given with its label, the percent
+  # as the bar shows it; past eight, how many more.
+  @impl true
+  def describe(%{values: []}), do: nil
+
+  def describe(%{labels: labels, values: values}) do
+    values = Enum.take(values, @most)
+
+    told =
+      values
+      |> Enum.take(8)
+      |> Enum.with_index()
+      |> Enum.map_join(", ", fn {v, i} ->
+        label = labels |> Enum.at(i, "") |> String.slice(0, 24)
+        label = if label == "", do: "bar #{i + 1}", else: label
+        "#{label} #{v |> max(0) |> min(100) |> JSMath.floor()}%"
+      end)
+
+    more = length(values) - 8
+    "progress: " <> told <> if(more > 0, do: ", and #{more} more", else: "")
+  end
+
+  # This port's own: the parts of a frame. A bar's row is its label, as the
+  # frame cuts it from the options, the bar in its w cells, and the percent.
+  # Styles 0 to 2 have an end at each side of the bar, drawn like a filled
+  # cell in style 1, so the ends go by place and the cells between by what
+  # they are. Blank cells (a track drawn in spaces, the gaps between style
+  # 3's lamps) are in no part.
+
+  @reading ~r/^( +)(\d+)(%)( *)$/
+  @filled ["=", ">", "#", "█", "▏", "▎", "▍", "▌", "▋", "▊", "▉", "━", "╾"]
+  @empty [".", "░", "─"]
+
+  @impl true
+  def parts(%{lines: lines}, %{labels: labels, values: values, style: style} = options) do
+    {cols, _rows} = size(options)
+    bars = bars(values)
+    style = style && trunc(style)
+
+    for {line, r} <- Enum.with_index(lines) do
+      i = div(r - 1, 2)
+
+      if rem(r, 2) == 0 or i >= bars,
+        do: [{nil, line}],
+        else: bar_parts(line, Enum.at(labels, i, ""), style || rem(i, 5), cols - @margin)
+    end
+  end
+
+  defp bar_parts(line, label, style, w) do
+    label = String.slice(label, 0, 9)
+    lead = "  " <> String.pad_trailing(label, 10)
+
+    with true <- String.starts_with?(line, lead),
+         {cells, rest} = String.split_at(binary_slice(line, byte_size(lead)..-1//1), w),
+         [_ | _] = reading <- Parts.captures(rest, @reading, [nil, "value", "unit", nil]) do
+      fill = if {"value", "100"} in reading, do: "bar.done", else: "bar"
+      pad = binary_slice(lead, (2 + byte_size(label))..-1//1)
+
+      Parts.merge(
+        [{nil, "  "}, {"label", label}, {nil, pad}] ++ cells(cells, style, fill) ++ reading
+      )
+    else
+      _ -> [{nil, line}]
+    end
+  end
+
+  defp cells(cells, style, fill) when style in 0..2 do
+    {first, middle} = String.split_at(cells, 1)
+    {middle, last} = String.split_at(middle, -1)
+    [{"frame", first} | by_cell(middle, fill)] ++ [{"frame", last}]
+  end
+
+  defp cells(cells, _style, fill), do: by_cell(cells, fill)
+
+  defp by_cell(cells, fill), do: Parts.chars(cells, &cell(&1, fill))
+
+  defp cell(ch, fill) when ch in @filled, do: fill
+  defp cell(ch, _fill) when ch in @empty, do: "track"
+  defp cell(_ch, _fill), do: nil
 end

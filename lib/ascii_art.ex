@@ -1,17 +1,28 @@
 defmodule AsciiArt do
   @moduledoc """
-  Animated ASCII art, ported from [ascii.rest](https://ascii.rest) by
-  [@bas3line](https://github.com/bas3line).
+  ASCII-art UI components and animated art for Elixir, ported from
+  [ascii.rest](https://ascii.rest) by [@bas3line](https://github.com/bas3line).
+
+  The UI, data and type pieces are components: a file tree, a boot log, an
+  htop-style panel, gauges, sparklines, progress bars, a form, a terminal,
+  a calendar, a departures board. They draw your data, given as options and
+  taken up while they play (`put_options/2`), in your colours (`:ink`,
+  `:parts`); the ones that can be used take keys and clicks
+  (`handle_event/2`); and each tells what it shows, for screen readers
+  (`describe/1`). The rest are art: scenes, logos, distros, 3D shapes and
+  simulations. `AsciiArt.Compose` puts frames together into one.
 
   Every piece is a function of time: give it `t` in seconds and it draws a
   frame, exactly `rows` lines of `cols` characters, and for coloured pieces a
   palette index for every cell. Frames are plain data (`AsciiArt.Frame`), so
-  they can go to a terminal (`AsciiArt.Render.ANSI`, `AsciiArt.Player`), a
-  LiveView (`AsciiArt.Phoenix.Components`), or a framebuffer on a device.
+  they go wherever Elixir does: a LiveView (`AsciiArt.Phoenix`), a terminal
+  UI (`AsciiArt.ExRatatui`), any terminal (`AsciiArt.Render.ANSI`,
+  `AsciiArt.Player`), or a framebuffer on a device.
 
-      iex> AsciiArt.pieces() |> Enum.member?("donut")
+      iex> AsciiArt.pieces(category: :ui) |> Enum.member?("file-tree")
       true
 
+      AsciiArt.render!("gauge", 2.0, options: %{label: "cpu", value: 72}) |> IO.puts()
       AsciiArt.render!("donut", 1.5) |> IO.puts()
 
       {:ok, anim} = AsciiArt.new("night-coast", fps: 10)
@@ -21,7 +32,7 @@ defmodule AsciiArt do
   `"night-coast"`) or its module (`AsciiArt.Pieces.NightCoast`).
   """
 
-  alias AsciiArt.{Animation, Frame, Meta, Options, Registry}
+  alias AsciiArt.{Animation, Frame, Ink, Meta, Options, Parts, Registry}
 
   @upstream_commit "fcb644403bfc25af0002e415d1006dd10b99ca34"
 
@@ -99,6 +110,17 @@ defmodule AsciiArt do
       over its own `ground` takes this from the ground instead, as upstream.
     * `:color` - draw coloured pieces in colour (`true`, the default) or as
       text in one ink.
+    * `:ink` - the colour of a piece drawn in one ink, where it is shown in
+      colour: `"#rrggbb"`, or a CSS variable (`"var(--accent, #7fdbca)"`)
+      for a page, or several colours (a list, or comma-separated) for a
+      gradient across the picture. Without it, the renderer's own ink. A
+      coloured piece drawn in colour keeps its palette. See `AsciiArt.Ink`.
+    * `:gradient` - which way several inks run: `:horizontal` (the
+      default), `:vertical` or `:diagonal`.
+    * `:parts` - colours for the parts of a piece in one ink that knows
+      them (its meta's `parts`): a map of part names to colours, or `true`
+      for the ones it suggests (for a light page, with `:paper`). Over the
+      `:ink`, or the renderer's own. See `AsciiArt.Parts`.
   """
   @spec new(piece :: piece(), opts :: keyword()) :: {:ok, Animation.t()} | error()
   def new(piece, opts \\ []) do
@@ -113,8 +135,12 @@ defmodule AsciiArt do
     with {:ok, mod} <- resolve(piece),
          meta = mod.meta(),
          {:ok, options} <- Options.cast(meta, Keyword.get(opts, :options, %{})),
-         {:ok, fps} <- fps(Keyword.get(opts, :fps, meta.fps)) do
-      {:ok, Animation.new(mod, meta, options, Keyword.put(opts, :fps, fps))}
+         {:ok, fps} <- fps(Keyword.get(opts, :fps, meta.fps)),
+         {:ok, ink} <- Ink.cast(Keyword.get(opts, :ink), Keyword.get(opts, :gradient)),
+         {:ok, parts} <-
+           Parts.cast(Keyword.get(opts, :parts), meta, paper: Keyword.get(opts, :paper)) do
+      ink = Ink.put_parts(ink, parts)
+      {:ok, Animation.new(mod, meta, options, Keyword.merge(opts, fps: fps, ink: ink))}
     end
   end
 
@@ -145,6 +171,80 @@ defmodule AsciiArt do
   @doc "Like `put_options/2`, raising on an error."
   @spec put_options!(anim :: Animation.t(), options :: map() | keyword()) :: Animation.t()
   def put_options!(anim, options), do: unwrap!(put_options(anim, options))
+
+  @typedoc """
+  Input for a piece that can be used (`c:AsciiArt.Piece.handle_event/2`).
+
+    * `{:key, key}` - a key, by [ExRatatui](https://hexdocs.pm/ex_ratatui)'s
+      names: `"up"`, `"down"`, `"left"`, `"right"`, `"enter"`, `"esc"`,
+      `"tab"`, `"back_tab"` (shift and tab), `"backspace"`, `"delete"`,
+      `"home"`, `"end"`, `"page_up"`, `"page_down"`, or the character typed,
+      `" "` for space. `AsciiArt.ExRatatui.event/2` and the Phoenix hook
+      give keys by these names.
+    * `{:click, x, y}` - a click on the cell in column `x`, row `y` of the
+      frame, from 0.
+  """
+  @type event :: {:key, String.t()} | {:click, non_neg_integer(), non_neg_integer()}
+
+  @doc """
+  An event for a piece that can be used: a file tree's cursor moving or a
+  folder opening, a form's box ticked, a date picked. The piece takes up
+  what it changes as new options (as `put_options/2` would), so what was
+  chosen is in `anim.options` (a tree's `cursor`, a form's `values`).
+  `:ignore` if the piece has no use for the event, or takes none at all.
+
+      {:ok, anim} = AsciiArt.handle_event(anim, {:key, "down"})
+      anim.options.cursor
+  """
+  @spec handle_event(anim :: Animation.t(), event :: event()) :: {:ok, Animation.t()} | :ignore
+  def handle_event(%Animation{module: module, options: options} = anim, event) do
+    with true <- event?(event) and function_exported?(module, :handle_event, 2),
+         {:ok, new} <- module.handle_event(event, options) do
+      {:ok, if(new == options, do: anim, else: Animation.put_options(anim, new))}
+    else
+      _ -> :ignore
+    end
+  end
+
+  defp event?({:key, key}), do: is_binary(key) and key != ""
+
+  defp event?({:click, x, y}),
+    do: is_integer(x) and is_integer(y) and x >= 0 and y >= 0
+
+  defp event?(_event), do: false
+
+  @doc """
+  What the animation shows, in words, for a screen reader: told from its
+  options by a piece that can (`c:AsciiArt.Piece.describe/1`), such as a
+  gauge's reading or a boot log's steps; else the piece's name and note.
+  The Phoenix players and components label their picture with it.
+
+      iex> AsciiArt.new!("donut") |> AsciiArt.describe()
+      "donut: a lit torus turning on two axes, after donut.c"
+  """
+  @spec describe(anim :: Animation.t()) :: String.t()
+  def describe(%Animation{module: module, meta: meta, options: options}) do
+    told = if function_exported?(module, :describe, 1), do: module.describe(options)
+    told || "#{meta.name}: #{meta.note}"
+  end
+
+  @doc """
+  The part of the frame at column `x`, row `y` (see `AsciiArt.Parts`), and
+  the text of its run there: `{"file.ex", "ascii_art.ex"}` for a file in a
+  tree, `{"status.warn", "[ WARN ]"}` in a boot log, `{nil, text}` for cells
+  in no part. `nil` outside the frame, or for a piece that does not know
+  its parts. For a click: which file, which bar, which day.
+  """
+  @spec part_at(anim :: Animation.t(), frame :: Frame.t(), x :: integer(), y :: integer()) ::
+          {Parts.name() | nil, String.t()} | nil
+  def part_at(%Animation{module: module, options: options}, %Frame{} = frame, x, y)
+      when is_integer(x) and is_integer(y) and x >= 0 and y >= 0 and x < frame.cols and
+             y < frame.rows do
+    if function_exported?(module, :parts, 2),
+      do: frame |> module.parts(options) |> Enum.at(y) |> Parts.run_at(x)
+  end
+
+  def part_at(%Animation{}, %Frame{}, _x, _y), do: nil
 
   defp fps(fps) when is_number(fps), do: {:ok, fps |> max(0) |> min(60) |> round()}
 
@@ -193,7 +293,8 @@ defmodule AsciiArt do
   the VM, so later calls have it at once: a scene takes up to a second to set
   up, and a page that shows stills, or a player's first render, pays for that
   once rather than on every request. A piece that reads the clock is drawn
-  every time, as are other options.
+  every time, as are other options. An `:ink` and `:parts` are laid over the
+  kept frame, so every ink shares it.
 
       iex> {:ok, frame} = AsciiArt.still("elixir")
       iex> {frame.cols, frame.rows, frame.t}
@@ -202,21 +303,26 @@ defmodule AsciiArt do
   @spec still(piece :: piece(), opts :: keyword()) :: {:ok, Frame.t()} | error()
   def still(piece, opts \\ []) do
     with {:ok, anim} <- prepare(piece, opts) do
-      if anim.options == anim.meta.options and not anim.meta.clock do
-        key = {__MODULE__, :still, anim.module, anim.paper, anim.color?}
+      {:ok, Animation.paint(anim, plain_still(%{anim | ink: nil}, opts))}
+    end
+  end
 
-        case :persistent_term.get(key, nil) do
-          nil ->
-            frame = draw_still(anim, opts)
-            :persistent_term.put(key, frame)
-            {:ok, frame}
+  # Never kept by ink: inks come from outside, and would fill the VM.
+  defp plain_still(anim, opts) do
+    if anim.options == anim.meta.options and not anim.meta.clock do
+      key = {__MODULE__, :still, anim.module, anim.paper, anim.color?}
 
-          frame ->
-            {:ok, frame}
-        end
-      else
-        {:ok, draw_still(anim, opts)}
+      case :persistent_term.get(key, nil) do
+        nil ->
+          frame = draw_still(anim, opts)
+          :persistent_term.put(key, frame)
+          frame
+
+        frame ->
+          frame
       end
+    else
+      draw_still(anim, opts)
     end
   end
 

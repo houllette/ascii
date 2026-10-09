@@ -10,6 +10,48 @@ defmodule AsciiArt.Pieces.AnalogClock do
   frame, which is the same moment when a piece is played as soon as it is
   made.
 
+  ## Options
+
+  Give them to `AsciiArt.new/2` as `options:`, and new ones while it plays
+  with `AsciiArt.put_options/2` (or a Phoenix player's `options`): it starts
+  afresh with them, at the time it reads.
+
+    * `seconds` - the second hand: a fine line with a ring at its tip and a
+      weight on its tail, ticking once a second. Default `true`; `false`
+      leaves the hour and minute hands.
+    * `numerals` - 12, 3, 6 and 9 at the quarters, in place of their ticks.
+      Default `true`; `false` puts a tick at every hour.
+
+  The picture is always 47 by 23. Like any piece that reads the clock, it
+  takes `now:` in `AsciiArt.frame/3` to draw a given moment.
+
+  ## Colours
+
+  In one ink, or a gradient, with `:ink` and `:gradient` (see `AsciiArt.Ink`),
+  or on a page a CSS variable. On a light page, give it `paper: true`: its
+  shading reads from the other end of its ramp, so dense characters still mean
+  dark. It has no parts to colour one by one.
+
+  ## Screen readers
+
+  `AsciiArt.describe/1` gives its name and note, "analog clock: a round clock
+  face showing the local time, seconds ticking". A player's or a component's
+  `label` gives words of your own, as "the time".
+
+  ## Example
+
+  ```elixir
+  now = DateTime.new!(~D[2026-03-14], ~T[15:09:26], "Etc/UTC")
+  plain = AsciiArt.new!("analog-clock", options: %{numerals: false, seconds: false})
+  {frame, _} = AsciiArt.frame(plain, 0.0, now: now)
+  {frame.cols, frame.rows, frame.text =~ "12"}
+  #=> {47, 23, false}
+  ```
+
+  ```heex
+  <AsciiArt.Phoenix.player socket={@socket} id="clock" piece="analog-clock" options={%{numerals: false}} label="the time" />
+  ```
+
   Ported from `src/pieces/analog-clock.ts` in bas3line/ascii (MIT).
   """
   @behaviour AsciiArt.Piece

@@ -4,9 +4,61 @@ defmodule AsciiArt.Pieces.Skeleton do
 
   The loading placeholder for a card. An avatar, a name and a byline, an
   image and lines of text in light shade, with a shimmer sweeping across
-  them while the content is on its way.
+  them while the content is on its way. Its options shape the card to the
+  one it stands in for.
 
-  `lines` is taken as its integer part, as upstream floors it.
+  ## Options
+
+  Give them to `AsciiArt.new/2` as `options:`, and new ones while it plays
+  with `AsciiArt.put_options/2` (or a Phoenix player's `options`): the card
+  is laid out anew from them, and the shimmer carries on, being a function
+  of play time.
+
+    * `avatar` - a round avatar, with a name and a byline beside it; `false`
+      leaves a title and a shorter line in its place. Default `true`.
+    * `image` - an image block under the head. Default `true`.
+    * `lines` - lines of text under them, the last cut short like the end
+      of a paragraph; taken as its integer part, as upstream floors it, and
+      as many as fit: three under an avatar and an image, six without the
+      image, four without the avatar, eight with neither. Default 3.
+
+  The frame is always 52 by 23, the card as tall as its blocks and centred
+  in it.
+
+  ## Colours
+
+  It has no parts to colour one by one: in one ink, or a gradient, with
+  `:ink` and `:gradient` (see `AsciiArt.Ink`). On a light page (`paper:
+  true`) the shimmer lifts the shade toward the page rather than darkening
+  it.
+
+  ## Keys and clicks
+
+  It takes none: it stands in for content, and `AsciiArt.handle_event/2`
+  ignores every event. A Phoenix player given `interactive` and `notify`
+  still tells your LiveView where it was clicked.
+
+  ## Screen readers
+
+  `AsciiArt.describe/1` gives the piece's name and note, "skeleton: a
+  loading card in shade blocks with a shimmer passing over"; give a player
+  a `label` of your own, as "loading the profile", to say what is coming.
+
+  ## Example
+
+  ```elixir
+  card = AsciiArt.new!("skeleton", options: %{avatar: false, lines: 2}, ink: "#8b949e")
+  {frame, _card} = AsciiArt.frame(card, 0.5)
+  {frame.cols, frame.rows}
+  #=> {52, 23}
+
+  Enum.count(frame.lines, &(&1 =~ ~r/[░▒▓]/u))
+  #=> 10
+  ```
+
+  ```heex
+  <AsciiArt.Phoenix.live_player id="loading" piece="skeleton" options={%{image: false}} label="loading the profile" />
+  ```
 
   Ported from `src/pieces/skeleton.ts` in bas3line/ascii (MIT).
   """

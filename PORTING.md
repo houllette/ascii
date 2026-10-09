@@ -78,7 +78,10 @@ checked against the piece's defaults before `init/1` sees them:
   and strings from params are cast to numbers or booleans where the default
   is one;
 - numbers are clamped to the piece's `meta.bounds` for that option, or to
-  ±1,000,000; strings to 256 characters and lists to 256 entries.
+  ±1,000,000; a bound reaches inside an option of lists or maps, as a range
+  for every number in it or ranges by key (cpu-meters' process pids and
+  times, bar-chart's values and heatmap's counts go well past a million);
+  strings to 256 characters and lists to 256 entries.
 
 Anything else is `{:error, {:invalid_option, key}}`. Upstream accepts
 anything and lets the piece cope.
@@ -338,12 +341,45 @@ differences:
   upstream's own per-series `values`, which the options could not reach
   before `meta.shapes`); gauge `value`; cpu-meters `cores`, `memory`, `swap`,
   `load`, `tasks`, `uptime`, `processes`; uptime-bar `history`, `days`;
-  heatmap `counts`, `date`, `weeks`; candlesticks `candles`, `times`,
-  `digits`; bar-chart `cols`; equalizer `levels`. Each piece's documentation
-  says what they do. Pieces whose size follows their options say so with
-  `c:AsciiArt.Piece.size/1`, and those that carry state over new options
-  (the gauge's needle, the bars of bar-chart and equalizer, cpu-meters'
-  simulation) with `c:AsciiArt.Piece.update/2`.
+  heatmap `counts`, `date`, `weeks`, `months`, `weekdays`; candlesticks
+  `candles`, `times`, `digits`; bar-chart `cols`; equalizer `levels`; and,
+  for components an app drives and a reader uses, gauge `cols`, `rows`;
+  radar `contacts`, `land`; boot-log `steps`, `title`, `cols`, `rows`;
+  terminal `history`, `typing`, `cols`, `rows`; file-tree `walk`, `open`,
+  `cursor`, `paths`, `cols`, `rows`; form-controls `fields`, `buttons`,
+  `focus`, `status`, `cols`; calendar `date`, `marks`, `months`,
+  `weekdays`, `cols`, `rows`; digital-clock `timer`, `from`, `label`. Each
+  piece's documentation says what they do. Pieces whose size follows their
+  options say so with `c:AsciiArt.Piece.size/1`; those that carry state
+  over new options (the gauge's needle, the bars of bar-chart and
+  equalizer, cpu-meters' simulation, a terminal typing out its history, a
+  running timer) with `c:AsciiArt.Piece.update/2`; those that can be used
+  (file-tree, form-controls, calendar) take keys and clicks with
+  `c:AsciiArt.Piece.handle_event/2`; and the components tell what they
+  show with `c:AsciiArt.Piece.describe/1`. None of these is upstream's.
+- **Parts** (`c:AsciiArt.Piece.parts/2`) are this port's own: a piece's
+  frames labelled cell by cell, read off the picture after it is drawn, so
+  colouring them never changes a character. Where a frame cannot tell (a
+  gauge's needle over a tick), a cell may be in no part.
+- **Numbers too wide for their column.** Upstream writes a reading wider
+  than its column past it, and the line runs off the frame (this port used
+  to clip it). sparkline's value and range columns, and candlesticks' axis
+  prices, last price and quote, write such a number to fit instead
+  (`AsciiArt.Kit.Number`): decimals first, then compact, in thousands,
+  millions and on (`17.5M`, `3.02G`), an axis's prices all alike. A number
+  that fits is written exactly as upstream writes it, so default frames are
+  unchanged; so those options' values are bounded at ±10^15 rather than
+  ±1,000,000. candlesticks visits only the chart's own rows when drawing a
+  candle, which changes nothing on screen, but a far-off `start` would
+  otherwise loop over millions of rows.
+- **Other sizes.** gauge at `cols`/`rows` other than 55×18 draws a dial of
+  another radius, centred, its ticks, band and needle upstream's distances
+  in from the rim, the pivot in a cell's lower pixel. boot-log at another
+  width lays its self test out to it and clips longer lines at the frame's
+  edge; terminal, file-tree and calendar lay themselves out to their size.
+- **radar's `contacts`** show over land and at the scope's edge (drawn just
+  inside the bezel), where upstream hides its own tracks; `land: false`
+  leaves out its made-up coast.
 - **spinners** with `names` shrinks to fit them, as upstream means it to; a
   frame here must say its size, so this is `size/1`. Names it does not know
   are left out, and if none is left it shows all twelve, where upstream draws
@@ -351,6 +387,9 @@ differences:
   past its frames.
 - **Unusual options that make upstream misbehave.** bar-chart and radar clip
   at the frame's edge where upstream's lines would grow past `cols`;
+  cpu-meters writes a reading too wide for its column shorter (see its
+  docs), so a table row never grows past `cols`, including upstream's own
+  TIME+ past a thousand hours, some ten days into play;
   bar-chart draws zeros for a dataset without values, and no bars for none,
   where upstream throws; dissolve wraps its word index where upstream would
   throw. Counts that size arrays (starfield's `stars`, fireflies' `count`)

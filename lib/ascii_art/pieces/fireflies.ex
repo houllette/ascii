@@ -2,13 +2,52 @@ defmodule AsciiArt.Pieces.Fireflies do
   @moduledoc """
   Fireflies over night grass, a flash spreading through them.
 
-  A meadow at night, tufts of grass under a far treeline and a crescent
-  moon. Fireflies drift over it, each flashing on its own slow beat, until
-  one lights early and the flash runs fly to fly across the meadow.
+  A meadow at night, tufts of grass under a far treeline and a crescent moon.
+  Fireflies drift over it, each flashing on its own slow beat, until one
+  lights early and the flash runs fly to fly across the meadow.
 
   Upstream keeps the last few sweeps in a cache; a sweep depends on nothing
   but its number, so this port works out the ones a frame needs each frame.
-  The count is taken as a whole number, as upstream's array takes it.
+
+  ## Options
+
+  Give them to `AsciiArt.new/2` as `options:`, and new ones while it plays
+  with `AsciiArt.put_options/2` (or a Phoenix player's `options`): it starts
+  afresh with them.
+
+    * `count` - fireflies over the meadow, 0 to 500, taken as a whole number.
+      Default 44.
+    * `seed` - the meadow's luck: where the stars and the fireflies are, and
+      the beat each flashes to. The same seed draws the same meadow every
+      time, another seed another. Default 7.
+
+  The picture is always 60 by 18.
+
+  ## Colours
+
+  In one ink, or a gradient, with `:ink` and `:gradient` (see `AsciiArt.Ink`),
+  or on a page a CSS variable. It has no parts to colour one by one.
+
+  ## Screen readers
+
+  `AsciiArt.describe/1` gives its name and note, "fireflies: fireflies over
+  night grass, a flash spreading through them". A player's or a component's
+  `label` gives words of your own, as "fireflies over a meadow at night".
+
+  ## Example
+
+  ```elixir
+  draw = fn options -> "fireflies" |> AsciiArt.new!(options: options) |> AsciiArt.frame(2.0) |> elem(0) end
+  draw.(%{seed: 3}).text == draw.(%{seed: 3}).text
+  #=> true
+
+  draw.(%{seed: 3}).text == draw.(%{seed: 4}).text
+  #=> false
+  ```
+
+  ```heex
+  <AsciiArt.Phoenix.player socket={@socket} id="meadow" piece="fireflies" options={%{count: 80, seed: 11}} ink="#d4e157" />
+  ```
 
   Ported from `src/pieces/fireflies.ts` in bas3line/ascii (MIT).
   """

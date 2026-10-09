@@ -3,7 +3,56 @@ defmodule AsciiArt.Pieces.Scramble do
   Phrases decoding left to right out of flickering glyphs.
 
   A decode effect. Each phrase breaks into flickering glyphs from the left,
-  and the next one settles out of them a letter at a time.
+  and the next one settles out of them a letter at a time. Give it your own
+  phrases: a login's "access granted", a rotating tagline.
+
+  ## Options
+
+  Give them to `AsciiArt.new/2` as `options:`, and new ones while it plays
+  with `AsciiArt.put_options/2` (or a Phoenix player's `options`): it
+  starts afresh on the new phrases.
+
+    * `phrases` - the phrases, in turn, each centred on the middle row,
+      held settled for about two seconds, and cut to 40 characters; after
+      the last comes the first again. An empty list is a blank line.
+      Default `["hello, world", "decoding the signal", "nothing is lost",
+      "see you on the other side"]`.
+
+  The line is always 44 by 3.
+
+  ## Colours
+
+  It has no parts to colour one by one: in one ink, or a gradient, with
+  `:ink` and `:gradient` (see `AsciiArt.Ink`). A horizontal gradient runs
+  through the phrase and the glyphs alike.
+
+  ## Keys and clicks
+
+  It takes none: it decodes its phrases, and `AsciiArt.handle_event/2`
+  ignores every event. A Phoenix player given `interactive` and `notify`
+  still tells your LiveView where it was clicked.
+
+  ## Screen readers
+
+  `AsciiArt.describe/1` reads the phrases, four at most, their closing
+  stops dropped: "scramble: access granted; welcome back". With none, it
+  gives the piece's name and note.
+
+  ## Example
+
+  ```elixir
+  decode = AsciiArt.new!("scramble", options: %{phrases: ["access granted.", "welcome back"]}, ink: "#3fb950")
+  {frame, decode} = AsciiArt.frame(decode, 0.0)
+  frame.text =~ "access granted."
+  #=> true
+
+  AsciiArt.describe(decode)
+  #=> "scramble: access granted; welcome back"
+  ```
+
+  ```heex
+  <AsciiArt.Phoenix.live_player id="decode" piece="scramble" options={%{phrases: @phrases}} ink="#3fb950" />
+  ```
 
   Ported from `src/pieces/scramble.ts` in bas3line/ascii (MIT).
   """
@@ -117,5 +166,26 @@ defmodule AsciiArt.Pieces.Scramble do
     h = Int32.umul(Int32.u32(bxor(c, Int32.imul(tick, 0x27D4EB2D))), 0x9E3779B1)
     h = Int32.umul(bxor(h, h >>> 15), 0x85EBCA77)
     elem(@glyphs, rem(bxor(h, h >>> 13), tuple_size(@glyphs)))
+  end
+
+  # This port's own: the phrases, for a screen reader.
+
+  @stop ~r/[.,;:]+$/u
+
+  @impl true
+  def describe(%{phrases: phrases}) do
+    case for(p <- phrases, said = words(p), said != "", do: said) do
+      [] -> nil
+      said -> "scramble: " <> listed(said)
+    end
+  end
+
+  defp words(s), do: s |> String.split() |> Enum.join(" ") |> String.replace(@stop, "")
+
+  # Four at most, each its first 80 characters, then how many more.
+  defp listed(said) do
+    {shown, rest} = Enum.split(said, 4)
+    more = if rest == [], do: "", else: "; and #{length(rest)} more"
+    Enum.map_join(shown, "; ", &String.slice(&1, 0, 80)) <> more
   end
 end

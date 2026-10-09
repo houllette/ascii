@@ -1,40 +1,65 @@
 # AsciiArt
 
-An Elixir port of [ascii.rest](https://ascii.rest) by
-[@bas3line](https://github.com/bas3line): 191 pieces of animated ASCII art
-(scenes, logos, distros, 3D shapes, simulations, charts and type) as pure
-Elixir. The original is [bas3line/ascii](https://github.com/bas3line/ascii),
-a TypeScript library for web pages; this port draws the same frames as data,
-for Phoenix and LiveView, terminal apps, and Nerves devices.
+ASCII-art UI components for Elixir: file trees, boot logs, htop-style
+meters, gauges, sparklines, progress bars, forms, terminals, calendars and
+departure boards that draw your own live data, natively, in Phoenix
+LiveView, terminal UIs, Livebook and Nerves devices, in your app's colours.
+191 animated pieces in all: alongside the components, scenes, logos,
+distros, 3D shapes, simulations and type.
 
 ```text
-                  @@@@@@$$
-               $$$$@@@@@@@$$#*
-             #***##$$$$$$$$$$#*!
-            !!!!!!*##$$$$$$$$##*!
-           !;=;;;!***###$$$####**!
-           =::~~~;=!!**########**!=
-           ;:-...~;=!**#######***!=;
-          ;;:-....~;=!*****#****!!=;
-          ;;:~-....:;=!!*******!!==;~
-           ==;::~-.-;=!!!******!!==;~
-           !!*###*!;;==!!!!!!!!!==;:~
-           !*#$$@$$#;==!!!!!!!!===;:-
-           ;!#$@@@$*;====!!!!===;;:~-
-            !*#$$#!;;=========;;;:~-.
-            ~=***!==========;;;::~-,
-             :=!!====;;;;;;;;::~~-,
-              -====;;;;;:::::~~-,.
-                ~:;::::::~~~~-,..
-                  ,-------,,..
+   0[|||||||||||||||||||||98.0%]    4[|||||||||||||||####  73.5%]
+   1[|||||#               23.7%]    5[|||||||||||||||##### 75.9%]
+   2[|||||||||||||||||##  74.9%]    6[||||||||||||||||||###86.2%]
+   3[|||||||||||||||||### 75.1%]    7[||||||||||||||||||###91.8%]
+ Mem[|||||||||||****6.51G/15.5G]  Tasks: 142, 421 thr; 7 running
+ Swp[||              141M/2.00G]  Load average: 3.29 1.70 1.08
+                                  Uptime: 4 days, 03:12:45
+
+   PID USER      VIRT   RES S  CPU% MEM%     TIME+  Command
+ 20379 app      1.19G  350M R 497.8  2.2  25:38.59  indexer
+ 19941 root     2.85G  191M S  29.0  1.2   9:54.68  server
+ 21514 app      2.29G  551M S  29.0  3.5  15:08.45  backup
 ```
 
-Every piece draws **exactly** what upstream draws, character for character
-and colour for colour: each is tested frame by frame against golden output
-generated from upstream's own source, on macOS and Linux.
-[PORTING.md](PORTING.md) has the story. No NIFs, no Node at runtime, and no
-required dependencies; the optional [ExRatatui](guides/ex_ratatui.md)
-integration brings ratatui's NIF only if you add it.
+- **Components that take live data.** The UI, data and type pieces take
+  your data as options (readings, listings, text), and new data as it comes
+  (`AsciiArt.put_options/2`): a gauge's needle swings to the new value, a
+  sparkline scrolls on, a file tree lists your files. See
+  [Live data](guides/getting-started.md#live-data).
+- **Native to the Elixir ecosystem.** Function components and LiveView
+  players for Phoenix (`live_player/1` takes your assigns), widgets for
+  [ExRatatui](guides/ex_ratatui.md) terminal UIs, locally or over SSH, ANSI
+  for any terminal, a supervised `AsciiArt.Player` for a process of your
+  own, and plain frame data for Livebook, a framebuffer or anything else.
+  No NIFs, no Node at runtime, and no required dependencies; the
+  optional ExRatatui integration brings ratatui's NIF only if you add it.
+- **Usable.** A file tree's cursor walks and its folders open, a form's
+  fields take typing, a calendar picks a date: keys and clicks go to the
+  piece (`AsciiArt.handle_event/2`), in LiveView, in ExRatatui and in a
+  plain terminal, and what was chosen is in its options. A click tells you
+  the part under it, the file or the bar (`AsciiArt.part_at/4`).
+- **In your colours.** Give a piece an ink, one colour or a gradient
+  (`AsciiArt.Ink`), and colour its parts one by one: a file tree's folders
+  and file types, a boot log's `OK` and `WARN`, a meter's bars, a heading's
+  letters (`AsciiArt.Parts`). On a page the colours can be CSS variables,
+  so they follow your theme into dark mode; on paper, the suggested colours
+  are those for a light page.
+- **Put together.** Frames go into bordered panels, beside and above one
+  another, with rules between (`AsciiArt.Compose`), for a dashboard on a
+  plain terminal or a device's screen; out as SVG for a README or an email
+  (`AsciiArt.Render.SVG`, `mix ascii_art.svg`); and `mix ascii_art.top`
+  watches your BEAM, htop-style, made of the pieces themselves.
+- **Accessible.** Each component says what it shows, from its data, for
+  screen readers ("load: 72%", "deploy: 6 steps, 1 failed"), and the
+  Phoenix players label the picture with it (`AsciiArt.describe/1`).
+- **Exact.** It began as a port of [ascii.rest](https://ascii.rest) by
+  [@bas3line](https://github.com/bas3line)
+  ([bas3line/ascii](https://github.com/bas3line/ascii), a TypeScript
+  library for web pages), and every piece draws exactly what upstream draws,
+  character for character and colour for colour: each is tested frame by
+  frame against golden output generated from upstream's own source, on
+  macOS and Linux. [PORTING.md](PORTING.md) has the story.
 
 ## Installation
 
@@ -48,7 +73,9 @@ def deps do
     # optional, for the Phoenix components and the LiveView player:
     {:phoenix_live_view, "~> 1.1"},
     # optional, for ratatui widgets and the full-screen terminal viewer:
-    {:ex_ratatui, "~> 0.17"}
+    {:ex_ratatui, "~> 0.17"},
+    # optional (Phoenix brings it), to feed the pieces your :telemetry events:
+    {:telemetry, "~> 1.0"}
   ]
 end
 ```
@@ -58,7 +85,10 @@ end
 ### One frame
 
 ```elixir
-# The picture at 1.5 seconds, as text.
+# A component, from your data: a gauge reading 72%, two seconds in.
+IO.puts(AsciiArt.render!("gauge", 2.0, options: %{label: "cpu", value: 72}))
+
+# Or art: the picture at 1.5 seconds, as text.
 IO.puts(AsciiArt.render!("donut", 1.5))
 
 {:ok, text} = AsciiArt.render("typewriter", 0.0, options: %{prefix: "we make "})
@@ -104,6 +134,11 @@ ever becomes an atom.
 mix ascii_art.play night-coast            # q or Ctrl-C to stop
 mix ascii_art.play elixir --mode ansi256
 mix ascii_art.play typewriter --option "prefix=we make " --paper
+mix ascii_art.play big-text --ink ff5f6d,ffc371   # one ink, or a gradient
+mix ascii_art.play boot-log --parts               # its parts in colour
+mix ascii_art.play file-tree --option walk=false --interactive   # arrows, enter, space
+mix ascii_art.top                                 # this BEAM, htop-style
+mix ascii_art.svg gauge --option value=72 --parts # one frame as an SVG
 ```
 
 With [ExRatatui](guides/ex_ratatui.md) as a dependency, a full-screen viewer
@@ -137,10 +172,11 @@ IO.write([ANSI.reset(), ANSI.show_cursor(), "\n"])
 
 ### Live data
 
-The UI and data pieces draw your own data: progress bars, sparklines, a
-gauge, an htop-style panel, uptime bars, a contribution heatmap,
-candlesticks, a bar chart, an equalizer. Give it as options, and new data
-while it plays with `AsciiArt.put_options/2` (or `AsciiArt.Player.set_options/2`):
+The components draw your own data: progress bars, sparklines, a gauge, an
+htop-style panel, uptime bars, a contribution heatmap, candlesticks, a bar
+chart, an equalizer, a file tree, a terminal session, a departures board.
+Give it as options, and new data while it plays with
+`AsciiArt.put_options/2` (or `AsciiArt.Player.set_options/2`):
 
 ```elixir
 cpu = %{label: "cpu", unit: "%", lo: 0, hi: 100, values: [12, 30, 25, 60]}
@@ -152,7 +188,54 @@ IO.puts(frame.text)
 ```
 
 [Getting started](guides/getting-started.md#live-data) lists what each
-takes.
+takes. `AsciiArt.Telemetry` turns your app's `:telemetry` events into
+readings for them, and `AsciiArt.BEAM` your VM's schedulers, memory and
+busiest processes.
+
+### Usable components
+
+A component that can be used takes keys and clicks: a file tree's cursor
+moves and its folders open, a form's fields take typing, a calendar picks a
+date. Everything it changes is in its options, so what was chosen is
+there to read:
+
+```elixir
+paths = ["lib/my_app.ex", "lib/my_app/repo.ex", "mix.exs", "README.md"]
+tree = AsciiArt.new!("file-tree", options: %{walk: false, paths: paths, root: "my_app"})
+
+{:ok, tree} = AsciiArt.handle_event(tree, {:key, "down"})
+{:ok, tree} = AsciiArt.handle_event(tree, {:key, "right"})
+{:ok, tree} = AsciiArt.handle_event(tree, {:key, "down"})
+"lib/my_app.ex" = tree.options.cursor
+"file tree of my_app: 2 folders, 4 files; at lib/my_app.ex" = AsciiArt.describe(tree)
+
+# Which part is under a click: here, the file the cursor is on.
+{frame, tree} = AsciiArt.frame(tree, 0.0)
+{"file.ex", "my_app.ex"} = AsciiArt.part_at(tree, frame, 18, 2)
+```
+
+In LiveView, give the player `interactive` (and `notify` to be told of each
+key and click); in ExRatatui, `AsciiArt.ExRatatui.handle_event/3` takes
+its events; in a terminal, `mix ascii_art.play --interactive`.
+
+### Putting frames together
+
+```elixir
+alias AsciiArt.Compose
+
+{:ok, gauge} = AsciiArt.still("gauge", options: %{label: "load", value: 72}, parts: true)
+{:ok, log} = AsciiArt.still("boot-log", options: %{title: "deploy", steps: [%{text: "built", status: "ok"}]})
+
+board =
+  Compose.above([
+    Compose.beside([Compose.panel(gauge, title: "load"), Compose.panel(log, title: "deploy")]),
+    Compose.divider(128, label: "end of report", style: :dashed)
+  ])
+
+IO.puts(AsciiArt.Render.ANSI.render(board))
+svg = IO.iodata_to_binary(AsciiArt.Render.SVG.render(board, background: "#0d1117"))
+true = String.starts_with?(svg, "<svg")
+```
 
 ### Phoenix: a still
 
@@ -165,6 +248,8 @@ JavaScript. It is `role="img"` with an `aria-label`.
 <AsciiArt.Phoenix.Components.ascii piece="donut" />
 <AsciiArt.Phoenix.Components.ascii piece="night-coast" label="a lighthouse at night" />
 <AsciiArt.Phoenix.Components.ascii piece="elixir" mono class="logo" />
+<AsciiArt.Phoenix.Components.ascii piece="big-text" ink={["#ff5f6d", "#ffc371"]} />
+<AsciiArt.Phoenix.Components.ascii piece="file-tree" parts={%{"folder" => "#58a6ff"}} />
 ```
 
 ### Phoenix: playing
@@ -185,6 +270,18 @@ needle swings to each new reading.
 
 ```heex
 <AsciiArt.Phoenix.live_player id="load" piece="gauge" options={%{label: "load", value: @load}} />
+<AsciiArt.Phoenix.live_player id="top" piece="cpu-meters" options={@readings} parts />
+```
+
+`parts` colours each part of a component as it suggests (htop's green and
+red bars here), or in your colours: `parts={%{"bar.user" => "#22c55e"}}`,
+or your theme's: `parts={%{"bar.user" => "var(--color-success)"}}`.
+
+`interactive` gives a player keys and clicks; `notify` sends your LiveView
+each one, with the part clicked and the options the piece now has:
+
+```heex
+<AsciiArt.Phoenix.live_player id="files" piece="file-tree" options={%{walk: false, paths: @paths}} interactive notify />
 ```
 
 With the hook below registered, the browser draws, and the server sends as
@@ -215,7 +312,8 @@ let liveSocket = new LiveSocket("/live", Socket, {
 file: `elixir examples/demo.exs`, then open http://localhost:4000. The index
 shows frame 0 of each piece by category (text pieces through
 `Components.ascii/1`, coloured ones on a canvas); each opens a page that
-plays it with `player/1`, where you can try its options, paper and one ink.
+plays it with `player/1`, where you can try its options, paper, one ink, the
+ink's colour, and colours for its parts.
 
 ### Nerves and other devices
 
@@ -256,22 +354,27 @@ end
 ## Guides
 
   * [Getting started](guides/getting-started.md): pieces, frames, options,
-    live data for the UI and data pieces, paper and one ink, clocks, and
-    what things cost.
+    live data for the components, keys and clicks, words for screen
+    readers, your colours (ink, parts, CSS variables), paper and one ink,
+    clocks, and what things cost.
+  * [Components at a glance](guides/components.md): every component, the
+    data it takes, its size, parts and keys, and what they all share.
   * [Phoenix and LiveView](guides/phoenix.md): stills, live players, live
-    data with `live_player/1`, what goes over the wire, one player for many
-    viewers.
-  * [Terminal apps](guides/terminal.md): `mix ascii_art.play`, ANSI colour,
-    writing only what changed, `AsciiArt.Player`, scripts.
+    data with `live_player/1`, interactive players, telemetry, what goes
+    over the wire, one player for many viewers.
+  * [Terminal apps](guides/terminal.md): `mix ascii_art.play`,
+    `mix ascii_art.top`, ANSI colour, writing only what changed, panels and
+    layouts with `AsciiArt.Compose`, `AsciiArt.Player`, scripts.
   * [ExRatatui](guides/ex_ratatui.md): the full-screen viewer, pieces as
-    widgets in your own terminal UI, locally or over SSH, and a live
-    dashboard.
+    widgets in your own terminal UI, locally or over SSH, keys and clicks,
+    and a live dashboard.
   * [Livebook](guides/livebook.md): stills and animations in a notebook with
     Kino.
   * [Nerves](guides/nerves.md): the console, SSH, supervised players, and
     pixels for a framebuffer or an SPI panel.
   * [Drawing frames yourself](guides/custom-rendering.md): cells, runs of
-    colour, SVG, asciinema recordings, frames over the wire.
+    colour, SVG (`AsciiArt.Render.SVG`), asciinema recordings, frames over
+    the wire.
   * [Writing a piece](guides/writing-pieces.md): your own pieces, on the same
     contract.
 

@@ -1,6 +1,9 @@
 # Phoenix and LiveView
 
-With `phoenix_live_view` in your deps, AsciiArt adds:
+The components are LiveView components: a gauge, a sparkline or an
+htop-style panel in your dashboard takes its readings from your assigns,
+and draws in your colours. With `phoenix_live_view` in your deps, AsciiArt
+adds:
 
   * `AsciiArt.Phoenix.Components.ascii/1` draws one frame as a `<pre>`, with
     no JavaScript: for dead views, controllers, emails and stills;
@@ -22,11 +25,17 @@ With `phoenix_live_view` in your deps, AsciiArt adds:
 <AsciiArt.Phoenix.Components.ascii piece="donut" t={2.5} paper class="hero" />
 <AsciiArt.Phoenix.Components.ascii piece="elixir" label="the Elixir logo" />
 <AsciiArt.Phoenix.Components.ascii piece="elixir" mono />
+<AsciiArt.Phoenix.Components.ascii piece="big-text" ink={["#ff5f6d", "#ffc371"]} />
+<AsciiArt.Phoenix.Components.ascii piece="boot-log" parts={%{"status.warn" => "#d29922"}} />
 ```
 
 It works in any HEEx template, LiveView or not. A text piece is plain text in
-the page's own colour and font; a coloured piece is runs of
-`<span style="color:…">` over its ground (`mono` draws it in one ink instead).
+the page's own colour and font, or runs of `<span style="color:…">` in an
+`ink` (one colour, or several for a `gradient`; see `AsciiArt.Ink`) and of
+colours for its `parts` (`true` for the ones it suggests; see
+`AsciiArt.Parts`); a
+coloured piece is runs of its palette over its ground (`mono` draws it in one
+ink instead).
 The `<pre>` is `role="img"` with an `aria-label` (the `label`, or the piece's
 name), and carries a few styles that ASCII art needs (no margin, line height
 1.2, no ligatures); add your own with `class` or `style`. Attributes it does
@@ -53,7 +62,9 @@ plays, with play time moving as upstream's does (real time, at most 100 ms a
 frame).
 
 Its attributes: `piece`, `id` (unique on the page), `options`, `fps`, `mono`,
-`paper`, `label`, and `render`. `piece` is a slug or a module of your own
+`ink`, `gradient`, `parts`, `paper`, `label`, and `render`. A piece in an
+`ink`, or with colours for its `parts`, plays as text in spans of its
+colours, the size it would be in one ink. `piece` is a slug or a module of your own
 (see [Writing a piece](writing-pieces.md)).
 
 ## What goes over the wire
@@ -168,8 +179,90 @@ millisecond a frame. A 200×100 scene costs milliseconds a frame, which your
 LiveView would spend between its own events: play scenes with `player/1`.
 
 `examples/demo.exs` has a dashboard of this BEAM's schedulers, memory, run
-queue and busiest processes, every widget a `live_player/1`
-(`elixir examples/demo.exs`, then open http://localhost:4000/dashboard).
+queue and busiest processes, every widget a `live_player/1` fed by
+`AsciiArt.BEAM` (`elixir examples/demo.exs`, then open
+http://localhost:4000/dashboard).
+
+### From telemetry
+
+`AsciiArt.Telemetry` keeps your app's `:telemetry` events as readings, a
+sample a second, from the same `Telemetry.Metrics` definitions a reporter
+takes, and sends them to whoever subscribes:
+
+```elixir
+# needs: a Phoenix app; in application.ex
+children = [
+  {AsciiArt.Telemetry,
+   name: MyApp.Readings,
+   metrics: [
+     Telemetry.Metrics.last_value("vm.memory.total", unit: {:byte, :megabyte}),
+     Telemetry.Metrics.summary("my_app.repo.query.total_time", unit: {:native, :millisecond})
+   ]}
+]
+```
+
+```elixir
+# needs: a Phoenix app
+def mount(_params, _session, socket) do
+  if connected?(socket), do: AsciiArt.Telemetry.subscribe(MyApp.Readings)
+  {:ok, assign(socket, history: %{})}
+end
+
+def handle_info({:ascii_art_telemetry, _feed, readings}, socket),
+  do: {:noreply, assign(socket, history: AsciiArt.Telemetry.sparkline(readings))}
+```
+
+```heex
+<AsciiArt.Phoenix.live_player id="history" piece="sparkline" options={@history} parts />
+```
+
+## Keys and clicks
+
+A component that can be used (a file tree with `walk: false`, a form of
+your `fields`, a calendar with a `date`; see
+[Keys and clicks](getting-started.md#keys-and-clicks)) takes the browser's
+keys and clicks in a player given `interactive`. Its picture takes focus;
+arrows, space, enter and typing go to the piece, which moves its cursor,
+ticks its box or picks its day, and what changed is sent at once. Tab is
+left to the page, so focus moves on as ever; ctrl, alt and meta keys are the
+browser's. Clicks need the hook, which works out the cell clicked; without
+it (`render={:server}`) keys still come, by `phx-keydown`.
+
+With `notify` as well, your LiveView is told of each key and click as
+`{:ascii_art, id, info}`: the event, the part clicked and its text (see
+`AsciiArt.part_at/4`), and the options the piece now has, from which to read
+what was chosen.
+
+```heex
+<AsciiArt.Phoenix.live_player
+  id="files"
+  piece="file-tree"
+  options={%{walk: false, paths: @paths, root: "my_app"}}
+  interactive
+  notify
+/>
+```
+
+```elixir
+# needs: a Phoenix app
+def handle_info({:ascii_art, "files", %{event: {:key, "enter"}, options: %{cursor: path}}}, socket),
+  do: {:noreply, assign(socket, open: path)}
+
+def handle_info({:ascii_art, "files", %{event: {:click, _x, _y}, part: "file" <> _, options: options}}, socket),
+  do: {:noreply, assign(socket, open: options.cursor)}
+
+def handle_info({:ascii_art, _id, _info}, socket), do: {:noreply, socket}
+```
+
+The options you give `live_player/1` are merged over what the piece's
+events changed, so leave out those it keeps (a tree's `cursor` and `open`, a
+form's `focus`) unless you mean to set them. `player/1` takes `interactive`
+and `notify` too, telling the LiveView that embeds it.
+
+Every player and still is labelled for screen readers with what the piece
+tells of its data (`AsciiArt.describe/1`): "load: 72%", "deploy: 6 steps, 1
+failed", and anew as the data changes. `label` gives your own words
+instead.
 
 ## In a controller or a dead view
 

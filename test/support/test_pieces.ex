@@ -212,3 +212,66 @@ defmodule AsciiArt.TestPieces.Noted do
   @impl true
   def frame(mark, t, _env), do: {[mark, Integer.to_string(rem(floor(t), 10))], nil, mark}
 end
+
+defmodule AsciiArt.TestPieces.Switches do
+  @moduledoc false
+  # Three switches in a row, one under a cursor: a piece that can be used,
+  # told in words and labelled by part. ← and → move the cursor, space flips
+  # the switch under it, and a click flips the one clicked.
+  @behaviour AsciiArt.Piece
+
+  alias AsciiArt.Parts
+
+  @impl true
+  def meta,
+    do: %AsciiArt.Meta{
+      name: "switches",
+      category: :ui,
+      note: "three switches",
+      cols: 14,
+      rows: 1,
+      fps: 0,
+      options: %{on: [false, true, false], cursor: 0},
+      bounds: %{cursor: {0, 2}},
+      parts: [{"switch", nil}, {"switch.on", "#3fb950"}, {"cursor", "#d29922"}]
+    }
+
+  @impl true
+  def init(options), do: options
+
+  @impl true
+  def frame(%{on: on, cursor: cursor} = state, _t, _env) do
+    text =
+      on
+      |> Enum.with_index()
+      |> Enum.map_join(" ", fn {on?, i} ->
+        if(i == cursor, do: ">", else: " ") <> if(on?, do: "[x]", else: "[ ]")
+      end)
+
+    {text, nil, state}
+  end
+
+  @impl true
+  def parts(%{lines: [line]}, _options) do
+    [Parts.matches(line, ~r/>|\[x\]|\[ \]/, &part/1)]
+  end
+
+  defp part(">"), do: "cursor"
+  defp part("[x]"), do: "switch.on"
+  defp part(_off), do: "switch"
+
+  @impl true
+  def describe(%{on: on}), do: "switches: #{Enum.count(on, & &1)} of #{length(on)} on"
+
+  @impl true
+  def handle_event({:key, "left"}, %{cursor: c} = o), do: {:ok, %{o | cursor: max(c - 1, 0)}}
+  def handle_event({:key, "right"}, %{cursor: c} = o), do: {:ok, %{o | cursor: min(c + 1, 2)}}
+  def handle_event({:key, " "}, %{cursor: c} = o), do: {:ok, flip(o, c)}
+
+  def handle_event({:click, x, 0}, o) when x in 0..13 and rem(x, 5) != 4,
+    do: {:ok, flip(%{o | cursor: div(x, 5)}, div(x, 5))}
+
+  def handle_event(_event, _options), do: :ignore
+
+  defp flip(%{on: on} = o, i), do: %{o | on: List.update_at(on, i, &(not &1))}
+end

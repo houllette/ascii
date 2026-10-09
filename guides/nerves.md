@@ -142,7 +142,8 @@ defmodule MyDevice.Pixels do
 
   @doc "The frame as a list of pixel rows."
   def rows(%Frame{colors: colors} = frame, bits, scale \\ 1) when is_binary(colors) do
-    palette = frame.palette |> Enum.map(&pixel(&1, bits)) |> List.to_tuple()
+    # nil in a palette is your own ink: parts given no colour of their own.
+    palette = frame.palette |> Enum.map(&pixel(&1 || "#ffffff", bits)) |> List.to_tuple()
     blank = pixel(frame.ground || "#000000", bits)
 
     for {line, y} <- Enum.with_index(frame.lines),
@@ -238,6 +239,27 @@ micros > 0
 A piece that closes a loop (`meta.loop`, sixty of them) costs nothing after
 its first cycle if you keep it: draw it once with `AsciiArt.loop/1` and
 show the frames in turn. A logo's cycle is 150 frames of a few kilobytes.
+
+## Several pieces on one screen
+
+A device's screen is one frame: put several pieces' frames together with
+`AsciiArt.Compose` (panels with titles, side by side, one above another)
+and draw the result as you would one piece's, cell by cell. `fit/4` cuts or
+pads it to exactly the screen's cells.
+
+```elixir
+alias AsciiArt.Compose
+
+{gauge, _} = AsciiArt.new!("gauge", options: %{label: "temp", unit: "°", max: 90, value: 48, cols: 43, rows: 15}) |> AsciiArt.frame(2.0)
+{timer, _} = AsciiArt.new!("digital-clock", options: %{timer: "up", label: "uptime", seconds: false}) |> AsciiArt.frame(90.0)
+
+screen = Compose.above([Compose.panel(gauge, title: "board"), Compose.panel(timer, title: "since boot")])
+screen = Compose.fit(screen, 80, 30, valign: :top)
+{screen.cols, screen.rows}
+#=> {80, 30}
+```
+
+A digital clock's `timer` counts on play time, so it needs no clock at all.
 
 ## Clocks
 

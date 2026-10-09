@@ -75,7 +75,8 @@ defmodule AsciiArt.Player do
     * `:ref` - the tag on each message (a fresh reference by default; see
       `ref/1`).
     * `:cache` - keep and repeat the frames of a loop (default `true`).
-    * `:options`, `:fps`, `:paper`, `:color` - as for `AsciiArt.new/2`.
+    * `:options`, `:fps`, `:paper`, `:color`, `:ink`, `:gradient`, `:parts` -
+      as for `AsciiArt.new/2`.
     * `:name` - registers the player. Under a supervisor it is also the
       child's id, so one supervisor can hold several named players.
   """
@@ -112,7 +113,10 @@ defmodule AsciiArt.Player do
   defp launch(opts, start) do
     with {:ok, piece} <- fetch(opts, :piece),
          {:ok, anim} <-
-           AsciiArt.prepare(piece, Keyword.take(opts, [:options, :fps, :paper, :color])),
+           AsciiArt.prepare(
+             piece,
+             Keyword.take(opts, [:options, :fps, :paper, :color, :ink, :gradient, :parts])
+           ),
          {:ok, receiver} <- receiver(Keyword.get(opts, :callback), Keyword.get(opts, :to, self())) do
       ref = Keyword.get_lazy(opts, :ref, &make_ref/0)
       cache? = Keyword.get(opts, :cache, true) == true
@@ -171,6 +175,15 @@ defmodule AsciiArt.Player do
   @spec set_options(player :: GenServer.server(), options :: map() | keyword()) ::
           :ok | AsciiArt.error()
   def set_options(player, options), do: GenServer.call(player, {:options, options})
+
+  @doc """
+  A key or a click for the piece (see `AsciiArt.handle_event/2`): its new
+  options if it took the event, the new picture drawn and sent at once;
+  `:ignore` if it had no use for it.
+  """
+  @spec handle_event(player :: GenServer.server(), event :: AsciiArt.event()) ::
+          {:ok, options :: map()} | :ignore
+  def handle_event(player, event), do: GenServer.call(player, {:event, event})
 
   @doc "Changes the frame rate, 0 to 60; 0 holds the picture."
   @spec set_fps(player :: GenServer.server(), fps :: number()) ::
@@ -244,6 +257,16 @@ defmodule AsciiArt.Player do
 
   def handle_call({:fps, _fps}, _from, state),
     do: {:reply, {:error, {:invalid_option, :fps}}, state}
+
+  def handle_call({:event, event}, _from, state) do
+    case AsciiArt.handle_event(state.anim, event) do
+      {:ok, anim} ->
+        {:reply, {:ok, anim.options}, %{state | anim: anim} |> keep_cycle() |> draw()}
+
+      :ignore ->
+        {:reply, :ignore, state}
+    end
+  end
 
   def handle_call({:options, options}, _from, state) do
     case AsciiArt.put_options(state.anim, options) do

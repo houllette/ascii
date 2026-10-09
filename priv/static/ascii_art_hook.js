@@ -1,6 +1,8 @@
 // ascii_art's LiveView hook for AsciiArt.Phoenix.PlayerLive: the browser
 // draws the piece, a text piece in its <pre>, a coloured one on a <canvas>
-// a character a cell in its palette colour over its ground.
+// a character a cell in its palette colour over its ground. A text piece in
+// an ink (data-spans) stays text, in spans of its colours, a row an element;
+// a null in its palette is the <pre>'s own colour.
 //
 // A piece that closes a loop arrives once, as one cycle, and plays here with
 // no more from the server. Any other piece arrives a frame at a time, each as
@@ -9,7 +11,9 @@
 // Register it with your LiveSocket:
 //
 // Its events go to whatever owns its element: AsciiArt.Phoenix.PlayerLive, or
-// AsciiArt.Phoenix.PlayerComponent inside your LiveView.
+// AsciiArt.Phoenix.PlayerComponent inside your LiveView. An interactive player
+// (data-interactive) takes focus, and sends its keys, by their DOM names, and
+// the cell under each click, for the piece to take up on the server.
 //
 //   import {AsciiArt} from "../../deps/ascii_art/priv/static/ascii_art_hook.js"
 //   let liveSocket = new LiveSocket("/live", Socket, {hooks: {AsciiArt}, ...})
@@ -17,7 +21,15 @@ const FONT = "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace";
 const MAX_STEP = 100; // ms of play time a frame at most, as upstream's mount
 
 const bytes = (base64) => Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+const escape = (text) => text.replace(/[&<>]/g, (c) => ({"&": "&amp;", "<": "&lt;", ">": "&gt;"})[c]);
+const span = (text, color) =>
+  text === "" ? "" : color === null ? escape(text) : `<span style="color:${color}">${escape(text)}</span>`;
 const canInflate = typeof DecompressionStream !== "undefined";
+// Keys an interactive piece takes besides characters: the server names them.
+const KEYS = {
+  ArrowUp: 1, ArrowDown: 1, ArrowLeft: 1, ArrowRight: 1, Enter: 1, Escape: 1, Backspace: 1,
+  Delete: 1, Home: 1, End: 1, PageUp: 1, PageDown: 1,
+};
 
 async function inflate(base64) {
   const stream = new Blob([bytes(base64)]).stream().pipeThrough(new DecompressionStream("deflate"));
@@ -30,7 +42,10 @@ export const AsciiArt = {
     this.pre = this.el.querySelector("pre");
     this.load();
 
-    if (this.palette) {
+    if (this.spans) {
+      this.layout();
+      this.show(this.first);
+    } else if (this.palette) {
       this.canvas = document.createElement("canvas");
       this.pre.replaceWith(this.canvas);
       this.ctx = this.canvas.getContext("2d");
@@ -40,10 +55,13 @@ export const AsciiArt = {
     }
 
     this.handleEvent(d.event, (msg) => {
+      if (msg.label !== undefined) this.el.setAttribute("aria-label", msg.label);
       if (msg.loop) this.take(msg.loop);
       else if (msg.frame) this.replace(msg.frame);
-      else this.patch(msg.runs);
+      else if (msg.runs) this.patch(msg.runs);
     });
+
+    if (d.interactive === "true") this.listen();
 
     this.still = matchMedia("(prefers-reduced-motion: reduce)");
     this.onChange = () => this.report();
@@ -66,6 +84,7 @@ export const AsciiArt = {
     this.rows = +d.rows;
     this.cell = +d.cell || 2;
     this.palette = d.palette ? JSON.parse(d.palette) : null;
+    this.spans = d.spans === "true";
     this.ground = d.ground || null;
     const lines = d.text.split("\n");
     const colors = d.colors ? bytes(d.colors) : null;
@@ -83,6 +102,7 @@ export const AsciiArt = {
     this.loop = null;
     this.load();
     if (this.canvas) this.fit();
+    if (this.spans) this.layout();
     this.show(this.first);
     this.ready();
   },
@@ -93,8 +113,51 @@ export const AsciiArt = {
     this.size();
   },
 
+  // Keys and clicks for the piece. Tab is left to the page, so focus moves
+  // on; keys the page would scroll by stay here. Clicks are cells, from
+  // where the picture is drawn: a canvas's own size, or a character's width
+  // and a row's height in the <pre>.
+  listen() {
+    this.onKey = (e) => {
+      if (e.key === "Tab" || e.ctrlKey || e.altKey || e.metaKey) return;
+      if (!(e.key in KEYS) && e.key.length !== 1) return;
+      e.preventDefault();
+      this.pushEventTo(this.el, "ascii_art:key", {key: e.key, shiftKey: e.shiftKey});
+    };
+    this.onClick = (e) => {
+      const cell = this.cellAt(e);
+      if (!cell) return;
+      if (this.loop) cell.t = this.loop.t;
+      this.pushEventTo(this.el, "ascii_art:click", cell);
+    };
+    this.el.addEventListener("keydown", this.onKey);
+    this.el.addEventListener("click", this.onClick);
+  },
+
+  cellAt(e) {
+    const target = this.canvas || this.pre;
+    const box = target.getBoundingClientRect();
+    const w = this.canvas ? box.width / this.cols : this.charWidth();
+    const h = box.height / this.rows;
+    const x = Math.floor((e.clientX - box.left) / w);
+    const y = Math.floor((e.clientY - box.top) / h);
+    return w > 0 && h > 0 && x >= 0 && y >= 0 && x < this.cols && y < this.rows ? {x, y} : null;
+  },
+
+  charWidth() {
+    const probe = document.createElement("span");
+    probe.textContent = "0".repeat(10);
+    probe.style.cssText = "position:absolute;visibility:hidden";
+    this.pre.append(probe);
+    const w = probe.getBoundingClientRect().width / 10;
+    probe.remove();
+    return w;
+  },
+
   destroyed() {
     this.stop();
+    if (this.onKey) this.el.removeEventListener("keydown", this.onKey);
+    if (this.onClick) this.el.removeEventListener("click", this.onClick);
     this.watcher.disconnect();
     this.resizer?.disconnect();
     this.still.removeEventListener("change", this.onChange);
@@ -156,7 +219,10 @@ export const AsciiArt = {
     };
     this.frame = this.apply(blank, runs);
     if (this.canvas && resized) this.fit();
-    else this.show(this.frame);
+    else {
+      if (this.spans && resized) this.layout();
+      this.show(this.frame);
+    }
   },
 
   // One cycle: each frame what changed from the one before, or the index of
@@ -197,7 +263,44 @@ export const AsciiArt = {
   show(frame) {
     this.frame = frame;
     if (this.ctx) this.draw();
+    else if (this.spans) this.paint(frame);
     else this.pre.textContent = frame.lines.join("\n");
+  },
+
+  // An element a row in the <pre>, for paint() to rewrite.
+  layout() {
+    this.pre.textContent = "";
+    this.rowEls = [];
+    for (let y = 0; y < this.rows; y++) {
+      const row = document.createElement("span");
+      this.pre.append(row);
+      if (y < this.rows - 1) this.pre.append("\n");
+      this.rowEls.push(row);
+    }
+    this.painted = null;
+  },
+
+  // The rows that changed since the last frame painted, in spans of their
+  // colours; spaces join the run they are in, as the server's HTML has it.
+  paint(frame) {
+    const {lines, colors} = frame;
+    const before = this.painted;
+    for (let y = 0; y < this.rows; y++) {
+      if (before && before.lines[y] === lines[y] && before.colors[y] === colors[y]) continue;
+      let html = "", run = "", color = null, x = 0;
+      for (const c of lines[y]) {
+        const ink = c === " " && run !== "" ? color : (this.palette[colors[y][x]] ?? null);
+        if (run !== "" && ink !== color) {
+          html += span(run, color);
+          run = "";
+        }
+        color = ink;
+        run += c;
+        x++;
+      }
+      this.rowEls[y].innerHTML = html + span(run, color);
+    }
+    this.painted = frame;
   },
 
   // As wide as it is shown, in device pixels; cells `cell` widths tall.

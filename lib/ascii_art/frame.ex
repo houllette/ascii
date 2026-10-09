@@ -6,7 +6,10 @@ defmodule AsciiArt.Frame do
   and `lines` the same split into rows. `colors`, for a coloured piece drawn
   in colour, is a binary of `cols * rows` bytes, one palette index a cell,
   row by row; `palette` holds the `#rrggbb` colours they index and `ground`
-  the colour behind them. `cell` is a cell's height in widths (2 for the
+  the colour behind them. A palette entry may be `nil`, for cells drawn in
+  the renderer's own ink: a piece in one ink with only some of its parts
+  coloured (see `AsciiArt.Parts`). A palette is the same for every frame of
+  an animation. `cell` is a cell's height in widths (2 for the
   shape of a character, 1 for square).
 
   Renderers in this library (`AsciiArt.Render.Text`, `AsciiArt.Render.ANSI`,
@@ -16,7 +19,7 @@ defmodule AsciiArt.Frame do
       for {line, y} <- Enum.with_index(frame.lines),
           {char, x} <- Enum.with_index(String.graphemes(line)) do
         index = :binary.at(frame.colors, y * frame.cols + x)
-        draw(x, y, char, Enum.at(frame.palette, index))
+        draw(x, y, char, Enum.at(frame.palette, index) || my_ink)
       end
   """
 
@@ -24,7 +27,7 @@ defmodule AsciiArt.Frame do
           text: String.t(),
           lines: [String.t()],
           colors: binary() | nil,
-          palette: [String.t()] | nil,
+          palette: [String.t() | nil] | nil,
           ground: String.t() | nil,
           cols: pos_integer(),
           rows: pos_integer(),
@@ -35,7 +38,10 @@ defmodule AsciiArt.Frame do
   @enforce_keys [:text, :lines, :cols, :rows, :t]
   defstruct [:text, :lines, :colors, :palette, :ground, :cols, :rows, :t, cell: 2]
 
-  @doc "The `#rrggbb` colour of the cell at `x`, `y`, or `nil` without colours."
+  @doc """
+  The `#rrggbb` colour of the cell at `x`, `y`, or `nil` without colours or
+  in the renderer's own ink.
+  """
   @spec color_at(frame :: t(), x :: non_neg_integer(), y :: non_neg_integer()) ::
           String.t() | nil
   def color_at(%__MODULE__{colors: nil}, _x, _y), do: nil

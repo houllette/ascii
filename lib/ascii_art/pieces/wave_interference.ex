@@ -6,8 +6,45 @@ defmodule AsciiArt.Pieces.WaveInterference do
   cancel the water lies still, and those calm lines fan out and swing as the
   dippers drift.
 
-  `wavelength` is in rows (a column is half a row); `separation` is how many
-  wavelengths apart the dippers sit.
+  ## Options
+
+  Give them to `AsciiArt.new/2` as `options:`, and new ones while it plays
+  with `AsciiArt.put_options/2` (or a Phoenix player's `options`): it starts
+  afresh with them.
+
+    * `wavelength` - rows from crest to crest (a column is half a row), at
+      least 3; 0 to 100. Default 5.
+    * `separation` - how many wavelengths apart the dippers sit, -20 to 20,
+      the sign making no odds; they drift a fifth either way over 30 seconds.
+      The further apart, the more still lines fan out. Default 2.2.
+
+  The picture is always 72 by 26.
+
+  ## Colours
+
+  In one ink, or a gradient, with `:ink` and `:gradient` (see `AsciiArt.Ink`),
+  or on a page a CSS variable. On a light page, give it `paper: true`: its
+  shading reads from the other end of its ramp, so dense characters still mean
+  dark. It has no parts to colour one by one.
+
+  ## Screen readers
+
+  `AsciiArt.describe/1` gives its name and note, "wave interference: two
+  sources in a ripple tank, still lines fanning out". A player's or a
+  component's `label` gives words of your own, as "ripples from two sources".
+
+  ## Example
+
+  ```elixir
+  anim = AsciiArt.new!("wave-interference", options: %{wavelength: 8, separation: 4}, ink: "var(--water, #4fc3f7)")
+  {frame, _} = AsciiArt.frame(anim, 1.0)
+  {frame.cols, frame.rows, frame.palette}
+  #=> {72, 26, ["var(--water, #4fc3f7)"]}
+  ```
+
+  ```heex
+  <AsciiArt.Phoenix.player socket={@socket} id="tank" piece="wave-interference" options={%{separation: 3.5}} />
+  ```
 
   Ported from `src/pieces/wave-interference.ts` in bas3line/ascii (MIT).
   """

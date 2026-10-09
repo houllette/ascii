@@ -47,4 +47,130 @@ defmodule AsciiArt.Pieces.ProgressBarTest do
     {frame, _} = AsciiArt.frame(anim, 1.0)
     assert Enum.at(frame.lines, 1) =~ " 90%"
   end
+
+  describe "in words" do
+    defp told(options),
+      do: "progress-bar" |> AsciiArt.new!(options: options) |> AsciiArt.describe()
+
+    test "each value given, its label and its percent as the bar shows it" do
+      assert told(%{values: [34.7, 100, 150, -3], labels: ["fetch", "", "x"]}) ==
+               "progress: fetch 34%, bar 2 100%, x 100%, bar 4 0%"
+    end
+
+    test "past eight bars, how many more" do
+      assert told(%{values: Enum.to_list(1..10), labels: []}) ==
+               "progress: bar 1 1%, bar 2 2%, bar 3 3%, bar 4 4%, bar 5 5%, bar 6 6%, " <>
+                 "bar 7 7%, bar 8 8%, and 2 more"
+    end
+
+    test "without values, what the piece is" do
+      assert told(%{}) =~ "progress bar: five bar styles"
+    end
+  end
+
+  describe "parts" do
+    alias AsciiArt.Frame
+    alias AsciiArt.Pieces.ProgressBar
+
+    defp parts(options, t \\ 0.0) do
+      {frame, anim} = "progress-bar" |> AsciiArt.new!(options: options) |> AsciiArt.frame(t)
+      {frame, ProgressBar.parts(frame, anim.options)}
+    end
+
+    test "a bar's row: its label, the bar's ends, filled and empty cells, the percent" do
+      {_frame, rows} = parts(%{values: [42, 100], labels: ["copying", "done"], style: 2})
+
+      assert Enum.at(rows, 0) == [{nil, String.duplicate(" ", 48)}]
+
+      assert Enum.at(rows, 1) == [
+               {nil, "  "},
+               {"label", "copying"},
+               {nil, "   "},
+               {"frame", "["},
+               {"bar", String.duplicate("#", 10)},
+               {"track", String.duplicate(".", 16)},
+               {"frame", "]"},
+               {nil, "   "},
+               {"value", "42"},
+               {"unit", "%"},
+               {nil, "  "}
+             ]
+    end
+
+    test "a bar at 100% is done" do
+      {_frame, rows} = parts(%{values: [42, 100], labels: ["copying", "done"], style: 2})
+
+      assert [
+               {nil, "  "},
+               {"label", "done"},
+               {nil, "      "},
+               {"frame", "["},
+               {"bar.done", bar},
+               {"frame", "]"},
+               {nil, "  "},
+               {"value", "100"} | _
+             ] = Enum.at(rows, 3)
+
+      assert bar == String.duplicate("#", 26)
+    end
+
+    test "a smooth bar's partial cell is in the bar, its right edge, drawn the same, is not" do
+      # 50.48% of 26 cells, in eighths, is 13 cells and one eighth: a "▏".
+      {frame, rows} = parts(%{values: [50.48], style: 1})
+      assert Enum.at(frame.lines, 1) =~ "▏" <> String.duplicate(" ", 12) <> "▏"
+
+      assert [
+               {nil, "  "},
+               {"label", "fetching"},
+               {nil, "  "},
+               {"frame", "▕"},
+               {"bar", bar},
+               {nil, gap},
+               {"frame", "▏"} | _
+             ] = Enum.at(rows, 1)
+
+      assert bar == String.duplicate("█", 13) <> "▏"
+      assert gap == String.duplicate(" ", 12)
+    end
+
+    test "every style's cells as played, the label cut as drawn" do
+      {frame, rows} = parts(%{labels: ["a long label", "", "", "x", ""]})
+      assert Enum.at(frame.lines, 1) =~ "  a long la "
+
+      assert [{nil, "  "}, {"label", "a long la"}, {nil, " "}, {"frame", "["} | _] =
+               Enum.at(rows, 1)
+
+      assert [{nil, "            "}, {"frame", "▕"} | _] = Enum.at(rows, 3)
+      # Lamps, lit and not, with gaps between them.
+      gap = String.duplicate(" ", 9)
+
+      assert [
+               {nil, "  "},
+               {"label", "x"},
+               {nil, ^gap},
+               {"bar", "█"},
+               {nil, " "},
+               {"bar", "█"},
+               {nil, " "},
+               {"track", "░"} | _
+             ] =
+               Enum.at(rows, 7)
+
+      assert [{nil, _}, {"bar", "━" <> _}, {"track", "─" <> _}, {nil, _}, {"value", _} | _] =
+               Enum.at(rows, 9)
+    end
+
+    test "with parts: true, the fill is blue, the track and ends grey, a full bar green" do
+      {frame, _} =
+        "progress-bar"
+        |> AsciiArt.new!(options: %{values: [42, 100], style: 2}, parts: true)
+        |> AsciiArt.frame(0.0)
+
+      assert Frame.color_at(frame, 12, 1) == "#8b949e"
+      assert Frame.color_at(frame, 13, 1) == "#58a6ff"
+      assert Frame.color_at(frame, 23, 1) == "#8b949e"
+      assert Frame.color_at(frame, 13, 3) == "#3fb950"
+      assert Frame.color_at(frame, 2, 1) == nil
+    end
+  end
 end

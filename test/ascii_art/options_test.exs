@@ -63,6 +63,28 @@ defmodule AsciiArt.OptionsTest do
     assert {:ok, %{hour: 1.0e6}} = Options.cast(@meta, %{hour: 1.0e300})
   end
 
+  test "bounds reach inside lists and maps: a range for every number within, or one a key" do
+    meta = %{
+      @meta
+      | options: Map.put(@meta.options, :candles, [[0.0]]),
+        bounds:
+          Map.merge(@meta.bounds, %{
+            datasets: %{values: {0, 100}},
+            candles: {0, 1.0e9},
+            series: %{lo: {-1, 1}}
+          })
+    }
+
+    assert {:ok, %{datasets: [%{name: "x", values: [100, 0, 7]}]}} =
+             Options.cast(meta, %{datasets: [%{name: "x", values: [500, -3, 7]}]})
+
+    assert {:ok, %{candles: [[2.5e8, +0.0]]}} = Options.cast(meta, %{candles: [[2.5e8, -4.0]]})
+
+    # A key without a range of its own keeps the million.
+    assert {:ok, %{series: [%{lo: 1, digits: 1.0e6}]}} =
+             Options.cast(meta, %{series: [%{lo: 50, digits: 1.0e300}]})
+  end
+
   test "a nil default takes nil or a number" do
     assert {:ok, %{hour: 7}} = Options.cast(@meta, %{hour: 7})
     assert {:ok, %{hour: nil}} = Options.cast(@meta, %{hour: nil})
@@ -98,6 +120,11 @@ defmodule AsciiArt.OptionsTest do
   test "lists of lists" do
     assert {:ok, %{flights: [["15:00", "oslo"]]}} =
              Options.cast(@meta, %{flights: [["15:00", "oslo"]]})
+  end
+
+  test "comma-separated text for a list of strings, each entry trimmed" do
+    assert {:ok, %{phrases: ["build", "ship it"]}} =
+             Options.cast(@meta, %{"phrases" => "build,  ship it "})
   end
 
   test "JSON text is read where the default is a list" do

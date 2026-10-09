@@ -3,13 +3,71 @@ defmodule AsciiArt.Pieces.Typewriter do
   Phrases typed and deleted in turn behind a blinking cursor.
 
   Types each phrase a key at a time at an uneven human pace, now and then
-  fixing a typo, holds it under a blinking cursor, deletes it, types the next.
+  fixing a typo, holds it under a blinking cursor, deletes it, types the
+  next. Give it your own: a hero line's "we make …", a list of features.
+
+  ## Options
+
+  Give them to `AsciiArt.new/2` as `options:`, and new ones while it plays
+  with `AsciiArt.put_options/2` (or a Phoenix player's `options`): it
+  starts afresh with them.
+
+    * `prefix` - the text before every phrase, which stays as the phrases
+      come and go. Default `"i make "`.
+    * `phrases` - typed in turn, each held finished for about two seconds,
+      then deleted; after the last comes the first again. Each is cut to
+      what fits after the prefix in the line's 40 characters, and the line
+      is centred on its longest. A typo now and then is a key beside the
+      right one on the keyboard, typed and taken back. An empty list types
+      nothing. Default `["small tools.", "quiet websites.", "things that
+      last.", "notes for later."]`.
+
+  The line is always 44 by 3.
+
+  ## Colours
+
+  In one ink, or a gradient, with `:ink` and `:gradient` (see
+  `AsciiArt.Ink`); part by part with `:parts` (see `AsciiArt.Parts`),
+  `parts: true` taking the colours suggested here:
+
+    * `prefix` - the prefix.
+    * `phrase` - the phrase as typed so far, slips and all, blue.
+    * `cursor` - the blinking cursor, yellow.
+
+  ## Keys and clicks
+
+  It takes none: it types for itself, and `AsciiArt.handle_event/2`
+  ignores every event. A Phoenix player given `interactive` and `notify`
+  still tells your LiveView where it was clicked, and on which part
+  (`AsciiArt.part_at/4`): the phrase, say, and the text typed so far.
+
+  ## Screen readers
+
+  `AsciiArt.describe/1` reads each phrase after the prefix, four at most,
+  their closing stops dropped: "typewriter: we ship on fridays; we ship
+  with tests". With no phrase, it gives the piece's name and note.
+
+  ## Example
+
+  ```elixir
+  line = AsciiArt.new!("typewriter", options: %{prefix: "we ship ", phrases: ["on fridays.", "with tests."]}, parts: true)
+  {frame, line} = AsciiArt.frame(line, 0.0)
+  frame.text =~ "we ship on fridays."
+  #=> true
+
+  AsciiArt.describe(line)
+  #=> "typewriter: we ship on fridays; we ship with tests"
+  ```
+
+  ```heex
+  <AsciiArt.Phoenix.live_player id="hero" piece="typewriter" options={%{prefix: "we make ", phrases: @things}} parts />
+  ```
 
   Ported from `src/pieces/typewriter.ts` in bas3line/ascii (MIT).
   """
   @behaviour AsciiArt.Piece
 
-  alias AsciiArt.{Int32, JSMath}
+  alias AsciiArt.{Int32, JSMath, Parts}
   alias AsciiArt.Kit.Text
 
   @meta %AsciiArt.Meta{
@@ -22,7 +80,12 @@ defmodule AsciiArt.Pieces.Typewriter do
     options: %{
       prefix: "i make ",
       phrases: ["small tools.", "quiet websites.", "things that last.", "notes for later."]
-    }
+    },
+    parts: [
+      {"prefix", nil},
+      {"phrase", "#58a6ff"},
+      {"cursor", "#d29922"}
+    ]
   }
 
   @cursor "▌"
@@ -170,5 +233,69 @@ defmodule AsciiArt.Pieces.Typewriter do
     blank = String.duplicate(" ", cols)
     lines = for r <- 0..(rows - 1), do: if(r == div(rows, 2), do: out, else: blank)
     {Enum.intersperse(lines, ?\n), nil, state}
+  end
+
+  # This port's own: the parts of a frame. The middle row is the prefix, at
+  # the column init/1 centres the line at, then the phrase so far, then the
+  # cursor if it is lit; the rows above and below are blank.
+
+  @impl true
+  def parts(%{lines: lines}, %{prefix: prefix, phrases: phrases}) do
+    %{cols: cols, rows: rows} = @meta
+    head = Text.length(prefix)
+    keep = max(0, cols - 4 - head)
+    longest = phrases |> Enum.map(&min(Text.length(&1), keep)) |> Enum.max(fn -> 0 end)
+    x = max(0, Integer.floor_div(cols - (head + longest + 1), 2))
+
+    for {line, y} <- Enum.with_index(lines) do
+      if y == div(rows, 2), do: typed(line, x, head), else: Parts.line(line, nil)
+    end
+  end
+
+  defp typed(line, x, head) do
+    {pad, rest} = split(line, x)
+    {prefix, rest} = split(rest, head)
+    body = String.trim_trailing(rest, " ")
+    trail = binary_part(rest, byte_size(body), byte_size(rest) - byte_size(body))
+
+    {phrase, cursor} =
+      if String.ends_with?(body, @cursor),
+        do: {binary_part(body, 0, byte_size(body) - byte_size(@cursor)), @cursor},
+        else: {body, ""}
+
+    Parts.merge([
+      {nil, pad},
+      {"prefix", prefix},
+      {"phrase", phrase},
+      {"cursor", cursor},
+      {nil, trail}
+    ])
+  end
+
+  # The first n characters of s, and the rest.
+  defp split(s, n) do
+    first = Text.slice(s, 0, n)
+    {first, binary_part(s, byte_size(first), byte_size(s) - byte_size(first))}
+  end
+
+  # This port's own: the phrases in full, for a screen reader.
+
+  @stop ~r/[.,;:]+$/u
+
+  @impl true
+  def describe(%{prefix: prefix, phrases: phrases}) do
+    case for(p <- phrases, said = words(prefix <> p), said != "", do: said) do
+      [] -> nil
+      said -> "typewriter: " <> listed(said)
+    end
+  end
+
+  defp words(s), do: s |> String.split() |> Enum.join(" ") |> String.replace(@stop, "")
+
+  # Four at most, each its first 80 characters, then how many more.
+  defp listed(said) do
+    {shown, rest} = Enum.split(said, 4)
+    more = if rest == [], do: "", else: "; and #{length(rest)} more"
+    Enum.map_join(shown, "; ", &String.slice(&1, 0, 80)) <> more
   end
 end

@@ -3,13 +3,69 @@ defmodule AsciiArt.Pieces.Marquee do
   A scrolling led sign framed by chasing bulbs.
 
   A theatre sign. Its text scrolls across an LED panel a pixel at a time and
-  loops without a seam, while the bulbs round the edge chase.
+  loops without a seam, while the bulbs round the edge chase. Give it your
+  own text: an announcement, a status line, a headline.
+
+  ## Options
+
+  Give them to `AsciiArt.new/2` as `options:`, and new ones while it plays
+  with `AsciiArt.put_options/2` (or a Phoenix player's `options`): the sign
+  starts afresh with them, its text from the start.
+
+    * `text` - what scrolls, in a 5×7 pixel face, upper case: letters,
+      digits and common punctuation, any other character drawn as `?`.
+      Space at either end is trimmed, and a gap of 12 pixel columns closes
+      the loop, so end the text with a separator (` · `) to part one pass
+      from the next. Default `"now showing · doors open at 7:30 ·"`.
+    * `speed` - pixel columns a second the text moves. Default 12.
+
+  The sign is always 61 by 10.
+
+  ## Colours
+
+  In one ink, or a gradient, with `:ink` and `:gradient` (see
+  `AsciiArt.Ink`); part by part with `:parts` (see `AsciiArt.Parts`),
+  `parts: true` taking the colours suggested here:
+
+    * `bulb.on`, `bulb.off` - the bulbs round the edge, lit (`o`, yellow)
+      and dark (`·`, grey).
+    * `frame` - the sign's double-line border, grey.
+    * `text` - the lit pixels of the scrolling text.
+
+  ## Keys and clicks
+
+  It takes none: it is a sign, and `AsciiArt.handle_event/2` ignores every
+  event. A Phoenix player given `interactive` and `notify` still tells your
+  LiveView where it was clicked, and on which part (`AsciiArt.part_at/4`):
+  the text, say, or a bulb.
+
+  ## Screen readers
+
+  `AsciiArt.describe/1` reads the text, the `·` that part its messages as
+  commas: "marquee: doors at 8, bar open". Without text, it gives the
+  piece's name and note.
+
+  ## Example
+
+  ```elixir
+  sign = AsciiArt.new!("marquee", options: %{text: "doors at 8 · bar open ·", speed: 20}, ink: "#ffb000")
+  {frame, sign} = AsciiArt.frame(sign, 1.0)
+  frame.palette
+  #=> ["#ffb000"]
+
+  AsciiArt.describe(sign)
+  #=> "marquee: doors at 8, bar open"
+  ```
+
+  ```heex
+  <AsciiArt.Phoenix.live_player id="sign" piece="marquee" options={%{text: @headline <> " ·"}} parts />
+  ```
 
   Ported from `src/pieces/marquee.ts` in bas3line/ascii (MIT).
   """
   @behaviour AsciiArt.Piece
 
-  alias AsciiArt.JSMath
+  alias AsciiArt.{JSMath, Parts}
   alias AsciiArt.Kit.Grid
   import Bitwise, only: [&&&: 2, >>>: 2, <<<: 2, |||: 2]
 
@@ -21,7 +77,13 @@ defmodule AsciiArt.Pieces.Marquee do
     rows: 10,
     fps: 24,
     options: %{text: "now showing · doors open at 7:30 ·", speed: 12},
-    loop: 141
+    loop: 141,
+    parts: [
+      {"bulb.on", "#d29922"},
+      {"bulb.off", "#8b949e"},
+      {"frame", "#8b949e"},
+      {"text", nil}
+    ]
   }
 
   # 5x7 glyphs: the character, then one base-32 digit per row (bit 4 is the left pixel).
@@ -155,4 +217,40 @@ defmodule AsciiArt.Pieces.Marquee do
   defp cell(1, 0), do: "▀"
   defp cell(0, 1), do: "▄"
   defp cell(0, 0), do: " "
+
+  # This port's own: the parts of a frame, by glyph. Each kind of thing on
+  # the sign is drawn in glyphs of its own: bulbs as `o` and `·`, the frame
+  # in double lines, the panel's pixels in blocks.
+
+  @frame ["╔", "╗", "╚", "╝", "═", "║"]
+  @pixels ["█", "▀", "▄"]
+
+  @impl true
+  def parts(%{lines: lines}, _options),
+    do: Enum.map(lines, &Parts.chars(&1, fn ch -> part(ch) end))
+
+  defp part("o"), do: "bulb.on"
+  defp part("·"), do: "bulb.off"
+  defp part(ch) when ch in @frame, do: "frame"
+  defp part(ch) when ch in @pixels, do: "text"
+  defp part(_blank), do: nil
+
+  # This port's own: the sign's text, for a screen reader, the dots that
+  # part its messages read as commas.
+  @impl true
+  def describe(%{text: text}) do
+    said =
+      text
+      |> String.split()
+      |> Enum.reduce([], fn
+        "·", [] -> []
+        "·", [last | said] -> [String.trim_trailing(last, ",") <> "," | said]
+        word, said -> [word | said]
+      end)
+      |> Enum.reverse()
+      |> Enum.join(" ")
+      |> String.trim_trailing(",")
+
+    if said != "", do: "marquee: " <> said
+  end
 end

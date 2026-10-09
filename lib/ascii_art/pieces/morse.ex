@@ -4,6 +4,54 @@ defmodule AsciiArt.Pieces.Morse do
 
   A signal lamp keys out a message. The marks run off along a tape from the
   head, and each letter is written beneath its group once it is complete.
+  Give it your own message.
+
+  ## Options
+
+  Give them to `AsciiArt.new/2` as `options:`, and new ones while it plays
+  with `AsciiArt.put_options/2` (or a Phoenix player's `options`): the lamp
+  starts afresh on the new message.
+
+    * `text` - the message, in either case: letters, digits and
+      `. , ? ! ' / - &` are keyed, 0.12 seconds a dot, and written
+      beneath their groups in upper case; anything else, space
+      included, is a word gap. After the message a long rest, then it
+      starts again. Default `"hello world"`.
+
+  The picture is always 64 by 19.
+
+  ## Colours
+
+  It has no parts to colour one by one: in one ink, or a gradient, with
+  `:ink` and `:gradient` (see `AsciiArt.Ink`). A vertical gradient tints
+  the lamp, the tape and the letters each their own.
+
+  ## Keys and clicks
+
+  It takes none: it keys its message, and `AsciiArt.handle_event/2`
+  ignores every event. A Phoenix player given `interactive` and `notify`
+  still tells your LiveView where it was clicked.
+
+  ## Screen readers
+
+  `AsciiArt.describe/1` reads the message: "morse: sos". Without one, it
+  gives the piece's name and note.
+
+  ## Example
+
+  ```elixir
+  lamp = AsciiArt.new!("morse", options: %{text: "sos"}, ink: ["#ffd166", "#ef476f"], gradient: :vertical)
+  {frame, lamp} = AsciiArt.frame(lamp, 3.0)
+  frame.text =~ "S"
+  #=> true
+
+  AsciiArt.describe(lamp)
+  #=> "morse: sos"
+  ```
+
+  ```heex
+  <AsciiArt.Phoenix.live_player id="signal" piece="morse" options={%{text: @message}} ink="#ffd166" />
+  ```
 
   Ported from `src/pieces/morse.ts` in bas3line/ascii (MIT).
   """
@@ -252,5 +300,14 @@ defmodule AsciiArt.Pieces.Morse do
     )
     |> Grid.put(@cx, @cy + 6, "│")
     |> Grid.put_string(@cx - 5, @cy + 7, "▄▄▄▄█▀█▄▄▄▄")
+  end
+
+  # This port's own: the message, for a screen reader.
+  @impl true
+  def describe(%{text: text}) do
+    case String.split(text) do
+      [] -> nil
+      words -> "morse: " <> Enum.join(words, " ")
+    end
   end
 end

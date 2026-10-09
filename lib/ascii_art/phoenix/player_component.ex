@@ -12,7 +12,8 @@ if Code.ensure_loaded?(Phoenix.LiveView) do
     `options`, the piece takes them up while it plays
     (`AsciiArt.put_options/2`): the gauge's needle swings from the last
     reading to the new one, bars ease to new values, a sparkline scrolls on.
-    Another `piece`, `fps`, `paper`, `mono` or `render` starts it afresh.
+    Another `piece`, `fps`, `paper`, `mono`, `ink`, `gradient`, `parts` or
+    `render` starts it afresh.
 
     It plays as `AsciiArt.Phoenix.PlayerLive` does, with the same hook and
     the same economy: a loop is sent to the browser once, anything else as
@@ -25,8 +26,28 @@ if Code.ensure_loaded?(Phoenix.LiveView) do
     ## Attributes
 
     `id` (required, unique on the page), `piece` (a slug or a module),
-    `options`, `fps`, `paper`, `mono`, `render` (`:client`, the default, or
-    `:server`) and `label`, as for `AsciiArt.Phoenix.player/1`.
+    `options`, `fps`, `paper`, `mono`, `ink`, `gradient`, `parts`, `render`
+    (`:client`, the default, or `:server`), `label`, `interactive` and
+    `notify`, as for `AsciiArt.Phoenix.player/1`.
+
+    ## Keys and clicks
+
+    With `interactive`, the piece takes keys and clicks
+    (`AsciiArt.handle_event/2`): a file tree's cursor moves, a form's box
+    ticks. With `notify`, your LiveView is sent each of them as well, as
+    `{:ascii_art, id, %{event: event, part: part, text: text, options:
+    options}}`: the event, the part clicked and its text (see
+    `AsciiArt.part_at/4`), and the options the piece now has, from which to
+    read what was chosen.
+
+        def handle_info({:ascii_art, "files", %{event: {:key, "enter"}, options: options}}, socket),
+          do: {:noreply, open_file(socket, options.cursor)}
+
+    The options you give are merged over what the piece's events have
+    changed, so leave out those it keeps (a tree's `cursor` and `open`, a
+    form's `fields`) unless you mean to set them, and never give back what
+    it told you: it has that already, and keys typed in the meantime would
+    be undone.
 
     Only available when `phoenix_live_view` is a dependency.
     """
@@ -44,7 +65,20 @@ if Code.ensure_loaded?(Phoenix.LiveView) do
     def update(%{ascii_art: _message}, socket), do: {:ok, socket}
 
     def update(assigns, socket) do
-      config = Map.take(assigns, [:piece, :fps, :paper, :mono, :render])
+      config =
+        Map.take(assigns, [
+          :piece,
+          :fps,
+          :paper,
+          :mono,
+          :ink,
+          :gradient,
+          :parts,
+          :render,
+          :interactive,
+          :notify
+        ])
+
       options = Map.get(assigns, :options) || %{}
 
       socket =
@@ -64,15 +98,24 @@ if Code.ensure_loaded?(Phoenix.LiveView) do
       id = "ascii-art-#{assigns.id}-#{gen}"
 
       opts =
-        [options: options, paper: assigns[:paper] == true, color: assigns[:mono] != true] ++
-          if(assigns[:fps] != nil, do: [fps: assigns[:fps]], else: [])
+        [
+          options: options,
+          paper: assigns[:paper] == true,
+          color: assigns[:mono] != true,
+          ink: assigns[:ink],
+          gradient: assigns[:gradient],
+          parts: assigns[:parts]
+        ] ++ if(assigns[:fps] != nil, do: [fps: assigns[:fps]], else: [])
 
       how = %{
         render: Map.get(assigns, :render) || :client,
         label: assigns[:label],
         id: id,
         owner: {__MODULE__, assigns.id, gen},
-        target: socket.assigns.myself
+        target: socket.assigns.myself,
+        interactive: assigns[:interactive] == true,
+        notify: assigns[:notify] == true,
+        name: assigns.id
       }
 
       socket
@@ -93,6 +136,12 @@ if Code.ensure_loaded?(Phoenix.LiveView) do
 
     def handle_event("ascii_art:visible", %{"visible" => visible}, socket),
       do: {:noreply, Playback.visible(socket, visible)}
+
+    def handle_event("ascii_art:key", params, socket),
+      do: {:noreply, Playback.key(socket, params)}
+
+    def handle_event("ascii_art:click", params, socket),
+      do: {:noreply, Playback.click(socket, params)}
 
     def handle_event(_event, _params, socket), do: {:noreply, socket}
 

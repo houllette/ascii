@@ -34,9 +34,9 @@ if Code.ensure_loaded?(Phoenix.LiveView) do
     # DOM element and the player's events.
     def init(socket, piece, opts, %{render: render, label: label, id: id, owner: owner} = how) do
       case first(socket, piece, opts) do
-        {:ok, anim, frame} ->
+        {:ok, anim, frame, told} ->
           mode = Map.get(@renders, render, :client)
-          name = AsciiArt.meta!(piece).name
+          meta = AsciiArt.meta!(piece)
 
           socket
           |> assign(
@@ -45,10 +45,15 @@ if Code.ensure_loaded?(Phoenix.LiveView) do
             # it does not, so a new one sends nothing by itself.
             still: frame,
             frame: frame,
-            drawn: drawn(frame),
+            drawn: drawn(frame, meta),
             mode: mode,
             stage: :waiting,
-            label: label || name,
+            # Given, or told from the options, and told again as they change.
+            label: label || told,
+            given_label: label,
+            interactive: Map.get(how, :interactive) == true,
+            notify: Map.get(how, :notify) == true,
+            name: Map.get(how, :name, id),
             dom_id: id <> "-art",
             event: "ascii_art:" <> id,
             target: Map.get(how, :target),
@@ -77,10 +82,12 @@ if Code.ensure_loaded?(Phoenix.LiveView) do
       if connected?(socket) do
         with {:ok, anim} <- AsciiArt.new(piece, opts) do
           {frame, anim} = AsciiArt.frame(anim, 0.0)
-          {:ok, anim, frame}
+          {:ok, anim, frame, AsciiArt.describe(anim)}
         end
       else
-        with {:ok, frame} <- AsciiArt.still(piece, opts), do: {:ok, nil, frame}
+        with {:ok, frame} <- AsciiArt.still(piece, opts),
+             {:ok, anim} <- AsciiArt.prepare(piece, opts),
+             do: {:ok, nil, frame, AsciiArt.describe(anim)}
       end
     end
 
@@ -89,8 +96,11 @@ if Code.ensure_loaded?(Phoenix.LiveView) do
 
     # What the template shows of frame 0, worked out once: in render/1 it
     # would count as changed on every tick, and be sent again.
-    defp drawn(%Frame{} = still) do
+    defp drawn(%Frame{} = still, meta) do
       %{
+        # Colours of an ink rather than the piece's own palette: the hook
+        # draws them as text, in spans, the size of the piece in one ink.
+        spans: still.colors != nil and still.palette != meta.palette,
         style: Components.style(still),
         html: {:safe, HTML.render(still)},
         palette: still.colors && JSON.encode!(still.palette),
@@ -279,7 +289,7 @@ if Code.ensure_loaded?(Phoenix.LiveView) do
     defp retake(%{assigns: %{stage: stage, mode: mode, anim: anim, t: t}} = socket) do
       socket = if stage == :waiting, do: socket, else: cancel_async(socket, :loop)
       {frame, anim} = AsciiArt.frame(anim, t)
-      socket = assign(socket, anim: anim, loop: nil)
+      socket = socket |> assign(anim: anim, loop: nil) |> retell()
 
       cond do
         stage == :waiting ->
@@ -288,15 +298,124 @@ if Code.ensure_loaded?(Phoenix.LiveView) do
         mode == :server ->
           socket |> assign(frame: frame, rows: rows(frame)) |> seek(socket.assigns.deflate?)
 
-        # Playing frame by frame at the same size: the next tick sends what
-        # changed, as ever.
+        # Playing frame by frame at the same size: what changed goes now, so
+        # a key shows at once, and a still, which never ticks, shows at all.
         stage == :stream and
             {frame.cols, frame.rows} == {socket.assigns.frame.cols, socket.assigns.frame.rows} ->
-          seek(socket, socket.assigns.deflate?)
+          socket |> show(frame) |> seek(socket.assigns.deflate?)
 
         true ->
           socket |> assign(stage: :stream) |> whole(frame) |> seek(socket.assigns.deflate?)
       end
+    end
+
+    # New words for the picture from its new options, unless it was given
+    # some: the hook keeps its element's attributes, so it is told them.
+    defp retell(%{assigns: %{given_label: nil, anim: anim, label: label}} = socket) do
+      case AsciiArt.describe(anim) do
+        ^label -> socket
+        told -> socket |> tell(told) |> assign(label: told)
+      end
+    end
+
+    defp retell(socket), do: socket
+
+    defp tell(%{assigns: %{mode: :client, stage: stage, event: event}} = socket, told)
+         when stage != :waiting,
+         do: push_event(socket, event, %{label: told})
+
+    defp tell(socket, _told), do: socket
+
+    @keys %{
+      "ArrowUp" => "up",
+      "ArrowDown" => "down",
+      "ArrowLeft" => "left",
+      "ArrowRight" => "right",
+      "Enter" => "enter",
+      "Escape" => "esc",
+      "Tab" => "tab",
+      "Backspace" => "backspace",
+      "Delete" => "delete",
+      "Home" => "home",
+      "End" => "end",
+      "PageUp" => "page_up",
+      "PageDown" => "page_down"
+    }
+
+    @doc false
+    # A key from the browser, by its DOM name (`KeyboardEvent.key`), for an
+    # interactive player: given to the piece by ExRatatui's name for it
+    # (`t:AsciiArt.event/0`), a character as itself. Keys held with ctrl,
+    # alt or meta are the browser's.
+    def key(%{assigns: %{interactive: true}} = socket, %{"key" => key} = params)
+        when is_binary(key) do
+      if params["ctrlKey"] == true or params["altKey"] == true or params["metaKey"] == true do
+        socket
+      else
+        case key_name(key, params["shiftKey"] == true) do
+          nil -> socket
+          name -> event(socket, {:key, name}, nil)
+        end
+      end
+    end
+
+    def key(socket, _params), do: socket
+
+    defp key_name("Tab", true), do: "back_tab"
+    defp key_name(key, _shift?) when is_map_key(@keys, key), do: Map.fetch!(@keys, key)
+
+    defp key_name(key, _shift?) do
+      case String.to_charlist(key) do
+        [c] when c >= 0x20 and c != 0x7F -> key
+        _ -> nil
+      end
+    end
+
+    @doc false
+    # A click on a cell, from the hook: column and row, and the play time of
+    # the frame the browser showed if it plays a loop.
+    def click(%{assigns: %{interactive: true}} = socket, %{"x" => x, "y" => y} = params)
+        when is_integer(x) and is_integer(y),
+        do: event(socket, {:click, x, y}, params["t"])
+
+    def click(socket, _params), do: socket
+
+    # The piece takes the event if it can, carrying on from the options it
+    # gives; and the app, if it asked, is told what happened and where.
+    defp event(%{assigns: %{error: nil, anim: %Animation{} = anim}} = socket, event, t) do
+      shown = shown(socket, t)
+
+      socket =
+        case AsciiArt.handle_event(anim, event) do
+          {:ok, ^anim} -> socket
+          {:ok, anim} -> retake(assign(socket, anim: anim))
+          :ignore -> socket
+        end
+
+      notify(socket, event, shown)
+    end
+
+    defp event(socket, _event, _t), do: socket
+
+    # The frame the reader saw: the latest sent, or a loop's at its time.
+    defp shown(%{assigns: %{stage: :loop, anim: anim}}, t) when is_number(t),
+      do: anim |> AsciiArt.frame(t) |> elem(0)
+
+    defp shown(%{assigns: %{frame: frame}}, _t), do: frame
+
+    defp notify(%{assigns: %{notify: false}} = socket, _event, _shown), do: socket
+
+    defp notify(%{assigns: %{anim: anim, name: name, owner: owner}} = socket, event, shown) do
+      {part, text} =
+        case event do
+          {:click, x, y} -> AsciiArt.part_at(anim, shown, x, y) || {nil, nil}
+          _key -> {nil, nil}
+        end
+
+      info = %{event: event, part: part, text: text, options: socket.assigns.anim.options}
+      to = if owner == :live, do: socket.parent_pid, else: self()
+      if to, do: send(to, {:ascii_art, name, info})
+      socket
     end
 
     # Looks for a cycle again, keeping the pace if playing.
@@ -396,17 +515,34 @@ if Code.ensure_loaded?(Phoenix.LiveView) do
         phx-hook="AsciiArt"
         phx-update="ignore"
         phx-target={@target}
-        role="img"
+        role={if @interactive, do: "application", else: "img"}
         aria-label={@label}
+        tabindex={@interactive && "0"}
+        data-interactive={@interactive && "true"}
         data-event={@event}
         data-cols={@still.cols}
         data-rows={@still.rows}
         data-cell={@still.cell}
         data-palette={@drawn.palette}
+        data-spans={@drawn.spans && "true"}
         data-ground={@still.ground}
         data-text={@drawn.text}
         data-colors={@drawn.colors}
       ><pre aria-hidden="true" style={@drawn.style}>{@drawn.html}</pre></div>
+      """
+    end
+
+    def render(%{interactive: true} = assigns) do
+      ~H"""
+      <pre
+        id={@dom_id <> "-pre"}
+        role="application"
+        aria-label={@label}
+        tabindex="0"
+        phx-keydown="ascii_art:key"
+        phx-target={@target}
+        style={@drawn.style}
+      ><span :for={{row, y} <- Enum.with_index(@rows)} :key={y}>{row}</span></pre>
       """
     end
 

@@ -4,7 +4,60 @@ defmodule AsciiArt.Pieces.Dissolve do
 
   A word in smooth stroked capitals crumbles letter by letter, its dust
   sinking out of each letter, while the next word's dust gathers onto its
-  strokes.
+  strokes. Give it your own words: a greeting in many languages, the
+  stages of a job, a rotating tagline.
+
+  ## Options
+
+  Give them to `AsciiArt.new/2` as `options:`, and new ones while it plays
+  with `AsciiArt.put_options/2` (or a Phoenix player's `options`): it starts
+  afresh with the new words.
+
+    * `words` - the words, in turn, each held 1.6 seconds and then
+      dissolving into the next over 2.6, the last into the first. A list,
+      or comma-separated text (`"build,ship,rest"`, as from a form). In
+      capitals whatever their case: the font has `A` to `Z`, `0` to `9`,
+      `.`, `,`, `!`, `?`, `'`, `-` and the space, and draws `?` for any other
+      character. The letters shrink to fit the longest word in the width.
+      Empty words are dropped; with none left it says "hello". Default
+      `["hello", "hola", "ciao", "salut"]`.
+
+  The frame is always 64 by 13.
+
+  ## Colours
+
+  It has no parts to colour one by one: in one ink, or a gradient, with
+  `:ink` and `:gradient` (see `AsciiArt.Ink`). Its dust is in lighter
+  shades than its strokes, so one ink still reads as solid letters and
+  their dust.
+
+  ## Keys and clicks
+
+  It takes none: it is words to read, and `AsciiArt.handle_event/2` ignores
+  every event. A Phoenix player given `interactive` and `notify` still
+  tells your LiveView where it was clicked.
+
+  ## Screen readers
+
+  `AsciiArt.describe/1` reads the words, in turn: "dissolve: build, ship,
+  rest"; past six, "and N more". With no words but blanks it gives the
+  piece's name and note.
+
+  ## Example
+
+  ```elixir
+  words = AsciiArt.new!("dissolve", options: %{words: ["build", "ship", "rest"]}, ink: "#7fdbca")
+  {frame, _words} = AsciiArt.frame(words, 0.0)
+  {frame.cols, frame.rows}
+  #=> {64, 13}
+
+  AsciiArt.describe(words)
+  #=> "dissolve: build, ship, rest"
+  ```
+
+  ```heex
+  <AsciiArt.Phoenix.live_player id="hello" piece="dissolve" options={%{words: @greetings}} ink="#7fdbca" />
+  ```
 
   Ported from `src/pieces/dissolve.ts` in bas3line/ascii (MIT).
   """
@@ -367,6 +420,20 @@ defmodule AsciiArt.Pieces.Dissolve do
       Map.put(dust, i, JSMath.fround(max(Map.get(dust, i, 0.0), d)))
     else
       dust
+    end
+  end
+
+  # This port's own: the words, for a screen reader.
+  @impl true
+  def describe(%{words: words}) do
+    case for(w <- words, said = w |> String.split() |> Enum.join(" "), said != "", do: said) do
+      [] ->
+        nil
+
+      said ->
+        {shown, rest} = Enum.split(said, 6)
+        more = if rest == [], do: "", else: ", and #{length(rest)} more"
+        "dissolve: " <> Enum.map_join(shown, ", ", &String.slice(&1, 0, 60)) <> more
     end
   end
 end

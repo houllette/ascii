@@ -4,13 +4,98 @@ defmodule AsciiArt.Pieces.BootLog do
 
   A machine starting up. The firmware tests its memory and probes its
   devices, the kernel prints timestamped lines, services start, and a login
-  waits.
+  waits. That is upstream's boot, which it plays by default; give it
+  `steps` and it is your app's own log instead: a deploy, a setup wizard,
+  a CI run.
+
+  ## Options
+
+  Give them to `AsciiArt.new/2` as `options:`, and new ones while it plays
+  with `AsciiArt.put_options/2` (or a Phoenix player's `options`): new
+  steps take their place at once, and as the stars and the cursor keep play
+  time, nothing jumps.
+
+    * `steps` - the log, a list of `%{text: "...", status: "..."}`, a line
+      each, systemd style: `"ok"` is `[  OK  ] text`, `"warn"`
+      `[ WARN ] text`, `"fail"` `[FAILED] text`, and `"busy"`, a step under
+      way, has three stars sweeping in its brackets; any other status (or
+      none) is the text alone. The newest steps are at the bottom, older
+      ones scrolled away as upstream scrolls its boot, with a cursor
+      blinking on the line after the last. Default `[]`.
+    * `title` - a heading over a rule, which stays put as the steps scroll
+      under it. Default `""`. With no `steps` and no `title` (the
+      defaults) it plays upstream's boot; a title alone is an empty log,
+      for an app with no steps yet.
+    * `cols`, `rows` - the frame's size, 24 to 200 by 3 to 60; upstream's
+      64 by 16 by default. Upstream's boot lays its self test out to the
+      width, and lines longer than the frame are cut at its edge.
+
+  ## Colours
+
+  In one ink, or a gradient, with `:ink` and `:gradient` (see
+  `AsciiArt.Ink`); part by part with `:parts` (see `AsciiArt.Parts`),
+  `parts: true` taking the colours suggested here:
+
+    * `title` - the firmware's heading, or the log's title.
+    * `rule` - the rule under it, grey.
+    * `status.ok` - `ok`, `link up` and `[  OK  ]`, green; `status.warn`,
+      `[ WARN ]`, yellow; `status.fail`, `[FAILED]`, red; and
+      `status.busy`, a test or probe under way, or a start job's or a busy
+      step's stars, cyan.
+    * `message` - a kernel or service line's text, or a step's.
+    * `label`, `detail` - a self test row's device, and what was found.
+    * `bar`, `track` - the memory test's done, blue, and to do, grey; with
+      its `address`, grey, and `percent`.
+    * `key`, `hint` - the keys the firmware offers, yellow, and what they
+      do, grey.
+    * `time` - a kernel line's timestamp, grey.
+    * `prompt`, `cursor` - the login prompt, and the cursor at the login or
+      after the steps.
+
+  ## Keys and clicks
+
+  It takes none: it shows a log, and `AsciiArt.handle_event/2` ignores
+  every event. A Phoenix player given `interactive` and `notify` still
+  tells your LiveView where it was clicked, and on which part
+  (`AsciiArt.part_at/4`): a step's `status.fail`, say, or its `message`
+  and its text, to show what went wrong.
+
+  ## Screen readers
+
+  `AsciiArt.describe/1` counts the steps by status, naming a failed or a
+  running one, as "deploy web: 4 steps, 2 ok, 1 warning, 1 failed (health
+  check)"; with a title and no steps, "deploy web: no steps yet". Playing
+  upstream's boot, it gives the piece's name and note.
+
+  ## Example
+
+  ```elixir
+  steps = [
+    %{text: "built release 1.4.2", status: "ok"},
+    %{text: "disk 81% full", status: "warn"},
+    %{text: "migrating database", status: "busy"}
+  ]
+
+  log = AsciiArt.new!("boot-log", options: %{title: "deploy web", steps: steps}, parts: true)
+  AsciiArt.describe(log)
+  #=> "deploy web: 3 steps, 1 ok, 1 warning, 1 running (migrating database)"
+
+  done = List.replace_at(steps, 2, %{text: "migrated database", status: "ok"})
+  log = AsciiArt.put_options!(log, steps: done ++ [%{text: "health check", status: "fail"}])
+  {frame, _log} = AsciiArt.frame(log, 1.0)
+  frame.text =~ "[FAILED] health check"
+  #=> true
+  ```
+
+  ```heex
+  <AsciiArt.Phoenix.live_player id="deploy" piece="boot-log" options={%{title: "deploy web", steps: @steps}} parts />
+  ```
 
   Ported from `src/pieces/boot-log.ts` in bas3line/ascii (MIT).
   """
   @behaviour AsciiArt.Piece
 
-  alias AsciiArt.{Int32, JSMath}
+  alias AsciiArt.{Int32, JSMath, Parts}
   alias AsciiArt.Kit.Text
 
   @meta %AsciiArt.Meta{
@@ -19,11 +104,32 @@ defmodule AsciiArt.Pieces.BootLog do
     note: "a self test counts memory, then the boot log scrolls by",
     cols: 64,
     rows: 16,
-    fps: 15
+    fps: 15,
+    options: %{steps: [], title: "", cols: 64, rows: 16},
+    bounds: %{cols: {24, 200}, rows: {3, 60}},
+    shapes: %{steps: [%{text: "", status: ""}]},
+    parts: [
+      {"title", nil},
+      {"rule", "#8b949e"},
+      {"label", nil},
+      {"detail", nil},
+      {"status.ok", "#3fb950"},
+      {"status.warn", "#d29922"},
+      {"status.fail", "#f85149"},
+      {"status.busy", "#39c5cf"},
+      {"bar", "#58a6ff"},
+      {"track", "#8b949e"},
+      {"address", "#8b949e"},
+      {"percent", nil},
+      {"key", "#d29922"},
+      {"hint", "#8b949e"},
+      {"time", "#8b949e"},
+      {"message", nil},
+      {"prompt", nil},
+      {"cursor", nil}
+    ]
   }
 
-  # Text width inside a one-column margin.
-  @w 62
   # MB.
   @memory 16_384
   # When the memory test starts, and the seconds it takes.
@@ -81,34 +187,51 @@ defmodule AsciiArt.Pieces.BootLog do
   def meta, do: @meta
 
   @impl true
-  def init(_options) do
-    rule = String.duplicate("─", @w)
+  def size(%{cols: cols, rows: rows}), do: {trunc(cols), trunc(rows)}
+
+  @impl true
+  def init(options) do
+    {cols, rows} = size(options)
+
+    if log?(options),
+      do: %{log: options.steps, title: options.title, cols: cols, rows: rows},
+      else: boot(cols, rows)
+  end
+
+  # The app's own log, or upstream's boot.
+  defp log?(%{steps: steps, title: title}), do: steps != [] or title != ""
+
+  # Upstream's boot, the self test laid out to `w`, the text's width inside
+  # a one-column margin.
+  defp boot(cols, rows) do
+    w = cols - 2
+    rule = String.duplicate("─", w)
 
     {at, entries} =
       {0.12, []}
-      |> put({:text, row("system firmware 2.31.0", "", "self test")})
+      |> put({:text, row(w, "system firmware 2.31.0", "", "self test")})
       |> step(0.04)
       |> put({:text, rule})
       |> step(0.04)
-      |> put({:text, row("cpu", "4 cores, 8 threads at 2.40 GHz", "ok")})
+      |> put({:text, row(w, "cpu", "4 cores, 8 threads at 2.40 GHz", "ok")})
       |> step(0.04)
-      |> put({:text, row("cache", "l1 256 KB   l2 2 MB   l3 8 MB", "ok")})
+      |> put({:text, row(w, "cache", "l1 256 KB   l2 2 MB   l3 8 MB", "ok")})
       |> step(0.04)
-      |> put(:memory)
+      |> put({:memory, w})
       # The test's progress, the address it has reached, and a percentage.
-      |> put(:bar)
+      |> put({:bar, w})
       |> step(0.04)
-      |> put({:text, row("display", "1920 x 1080 at 60 Hz", "ok")})
+      |> put({:text, row(w, "display", "1920 x 1080 at 60 Hz", "ok")})
       |> step(0.04)
-      |> put({:probe, "storage", "sata 0: disk 0, 512 GB", "ok", 1.3})
+      |> put({:probe, w, "storage", "sata 0: disk 0, 512 GB", "ok", 1.3})
       |> step(0.04)
-      |> put({:probe, "usb", "2 controllers, 2 devices", "ok", 1.9})
+      |> put({:probe, w, "usb", "2 controllers, 2 devices", "ok", 1.9})
       |> step(0.04)
-      |> put({:probe, "network", "1 port, 1000 Mb/s", "link up", 2.2})
+      |> put({:probe, w, "network", "1 port, 1000 Mb/s", "link up", 2.2})
       |> step(0.04)
-      |> put({:probe, "sensors", "cpu 41°C   board 33°C   fan 2400 rpm", "ok", 0.95})
+      |> put({:probe, w, "sensors", "cpu 41°C   board 33°C   fan 2400 rpm", "ok", 0.95})
       |> step(0.04)
-      |> put({:text, row("boot order", "disk 0, usb, network")})
+      |> put({:text, row(w, "boot order", "disk 0, usb, network")})
       |> step(0.04)
       |> put({:text, rule})
       |> step(0.04)
@@ -128,7 +251,14 @@ defmodule AsciiArt.Pieces.BootLog do
     period = login + @wait
 
     # Frame 0 is the finished boot at the login prompt, a moment before it restarts.
-    %{entries: Enum.reverse(entries), login: login, period: period, start: period - 0.25}
+    %{
+      entries: Enum.reverse(entries),
+      login: login,
+      period: period,
+      start: period - 0.25,
+      cols: cols,
+      rows: rows
+    }
   end
 
   defp put({at, entries}, entry), do: {at, [{at, entry} | entries]}
@@ -167,27 +297,28 @@ defmodule AsciiArt.Pieces.BootLog do
   end
 
   # A self test row: a label, its detail, and a status at the right edge.
-  defp row(label, detail, status \\ "") do
+  defp row(w, label, detail, status \\ "") do
     left = Text.pad_end(label, 11) <> detail
-    left <> Text.pad_start(status, @w - Text.length(left))
+    left <> Text.pad_start(status, w - Text.length(left))
   end
 
   defp tested(now), do: min(1, max(0, (now - @mem_at) / @test))
 
   defp text({:text, s}, _now), do: s
 
-  defp text(:memory, now) do
+  defp text({:memory, w}, now) do
     f = tested(now)
     mb = floor(f * @memory)
 
     row(
+      w,
       "memory",
       Text.pad_start(Integer.to_string(mb), 5) <> " MB of #{@memory} MB",
       if(f < 1, do: "testing", else: "ok")
     )
   end
 
-  defp text(:bar, now) do
+  defp text({:bar, w}, now) do
     f = tested(now)
     fill = f * 32
     full = floor(fill)
@@ -196,16 +327,16 @@ defmodule AsciiArt.Pieces.BootLog do
     top = @memory * 1_048_576
     addr = if f < 1, do: floor(f * top / 4096) * 4096, else: top - 1
     hex = "0x" <> Text.pad_start(Integer.to_string(addr, 16), 9, "0")
-    pct = Text.pad_start("#{floor(f * 100)}%", @w - 56)
+    pct = Text.pad_start("#{floor(f * 100)}%", w - 56)
     String.duplicate(" ", 11) <> bar <> "  " <> hex <> pct
   end
 
   # A device probe spins until it resolves at `done`.
-  defp text({:probe, label, detail, status, done}, now) when now >= done,
-    do: row(label, detail, status)
+  defp text({:probe, w, label, detail, status, done}, now) when now >= done,
+    do: row(w, label, detail, status)
 
-  defp text({:probe, label, _detail, _status, done}, now),
-    do: row(label, "detecting " <> elem(@spin, rem(floor((now + done) * 10), 4)))
+  defp text({:probe, w, label, _detail, _status, done}, now),
+    do: row(w, label, "detecting " <> elem(@spin, rem(floor((now + done) * 10), 4)))
 
   defp text({:job, from, spin, text}, now) do
     age = now - from
@@ -215,17 +346,35 @@ defmodule AsciiArt.Pieces.BootLog do
     else
       # Three stars sweep back and forth inside the brackets. The job shows
       # itself once it has run for 5s, so its clock starts there.
-      k = rem(floor(age * 8), 6)
-      p = if k < 4, do: k, else: 6 - k
-      stars = Text.pad_end(String.duplicate(" ", p) <> "***", 6)
-
-      "[" <> stars <> "] a start job is running for network (#{floor(age + 5)}s / 1min 30s)"
+      "[" <> stars(age) <> "] a start job is running for network (#{floor(age + 5)}s / 1min 30s)"
     end
   end
 
+  # Three stars sweeping back and forth inside a start job's brackets.
+  defp stars(age) do
+    k = Integer.mod(floor(age * 8), 6)
+    p = if k < 4, do: k, else: 6 - k
+    Text.pad_end(String.duplicate(" ", p) <> "***", 6)
+  end
+
   @impl true
+  def frame(%{log: _, cols: cols} = state, t, _env) do
+    # The cursor blinks on the line after the last step, as at the login.
+    cursor = if JSMath.mod(t, 1) < 0.6, do: "_", else: ""
+    {head, body} = log_lines(state)
+
+    body =
+      Enum.map(body, fn
+        {:step, status, text} -> status_text(status, t) <> text
+        :cursor -> cursor
+      end)
+
+    out = for line <- head ++ body, do: (" " <> line) |> Text.pad_end(cols) |> Text.slice(0, cols)
+    {Enum.intersperse(out, ?\n), nil, state}
+  end
+
   def frame(%{entries: entries, login: login, period: period, start: start} = state, t, _env) do
-    %{cols: cols, rows: rows} = @meta
+    %{cols: cols, rows: rows} = state
     now = JSMath.mod(t + start, period)
     lines = for {at, e} <- entries, at <= now, do: text(e, now)
 
@@ -248,5 +397,130 @@ defmodule AsciiArt.Pieces.BootLog do
     out = for line <- shown, do: (" " <> line) |> Text.pad_end(cols) |> Text.slice(0, cols)
 
     {Enum.intersperse(out, ?\n), nil, state}
+  end
+
+  # An app's log as lines: the title and its rule, which stay put, then the
+  # steps and the cursor's line, the newest that fit, blank lines under
+  # them until they fill the rows.
+  defp log_lines(%{log: steps, title: title, cols: cols, rows: rows}) do
+    head = if title == "", do: [], else: [title, String.duplicate("─", cols - 2)]
+
+    body =
+      Enum.map(steps, &{:step, Map.get(&1, :status, ""), Map.get(&1, :text, "")}) ++ [:cursor]
+
+    room = rows - length(head)
+    shown = Enum.take(body, -room)
+    {head, shown ++ List.duplicate({:step, "", ""}, room - length(shown))}
+  end
+
+  # A step's status, in brackets as systemd prints it, or nothing.
+  defp status_text("ok", _t), do: "[  OK  ] "
+  defp status_text("warn", _t), do: "[ WARN ] "
+  defp status_text("fail", _t), do: "[FAILED] "
+  defp status_text("busy", t), do: "[" <> stars(t) <> "] "
+  defp status_text(_status, _t), do: ""
+
+  @impl true
+  def describe(%{steps: [], title: ""}), do: nil
+
+  def describe(%{steps: steps, title: title}) do
+    name = if title == "", do: "boot log", else: title
+    by = Enum.group_by(steps, &Map.get(&1, :status, ""), &Map.get(&1, :text, ""))
+
+    counts =
+      [
+        {"ok", "ok", "ok"},
+        {"warn", "warning", "warnings"},
+        {"fail", "failed", "failed"},
+        {"busy", "running", "running"}
+      ]
+      |> Enum.flat_map(fn {status, one, many} ->
+        case Map.get(by, status, []) do
+          [] -> []
+          [first | _] = all -> [count(all, one, many) <> which(status, first)]
+        end
+      end)
+
+    case steps do
+      [] -> name <> ": no steps yet"
+      _ -> Enum.join(["#{name}: #{count(steps, "step", "steps")}" | counts], ", ")
+    end
+  end
+
+  defp count([_], one, _many), do: "1 " <> one
+  defp count(list, _one, many), do: "#{length(list)} " <> many
+
+  # The step a failure or a step under way is, as a reader would want it.
+  defp which(status, text) when status in ["fail", "busy"] and text != "",
+    do: " (" <> String.slice(text, 0, 40) <> ")"
+
+  defp which(_status, _text), do: ""
+
+  # This port's own: the parts of a frame. An app's log is labelled from
+  # its steps, by where each sits; upstream's boot is read off its lines,
+  # each of which is one of the few kinds the script prints, after a
+  # one-column margin.
+
+  @tested "cpu|cache|memory|display|storage|usb|network|sensors"
+  @lines [
+    {~r/^ (system firmware \S+)( +)(self test)( *)$/u, ["title", nil, "title"]},
+    {~r/^ (─+)( *)$/u, ["rule"]},
+    {~r/^ (#{@tested})( +)(.*?)( +)(ok|link up)( *)$/u,
+     ["label", nil, "detail", nil, "status.ok"]},
+    {~r/^ (memory)( +)(.*?)( +)(testing)( *)$/u, ["label", nil, "detail", nil, "status.busy"]},
+    {~r/^ (#{@tested})( +)(detecting .)( *)$/u, ["label", nil, "status.busy"]},
+    {~r/^ (boot order)( +)(.*?)( *)$/u, ["label", nil, "detail"]},
+    {~r/^( +)([█▏▎▍▌▋▊▉]*)(░*)( +)(0x[0-9A-F]+)( +)(\d+%)( *)$/u,
+     [nil, "bar", "track", nil, "address", nil, "percent"]},
+    {~r/^ (F2)( setup +)(F12)( boot menu +)(esc)( skip memory test)( *)$/u,
+     ["key", "hint", "key", "hint", "key", "hint"]},
+    {~r/^ (\[ *\d+\.\d+\])( )(.*?)( *)$/u, ["time", nil, "message"]},
+    {~r/^ (\[  OK  \])( )(.*?)( *)$/u, ["status.ok", nil, "message"]},
+    {~r/^ (\[ WARN \])( )(.*?)( *)$/u, ["status.warn", nil, "message"]},
+    {~r/^ (\[[ *]{6}\])( )(.*?)( *)$/u, ["status.busy", nil, "message"]},
+    {~r/^ (\S+ login:)( )(_?)( *)$/u, ["prompt", nil, "cursor"]},
+    {~r/^ (_)( *)$/u, ["cursor"]},
+    {~r/^ (\S.*?)( *)$/u, ["message"]}
+  ]
+
+  @impl true
+  def parts(%{lines: lines, cols: cols, rows: rows}, options) do
+    if log?(options) do
+      {head, body} =
+        log_lines(%{log: options.steps, title: options.title, cols: cols, rows: rows})
+
+      spans = Enum.zip_with(head, ["title", "rule"], &[{&2, &1}]) ++ Enum.map(body, &spans/1)
+      Enum.zip_with(lines, spans, &cut(&1, [{nil, 1} | &2]))
+    else
+      Enum.map(lines, &Parts.first(&1, @lines))
+    end
+  end
+
+  # A line's spans, as {part, its text or how many characters}.
+  defp spans({:step, status, text}) do
+    case status_text(status, 0) do
+      "" -> [{"message", text}]
+      _ -> [{"status." <> status, 8}, {nil, 1}, {"message", text}]
+    end
+  end
+
+  defp spans(:cursor), do: [{"cursor", 1}]
+
+  # A line cut into spans, each so many characters (or as long as its
+  # text), the rest in no part; a cursor that blinked out is in none.
+  defp cut(line, spans) do
+    {runs, rest} =
+      Enum.map_reduce(spans, line, fn {name, n}, rest ->
+        n = if is_binary(n), do: Text.length(n), else: n
+        {text, rest} = take(rest, n)
+        {{if(name == "cursor" and text != "_", do: nil, else: name), text}, rest}
+      end)
+
+    Parts.merge(runs ++ [{nil, rest}])
+  end
+
+  defp take(s, n) do
+    head = Text.slice(s, 0, n)
+    {head, binary_part(s, byte_size(head), byte_size(s) - byte_size(head))}
   end
 end

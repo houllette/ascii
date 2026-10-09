@@ -1,7 +1,10 @@
 defmodule AsciiArt.Render.HTML do
   @moduledoc """
   A frame as the inside of a `<pre>`: escaped text, and for a coloured frame
-  a `<span style="color:...">` a run of one colour.
+  a `<span style="color:...">` a run of one colour. A run whose colour is
+  `nil` (in no coloured part, see `AsciiArt.Parts`) is plain text, in the
+  page's own; one in a CSS variable (see `AsciiArt.Ink`) takes the page's
+  value for it.
 
   Spaces join whatever run they fall in, so a logo is a few dozen spans and
   a full scene a few thousand. That is fine for a still or a logo; to play a
@@ -57,8 +60,12 @@ defmodule AsciiArt.Render.HTML do
   defp runs([ch | chars], [i | idx], _current, acc), do: runs(chars, idx, i, [{i, ch} | acc])
 
   defp spans(runs, palette) do
-    for {i, run} <- runs,
-        do: [~s(<span style="color:), elem(palette, i), ~s(">), escape(run), "</span>"]
+    for {i, run} <- runs do
+      case elem(palette, i) do
+        nil -> escape(run)
+        color -> [~s(<span style="color:), color, ~s(">), escape(run), "</span>"]
+      end
+    end
   end
 
   @doc "The `<pre>`'s style: the piece's ground behind a coloured frame, else `nil`."

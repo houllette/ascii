@@ -5,6 +5,44 @@ defmodule AsciiArt.Pieces.NewtonsCradle do
   Five chrome balls, each hung on a V of two strings from an A-frame. An end
   ball swings in and knocks; the far ball swings out and back.
 
+  ## Options
+
+  Give them to `AsciiArt.new/2` as `options:`, and new ones while it plays
+  with `AsciiArt.put_options/2` (or a Phoenix player's `options`): it starts
+  afresh with them.
+
+    * `lifted` - how many balls swing in from each end, 1 to 4 (rounded): one
+      knocks one out the far side, two knock two. Default 1.
+
+  The picture is always 74 by 17. At the default it closes a loop every 8.2
+  seconds, which a player draws once and repeats (see `AsciiArt.loop/1`).
+
+  ## Colours
+
+  In one ink, or a gradient, with `:ink` and `:gradient` (see `AsciiArt.Ink`),
+  or on a page a CSS variable. On a light page, give it `paper: true`: its
+  shading reads from the other end of its ramp, so dense characters still mean
+  dark. It has no parts to colour one by one.
+
+  ## Screen readers
+
+  `AsciiArt.describe/1` gives its name and note, "newton's cradle: five steel
+  balls on strings passing one knock back and forth". A player's or a
+  component's `label` gives words of your own, as "a Newton's cradle".
+
+  ## Example
+
+  ```elixir
+  anim = AsciiArt.new!("newtons-cradle", options: %{lifted: 2})
+  {frame, _} = AsciiArt.frame(anim, 1.0)
+  {frame.cols, frame.rows}
+  #=> {74, 17}
+  ```
+
+  ```heex
+  <AsciiArt.Phoenix.player socket={@socket} id="cradle" piece="newtons-cradle" options={%{lifted: 2}} />
+  ```
+
   Ported from `src/pieces/newtons-cradle.ts` in bas3line/ascii (MIT).
   """
   @behaviour AsciiArt.Piece

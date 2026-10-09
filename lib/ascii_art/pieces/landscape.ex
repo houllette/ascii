@@ -7,9 +7,50 @@ defmodule AsciiArt.Pieces.Landscape do
   real phase among the stars, with the range mirrored in the water.
 
   Reads the clock from `env.now` (see `AsciiArt.Kit.Clock`) every frame, as
-  upstream reads `new Date()`. `hour` (0 to 24) and `phase` (the moon's age
-  in lunations, 0 to 1) default to `nil`, the local time and the moon's real
-  phase now.
+  upstream reads `new Date()`.
+
+  ## Options
+
+  Give them to `AsciiArt.new/2` as `options:`, and new ones while it plays
+  with `AsciiArt.put_options/2` (or a Phoenix player's `options`): it starts
+  afresh with them.
+
+    * `hour` - the hour of the day to show, as 13.5 for half past one, taken
+      round the clock: the sun rises on the left at six and sets on the right
+      at eighteen, and by night the moon keeps the sun's hours, late by its
+      age. Default `nil`: the local hour now.
+    * `phase` - the moon's age in lunations, 0 to 1: 0 new, 0.5 full. Default
+      `nil`: its real phase now.
+
+  With both given, the picture no longer follows the clock: a scene for a
+  page, at the hour you choose. The picture is always 64 by 18.
+
+  ## Colours
+
+  In one ink, or a gradient, with `:ink` and `:gradient` (see `AsciiArt.Ink`),
+  or on a page a CSS variable. It has no parts to colour one by one.
+
+  ## Screen readers
+
+  `AsciiArt.describe/1` gives its name and note, "landscape: a range and a
+  lake under the sun or moon of the local hour". A player's or a component's
+  `label` gives words of your own, as "a lake under the full moon".
+
+  ## Example
+
+  ```elixir
+  night = AsciiArt.new!("landscape", options: %{hour: 22, phase: 0.5})
+  noon = AsciiArt.new!("landscape", options: %{hour: 12})
+  now = DateTime.new!(~D[2026-03-14], ~T[15:09:26], "Etc/UTC")
+  {dark, _} = AsciiArt.frame(night, 0.0, now: now)
+  {light, _} = AsciiArt.frame(noon, 0.0, now: now)
+  {dark.cols, dark.rows, dark.text == light.text}
+  #=> {64, 18, false}
+  ```
+
+  ```heex
+  <AsciiArt.Phoenix.player socket={@socket} id="view" piece="landscape" options={%{hour: 19.5}} />
+  ```
 
   Ported from `src/pieces/landscape.ts` in bas3line/ascii (MIT).
   """

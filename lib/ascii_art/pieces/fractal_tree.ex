@@ -6,6 +6,44 @@ defmodule AsciiArt.Pieces.FractalTree do
   shorter than its parent, the outer twigs gathered into lobes of leaves lit
   from the upper left. Wind bends every limb, the tips most.
 
+  ## Options
+
+  Give them to `AsciiArt.new/2` as `options:`, and new ones while it plays
+  with `AsciiArt.put_options/2` (or a Phoenix player's `options`): it starts
+  afresh with them.
+
+    * `seed` - the tree's shape: each limb's length and angle are drawn from
+      it, so another seed grows another tree, and the same seed the same one.
+      Default 4.
+
+  The picture is always 60 by 24. At the default it closes a loop every 12
+  seconds, which a player draws once and repeats (see `AsciiArt.loop/1`).
+
+  ## Colours
+
+  In one ink, or a gradient, with `:ink` and `:gradient` (see `AsciiArt.Ink`),
+  or on a page a CSS variable. On a light page, give it `paper: true`: its
+  shading reads from the other end of its ramp, so dense characters still mean
+  dark. It has no parts to colour one by one.
+
+  ## Screen readers
+
+  `AsciiArt.describe/1` gives its name and note, "fractal tree: a recursive
+  branching tree swaying in the wind". A player's or a component's `label`
+  gives words of your own, as "a tree swaying in the wind".
+
+  ## Example
+
+  ```elixir
+  draw = fn seed -> "fractal-tree" |> AsciiArt.new!(options: %{seed: seed}) |> AsciiArt.frame(0.0) |> elem(0) end
+  draw.(4).text == draw.(9).text
+  #=> false
+  ```
+
+  ```heex
+  <AsciiArt.Phoenix.player socket={@socket} id="tree" piece="fractal-tree" options={%{seed: 9}} ink="#7cb342" />
+  ```
+
   Ported from `src/pieces/fractal-tree.ts` in bas3line/ascii (MIT).
   """
   @behaviour AsciiArt.Piece

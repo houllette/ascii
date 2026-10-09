@@ -4,7 +4,7 @@ defmodule AsciiArt.MixProject do
   def project do
     [
       app: :ascii_art,
-      version: "0.1.0",
+      version: "0.2.0",
       elixir: "~> 1.20",
       elixirc_paths: elixirc_paths(Mix.env()),
       test_ignore_filters: [&String.starts_with?(&1, "test/fixtures/")],
@@ -17,7 +17,9 @@ defmodule AsciiArt.MixProject do
       ],
       usage_rules: [file: "AGENTS.md", usage_rules: :all],
       name: "AsciiArt",
-      description: "Animated ASCII art for Elixir: an exact port of ascii.rest",
+      description:
+        "ASCII-art UI components for Elixir: live-data widgets and animated art for " <>
+          "Phoenix LiveView, terminal UIs and Nerves. An exact port of ascii.rest.",
       source_url: "https://github.com/houllette/ascii_art",
       package: package(),
       docs: docs()
@@ -42,6 +44,7 @@ defmodule AsciiArt.MixProject do
       extras: [
         "README.md",
         "guides/getting-started.md",
+        "guides/components.md",
         "guides/phoenix.md",
         "guides/terminal.md",
         "guides/ex_ratatui.md",
@@ -67,6 +70,8 @@ defmodule AsciiArt.MixProject do
             AsciiArt.Meta,
             AsciiArt.Env,
             AsciiArt.Frame,
+            AsciiArt.Ink,
+            AsciiArt.Parts,
             AsciiArt.Animation,
             AsciiArt.Options
           ],
@@ -74,8 +79,11 @@ defmodule AsciiArt.MixProject do
             AsciiArt.Render.Text,
             AsciiArt.Render.ANSI,
             AsciiArt.Render.HTML,
+            AsciiArt.Render.SVG,
+            AsciiArt.Compose,
             AsciiArt.Player
           ],
+          "Live data": [AsciiArt.BEAM, AsciiArt.Telemetry],
           Phoenix: [
             AsciiArt.Phoenix,
             AsciiArt.Phoenix.Components,
@@ -124,9 +132,13 @@ defmodule AsciiArt.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [:logger]
+      extra_applications: [:logger] ++ test_applications(Mix.env())
     ]
   end
+
+  # The SVG tests read what they draw back as XML.
+  defp test_applications(:test), do: [:xmerl]
+  defp test_applications(_env), do: []
 
   # Run "mix help deps" to learn about dependencies.
   defp deps do
@@ -140,6 +152,7 @@ defmodule AsciiArt.MixProject do
       {:usage_rules, "~> 1.2", only: [:dev, :test], runtime: false},
       {:stream_data, "~> 1.1", only: [:dev, :test]},
       {:phoenix_live_view, "~> 1.1", optional: true},
+      {:telemetry, "~> 1.0", optional: true},
       {:ex_ratatui, "~> 0.17", optional: true},
       {:lazy_html, ">= 0.1.0", only: :test}
     ]

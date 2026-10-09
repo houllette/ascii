@@ -6,10 +6,44 @@
 mix ascii_art.play night-coast
 mix ascii_art.play elixir --mode ansi256
 mix ascii_art.play typewriter --option "prefix=we make " --paper --fps 10
+mix ascii_art.play big-text --ink ff5f6d,ffc371 --gradient diagonal
+mix ascii_art.play boot-log --parts --part status.warn=ff8800
 ```
 
 It plays until you press `q` or Ctrl-C, then shows the cursor again and resets
 the colours. See `Mix.Tasks.AsciiArt.Play` for every flag.
+
+A piece that can be used takes your keys with `--interactive` (then only
+Ctrl-C stops it, as `q` may be a key for the piece):
+
+```sh
+mix ascii_art.play file-tree --option walk=false --interactive
+mix ascii_art.play calendar --option date=2026-10-08 --option time=false --interactive
+```
+
+## Watching the BEAM
+
+`mix ascii_art.top` is htop for the VM it runs in: its schedulers as cores,
+memory, the run queue as the load, the busiest processes by reductions, and
+two minutes of history. In your project it starts your application first,
+so it watches your app at work. It is the pieces themselves (`cpu-meters`
+and `sparkline`, fed by `AsciiArt.BEAM`, in panels by `AsciiArt.Compose`),
+side by side on a wide terminal, one above the other on a narrow one.
+
+```sh
+mix ascii_art.top
+mix ascii_art.top --interval 2 --mode ansi256 --no-parts
+```
+
+## Pictures to keep
+
+`mix ascii_art.svg` writes a frame as an SVG (`AsciiArt.Render.SVG`), for a
+README or a slide, taking the same flags as `ascii_art.play`:
+
+```sh
+mix ascii_art.svg big-text --option text=hello --ink ff5f6d,ffc371
+mix ascii_art.svg gauge --option value=72 --parts --background 0d1117 --foreground c9d1d9
+```
 
 ## ANSI colour
 
@@ -29,6 +63,16 @@ IO.puts(ANSI.render(frame, mode: :ansi256))
 # Text pieces, and coloured ones drawn with color: false, are plain text.
 {text, _} = AsciiArt.new!("donut") |> AsciiArt.frame(0.0)
 IO.iodata_to_binary(ANSI.render(text)) == text.text
+#=> true
+
+# Unless given an ink, which they are written in.
+{inked, _} = AsciiArt.new!("donut", ink: "#7fdbca") |> AsciiArt.frame(0.0)
+IO.iodata_to_binary(ANSI.render(inked)) =~ "\e[38;2;127;219;202m"
+#=> true
+
+# Or colours for their parts; the rest in the terminal's own foreground.
+{boot, _} = AsciiArt.new!("boot-log", parts: %{"status.warn" => "#d29922"}) |> AsciiArt.frame(0.0)
+IO.iodata_to_binary(ANSI.render(boot)) =~ "\e[38;2;210;153;34m[ WARN ]"
 #=> true
 ```
 
@@ -132,7 +176,41 @@ AsciiArt.Player.frame(gauge).text =~ "85%"
 
 See [Live data](getting-started.md#live-data) for the pieces that take
 data, and the [ExRatatui guide](ex_ratatui.md#a-live-dashboard) for a
-dashboard.
+dashboard. `AsciiArt.BEAM` and `AsciiArt.Telemetry` give readings to feed
+them; `AsciiArt.Player.handle_event/2` gives a playing piece a key.
+
+## Panels and layouts
+
+Without a terminal UI library, `AsciiArt.Compose` puts frames together into
+one: each in a bordered panel with a title, side by side or one above
+another, rules between sections, and `fit/4` to cut or pad the whole to the
+terminal. The result is a frame, so `ANSI.changes/3` writes only what
+changed of all of it:
+
+```elixir
+alias AsciiArt.Compose
+
+{gauge, _} = AsciiArt.new!("gauge", options: %{label: "load", value: 40}) |> AsciiArt.frame(1.0)
+{log, _} = AsciiArt.new!("boot-log", options: %{steps: [%{text: "ready", status: "ok"}]}) |> AsciiArt.frame(1.0)
+
+board =
+  Compose.above([
+    Compose.beside([Compose.panel(gauge, title: "load"), Compose.panel(log, title: "boot", style: :double)]),
+    Compose.divider(128, label: "q to quit", style: :dotted)
+  ])
+
+{board.cols, board.rows}
+#=> {128, 21}
+
+screen = Compose.fit(board, 80, 24, align: :left, valign: :top)
+{screen.cols, screen.rows}
+#=> {80, 24}
+```
+
+Each tick, draw each piece's frame at the play time, put them together, and
+write the changes; `Mix.Tasks.AsciiArt.Top` is a whole example. A coloured
+scene's ground is dropped where the frames do not share one, so give the
+whole a `ground:` or play scenes on a dark terminal.
 
 ## Sharing a player
 

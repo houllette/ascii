@@ -11,6 +11,7 @@ if Code.ensure_loaded?(Phoenix.Component) do
         <AsciiArt.Phoenix.Components.ascii piece="donut" />
         <AsciiArt.Phoenix.Components.ascii piece="night-coast" label="a lighthouse at night" />
         <AsciiArt.Phoenix.Components.ascii piece="elixir" mono class="logo" />
+        <AsciiArt.Phoenix.Components.ascii piece="big-text" ink={["#ff5f6d", "#ffc371"]} />
 
     `frame/1` draws a frame you already have, from an `AsciiArt.Player` your
     LiveView subscribes to, say.
@@ -26,27 +27,49 @@ if Code.ensure_loaded?(Phoenix.Component) do
     @doc """
     One frame of a piece as a `<pre>`.
 
-    A text piece is its text, in the page's own colour. A coloured piece is
-    its text in spans of its palette, over its `ground`; `mono` draws it in
-    one ink instead. The `<pre>` is `role="img"`, labelled with `label` or the
-    piece's name.
+    A text piece is its text, in the page's own colour, or in spans of an
+    `ink`, and of colours for its `parts`. A coloured piece is its text in
+    spans of its palette, over its `ground`; `mono` draws it in one ink
+    instead. The `<pre>` is `role="img"`, labelled with `label`, or with
+    what the piece tells of its options (`AsciiArt.describe/1`): a gauge's
+    reading, a boot log's steps, else the piece's name and note.
     """
     attr(:piece, :any, required: true, doc: "a slug or a module")
     attr(:t, :float, default: 0.0, doc: "the time to draw, in seconds")
     attr(:options, :map, default: %{}, doc: "the piece's options, checked against its defaults")
     attr(:mono, :boolean, default: false, doc: "draw a coloured piece in one ink")
+
+    attr(:ink, :any,
+      default: nil,
+      doc: "the colour of a piece in one ink: `\"#rrggbb\"`, or a list for a gradient"
+    )
+
+    attr(:gradient, :any, default: nil, doc: "`:horizontal`, `:vertical` or `:diagonal`")
+
+    attr(:parts, :any,
+      default: nil,
+      doc: "colours for its parts (see `AsciiArt.Parts`): a map, or `true` for its own"
+    )
+
     attr(:paper, :boolean, default: false, doc: "dark ink on a light page")
     attr(:now, :any, default: nil, doc: "a DateTime for pieces that read the clock")
 
     attr(:label, :string,
       default: nil,
-      doc: "what the picture shows; the piece's name by default"
+      doc: "what the picture shows; by default the piece tells it (`AsciiArt.describe/1`)"
     )
 
     attr(:rest, :global)
 
     def ascii(assigns) do
-      opts = [options: assigns.options, paper: assigns.paper, color: not assigns.mono]
+      opts = [
+        options: assigns.options,
+        paper: assigns.paper,
+        color: not assigns.mono,
+        ink: assigns.ink,
+        gradient: assigns.gradient,
+        parts: assigns.parts
+      ]
 
       # Frame 0 is kept after the first time (see AsciiArt.still/2): a
       # scene's set-up is paid once, not on every render.
@@ -62,7 +85,7 @@ if Code.ensure_loaded?(Phoenix.Component) do
 
       assigns =
         assign(assigns,
-          label: assigns.label || AsciiArt.meta!(assigns.piece).name,
+          label: assigns.label || told(assigns.piece, opts),
           style: style(frame),
           content: {:safe, HTML.render(frame)}
         )
@@ -97,6 +120,12 @@ if Code.ensure_loaded?(Phoenix.Component) do
       ~H"""
       <pre role="img" aria-label={@label} style={@style} {@rest}><span :for={{row, y} <- Enum.with_index(@rows)} :key={y}>{row}</span></pre>
       """
+    end
+
+    # The piece's words for its options (AsciiArt.describe/1), unset up.
+    defp told(piece, opts) do
+      {:ok, anim} = AsciiArt.prepare(piece, opts)
+      AsciiArt.describe(anim)
     end
 
     defp raise_on_error({:ok, _} = ok), do: ok

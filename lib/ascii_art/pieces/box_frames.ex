@@ -3,7 +3,49 @@ defmodule AsciiArt.Pieces.BoxFrames do
   Twelve frame styles to copy, each one labelled.
 
   A sheet of twelve frame styles, from box drawing lines to half blocks, a
-  title in the edge, a drop shadow and bare corners.
+  title in the edge, a drop shadow and bare corners. To draw one of these
+  boxes around a frame of your own, a piece's or your own text's, see
+  `AsciiArt.Compose.panel/2`.
+
+  ## Options
+
+  It takes no options: the sheet is always the same twelve frames, 78 by
+  20, and still (0 frames a second).
+
+  ## Colours
+
+  It has no parts to colour one by one: in one ink, or a gradient, with
+  `:ink` and `:gradient` (see `AsciiArt.Ink`). A diagonal gradient runs
+  from corner to corner of the sheet.
+
+  ## Keys and clicks
+
+  It takes none: it is a sheet to copy from, and `AsciiArt.handle_event/2`
+  ignores every event. A Phoenix player given `interactive` and `notify`
+  still tells your LiveView where it was clicked.
+
+  ## Screen readers
+
+  `AsciiArt.describe/1` gives the piece's name and note: "box frames:
+  twelve frame styles to copy, each one labelled".
+
+  ## Example
+
+  ```elixir
+  {:ok, sheet} = AsciiArt.still("box-frames", ink: ["#58a6ff", "#a371f7"], gradient: :diagonal)
+  {sheet.cols, sheet.rows}
+  #=> {78, 20}
+
+  # One of its boxes, around a frame of your own.
+  {:ok, gauge} = AsciiArt.still("gauge", options: %{value: 40})
+  panel = AsciiArt.Compose.panel(gauge, title: "load", style: :double)
+  panel.lines |> hd() |> String.starts_with?("╔═ load ═")
+  #=> true
+  ```
+
+  ```heex
+  <AsciiArt.Phoenix.Components.ascii piece="box-frames" ink="#8b949e" />
+  ```
 
   Ported from `src/pieces/box-frames.ts` in bas3line/ascii (MIT).
   """

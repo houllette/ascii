@@ -3,13 +3,80 @@ defmodule AsciiArt.Pieces.Glitch do
   A pixel word that tears into sliding slices in short bursts.
 
   A word set in a blocky pixel face holds clean, then breaks up in short
-  digital bursts: slices slide sideways and lose registration, cells corrupt.
+  digital bursts: slices slide sideways and lose registration, cells
+  corrupt. Three bursts in every seven seconds, then it comes round again.
+  Your word, for an error page, a "no signal" or a heading with some edge.
+
+  ## Options
+
+  Give them to `AsciiArt.new/2` as `options:`, and new ones while it plays
+  with `AsciiArt.put_options/2` (or a Phoenix player's `options`): it starts
+  afresh with the new text, the bursts keeping their time, being a function
+  of play time.
+
+    * `text` - the word or words, in capitals whatever their case. The face
+      has `A` to `Z`, `0` to `9`, the space and `. , : ! ? - ' " / & + · *
+      # ( ) @ % = _`, and draws `?` for any other character. A pixel is two
+      columns wide when the text fits, about five letters, and one column
+      when it does not; past about twelve letters it is cut at the frame's
+      edge. Default `"noise"`.
+
+  The frame is always 64 by 13, the word centred in it.
+
+  ## Colours
+
+  In one ink, or a gradient, with `:ink` and `:gradient` (see
+  `AsciiArt.Ink`); part by part with `:parts` (see `AsciiArt.Parts`),
+  `parts: true` taking the colours suggested here:
+
+    * `letter` - the word's pixels, wherever a slice slides them, a smear
+      drags them or a block copies them; and `letter.<n>`, each letter by
+      its place in the text from 1, counting every character, spaces too
+      (so `s` is `letter.4` in "no signal").
+    * `ghost` - the copy a slid slice leaves behind where it was, cyan.
+    * `noise` - corrupted cells and a block's static, red.
+    * `tear` - the line torn through the word, grey.
+
+  Each frame is labelled as it was drawn, from its time.
+
+  ## Keys and clicks
+
+  It takes none: it is a word to read, and `AsciiArt.handle_event/2`
+  ignores every event. A Phoenix player given `interactive` and `notify`
+  still tells your LiveView where it was clicked, and on which part
+  (`AsciiArt.part_at/4`): which letter, say.
+
+  ## Screen readers
+
+  `AsciiArt.describe/1` reads the text, its spaces closed up: "glitch:
+  error 404". A text of only spaces gives the piece's name and note.
+
+  ## Example
+
+  ```elixir
+  word = AsciiArt.new!("glitch", options: %{text: "error 404"}, parts: true)
+  {frame, _word} = AsciiArt.frame(word, 3.0)
+  frame.palette
+  #=> [nil, "#39c5cf", "#8b949e", "#f85149"]
+
+  AsciiArt.describe(word)
+  #=> "glitch: error 404"
+
+  heading = AsciiArt.new!("glitch", options: %{text: "ok"}, parts: %{"letter.1" => "#3fb950", "letter.2" => "#58a6ff"})
+  {frame, _heading} = AsciiArt.frame(heading, 0.0)
+  frame.palette
+  #=> [nil, "#3fb950", "#58a6ff"]
+  ```
+
+  ```heex
+  <AsciiArt.Phoenix.live_player id="oops" piece="glitch" options={%{text: "error 500"}} parts />
+  ```
 
   Ported from `src/pieces/glitch.ts` in bas3line/ascii (MIT).
   """
   @behaviour AsciiArt.Piece
 
-  alias AsciiArt.{Int32, JSMath}
+  alias AsciiArt.{Int32, JSMath, Parts}
   import Bitwise, only: [&&&: 2, >>>: 2]
 
   @meta %AsciiArt.Meta{
@@ -20,7 +87,8 @@ defmodule AsciiArt.Pieces.Glitch do
     rows: 13,
     fps: 15,
     options: %{text: "noise"},
-    loop: 7
+    loop: 7,
+    parts: [{"letter", nil}, {"ghost", "#39c5cf"}, {"noise", "#f85149"}, {"tear", "#8b949e"}]
   }
 
   # 5x7 glyphs: the character, then one base-32 digit per row (bit 4 is the left pixel).
@@ -40,18 +108,25 @@ defmodule AsciiArt.Pieces.Glitch do
   # Glitch states per second.
   @steps 15
   @bursts [{0.8, 1.2, 0.55}, {2.75, 3.3, 1}, {4.85, 5.3, 0.75}]
+  # An empty cell, from nowhere.
+  @blank {" ", nil}
   @noise {"▓", "▒", "░", "▚", "▞", "▙", "▟", "▛", "▜", "#", "%", "=", "+"}
   @tears {"▀", "▄", "─", "═"}
 
   @impl true
   def meta, do: @meta
 
-  # Lays the text out as rows of pixels, trimming each glyph to its inked columns.
+  # Lays the text out as rows of pixels, trimming each glyph to its inked
+  # columns; and each column's letter, by its place in the text from 1 (nil
+  # between letters). A character that is two capitals (ß) is both.
   defp bitmap(text) do
     text
-    |> String.upcase()
     |> String.codepoints()
-    |> Enum.reduce(List.duplicate([], 7), fn ch, px ->
+    |> Enum.with_index(1)
+    |> Enum.flat_map(fn {char, n} ->
+      for ch <- String.codepoints(String.upcase(char)), do: {ch, n}
+    end)
+    |> Enum.reduce({List.duplicate([], 7), []}, fn {ch, n}, {px, owners} ->
       g = Map.get(@font, ch, @font["?"])
       inked = for x <- 0..4, Enum.any?(g, &((&1 &&& 16 >>> x) != 0)), do: x
 
@@ -62,16 +137,20 @@ defmodule AsciiArt.Pieces.Glitch do
 
       spacer = if hd(px) == [], do: [], else: [0]
 
-      Enum.zip_with(px, g, fn row, b ->
-        row ++ spacer ++ for(x <- lo..hi//1, do: if((b &&& 16 >>> x) != 0, do: 1, else: 0))
-      end)
+      px =
+        Enum.zip_with(px, g, fn row, b ->
+          row ++ spacer ++ for(x <- lo..hi//1, do: if((b &&& 16 >>> x) != 0, do: 1, else: 0))
+        end)
+
+      {px, owners ++ Enum.map(spacer, fn _ -> nil end) ++ Enum.map(lo..hi//1, fn _ -> n end)}
     end)
   end
 
   @impl true
   def init(%{text: text}) do
     %{cols: cols, rows: rows} = @meta
-    px = Enum.map(bitmap(text), &List.to_tuple/1)
+    {px, owners} = bitmap(text)
+    px = Enum.map(px, &List.to_tuple/1)
     w = tuple_size(hd(px))
     # Pixels two cells wide when the word fits.
     sx = if w * 2 <= cols - 8, do: 2, else: 1
@@ -91,7 +170,17 @@ defmodule AsciiArt.Pieces.Glitch do
         for c <- 0..(cols - 1), do: if(MapSet.member?(ink, r * cols + c), do: "█", else: " ")
       end
 
-    %{ink: ink, y0: y0, clean: Enum.intersperse(clean, ?\n)}
+    owners = List.to_tuple(owners)
+
+    # Each column's letter, as laid out clean.
+    columns =
+      List.to_tuple(
+        for c <- 0..(cols - 1), x = JSMath.floor((c - x0) / sx) do
+          if c >= x0 and x < w, do: elem(owners, x)
+        end
+      )
+
+    %{ink: ink, y0: y0, columns: columns, clean: Enum.intersperse(clean, ?\n)}
   end
 
   defp ink?(ink, r, c) do
@@ -110,6 +199,26 @@ defmodule AsciiArt.Pieces.Glitch do
 
   @impl true
   def frame(state, t, _env) do
+    %{cols: cols, rows: rows} = @meta
+
+    case picture(state, t) do
+      :clean ->
+        {state.clean, nil, state}
+
+      out ->
+        lines =
+          for r <- 0..(rows - 1) do
+            for c <- 0..(cols - 1), do: at(out, r * cols + c)
+          end
+
+        {Enum.intersperse(lines, ?\n), nil, state}
+    end
+  end
+
+  # The picture at t: clean, or broken as cells by index, each its glyph and
+  # where it came from: a letter's place in the text, :ghost, :noise, :tear,
+  # or nil for a hole.
+  defp picture(state, t) do
     u = JSMath.mod(JSMath.mod(t, @period) + @period, @period)
     step = JSMath.floor(u * @steps + 1.0e-6)
     rand = step * 7919 + 17
@@ -121,12 +230,10 @@ defmodule AsciiArt.Pieces.Glitch do
         do: with({x, rand} <- next(rand), do: {if(x < 0.12, do: 0, else: s), rand}),
         else: {s, rand}
 
-    if s == 0,
-      do: {state.clean, nil, state},
-      else: {broken(state, s, rand), nil, state}
+    if s == 0, do: :clean, else: broken(state, s, rand)
   end
 
-  defp broken(%{ink: ink, y0: y0}, s, rand) do
+  defp broken(%{ink: ink, y0: y0, columns: columns}, s, rand) do
     %{cols: cols, rows: rows} = @meta
 
     # Bands of rows slide sideways.
@@ -146,21 +253,22 @@ defmodule AsciiArt.Pieces.Glitch do
     {out, rand} =
       for r <- 0..(rows - 1), c <- 0..(cols - 1), reduce: {%{}, rand} do
         {out, rand} ->
-          if ink?(ink, r, c - Map.get(shift, r, 0)) do
+          from = c - Map.get(shift, r, 0)
+
+          if ink?(ink, r, from) do
             {v, rand} = next(rand)
 
             cond do
               v < sub ->
                 {n, rand} = next(rand)
-
-                {Map.put(out, r * cols + c, elem(@noise, JSMath.floor(n * tuple_size(@noise)))),
-                 rand}
+                noise = elem(@noise, JSMath.floor(n * tuple_size(@noise)))
+                {Map.put(out, r * cols + c, {noise, :noise}), rand}
 
               v < sub + holes ->
-                {Map.put(out, r * cols + c, " "), rand}
+                {Map.put(out, r * cols + c, @blank), rand}
 
               true ->
-                {Map.put(out, r * cols + c, "█"), rand}
+                {Map.put(out, r * cols + c, {"█", elem(columns, from)}), rand}
             end
           else
             {out, rand}
@@ -169,17 +277,13 @@ defmodule AsciiArt.Pieces.Glitch do
 
     out = if split, do: registration(out, shift, ink), else: out
     {out, rand} = smears(out, s, y0, rand)
-    {out, rand} = blocks(out, s, y0, ink, rand)
+    {out, rand} = blocks(out, s, y0, {ink, columns}, rand)
     {out, rand} = tear(out, s, y0, rand)
-    out = jump(out, s, rand)
-
-    for r <- 0..(rows - 1) do
-      for c <- 0..(cols - 1), do: at(out, r * cols + c)
-    end
-    |> Enum.intersperse(?\n)
+    jump(out, s, rand)
   end
 
-  defp at(out, k), do: Map.get(out, k, " ")
+  defp at(out, k), do: out |> Map.get(k, @blank) |> elem(0)
+  defp from(out, k), do: out |> Map.get(k, @blank) |> elem(1)
 
   defp band(_b, {shift, rand}, s, y0) do
     rows = @meta.rows
@@ -211,7 +315,7 @@ defmodule AsciiArt.Pieces.Glitch do
         at(main, k) == " " and (c == 0 or at(main, k - 1) == " ") and
           (c == cols - 1 or at(main, k + 1) == " ") and ink?(ink, r, c),
         reduce: main,
-        do: (out -> Map.put(out, k, "▒"))
+        do: (out -> Map.put(out, k, {"▒", :ghost}))
   end
 
   # Smears: a row's pixels drag out to one side and fade.
@@ -231,11 +335,13 @@ defmodule AsciiArt.Pieces.Glitch do
       c = run_to_ink(out, r * cols, JSMath.floor(b * cols))
       {d, rand} = next(rand)
       len = 4 + JSMath.floor(d * 14 * s)
+      # The pixel dragged out, and so its letter.
+      letter = from(out, r * cols + c)
 
       out =
         Enum.reduce(1..len//1, out, fn j, out ->
           if c + j < cols,
-            do: Map.put(out, r * cols + c + j, smear(j, len)),
+            do: Map.put(out, r * cols + c + j, {smear(j, len), letter}),
             else: out
         end)
 
@@ -252,7 +358,7 @@ defmodule AsciiArt.Pieces.Glitch do
   defp smear(_j, _len), do: "▓"
 
   # Macroblocks: a patch of the picture copied in from somewhere else.
-  defp blocks(out, s, y0, ink, rand) do
+  defp blocks(out, s, y0, {ink, columns}, rand) do
     %{cols: cols, rows: rows} = @meta
     {x, rand} = next(rand)
 
@@ -274,12 +380,19 @@ defmodule AsciiArt.Pieces.Glitch do
         {out, rand} ->
           {z, rand} = next(rand)
 
-          ch =
-            if ink?(ink, r + dr, c + dc),
-              do: if(z < 0.3, do: "▓", else: "█"),
-              else: if(z < 0.15 * s, do: "░", else: " ")
+          cell =
+            cond do
+              ink?(ink, r + dr, c + dc) ->
+                {if(z < 0.3, do: "▓", else: "█"), elem(columns, c + dc)}
 
-          {Map.put(out, r * cols + c, ch), rand}
+              z < 0.15 * s ->
+                {"░", :noise}
+
+              true ->
+                @blank
+            end
+
+          {Map.put(out, r * cols + c, cell), rand}
       end
     end)
   end
@@ -302,10 +415,10 @@ defmodule AsciiArt.Pieces.Glitch do
         k = r * cols + col
 
         if at(out, k) == " " do
-          {Map.put(out, k, g), rand}
+          {Map.put(out, k, {g, :tear}), rand}
         else
           {e, rand} = next(rand)
-          {if(e < 0.5, do: Map.put(out, k, g), else: out), rand}
+          {if(e < 0.5, do: Map.put(out, k, {g, :tear}), else: out), rand}
         end
       end)
     else
@@ -327,11 +440,48 @@ defmodule AsciiArt.Pieces.Glitch do
           from >= 0 and from < rows,
           c <- 0..(cols - 1),
           into: %{},
-          do: {r * cols + c, at(out, from * cols + c)}
+          do: {r * cols + c, Map.get(out, from * cols + c, @blank)}
     else
       out
     end
   end
 
   defp jump(out, _s, _rand), do: out
+
+  # This port's own: the parts of a frame, from where each cell came as the
+  # frame was drawn, played again from its time.
+
+  @impl true
+  def parts(%{lines: lines, t: t}, options) do
+    %{cols: cols} = @meta
+    state = init(options)
+
+    from =
+      case picture(state, t) do
+        :clean ->
+          fn k -> if MapSet.member?(state.ink, k), do: elem(state.columns, rem(k, cols)) end
+
+        out ->
+          &from(out, &1)
+      end
+
+    for {line, r} <- Enum.with_index(lines) do
+      Parts.cells(line, fn
+        ?\s, _c -> nil
+        _cp, c -> name(from.(r * cols + c))
+      end)
+    end
+  end
+
+  defp name(n) when is_integer(n), do: "letter.#{n}"
+  defp name(nil), do: nil
+  defp name(where), do: Atom.to_string(where)
+
+  @impl true
+  def describe(%{text: text}) do
+    case String.split(text) do
+      [] -> nil
+      words -> "glitch: " <> Enum.join(words, " ")
+    end
+  end
 end

@@ -3,30 +3,111 @@ defmodule AsciiArt.Pieces.CpuMeters do
   Htop-style core, memory and swap meters over a process list.
 
   The top of an htop screen. Eight cores split into user and kernel time,
-  memory and swap bars, load and uptime, and the busiest processes.
+  memory and swap bars, load and uptime, and the busiest processes. As
+  upstream draws it, a made-up machine is busy; each reading you give
+  replaces that part of it, and the rest plays on.
 
   ## Options
 
-  `commands` (upstream's) names the simulated processes. This port adds real
-  readings for a dashboard or a terminal UI; each one given replaces that
-  part of the simulation, and the rest plays on. Update them as they change
-  (`AsciiArt.put_options/2`).
+  Give them to `AsciiArt.new/2` as `options:`, and new ones while it plays
+  with `AsciiArt.put_options/2` (or a Phoenix player's `options`), as the
+  readings change: the simulation carries on under them, so the parts not
+  given keep moving rather than start over. `AsciiArt.BEAM.cpu_meters/1`
+  gives this BEAM's own readings, its schedulers as cores.
 
     * `cores` - each core's use, in percent: a meter each, in two columns.
-      More than eight make the frame taller; up to 32.
-    * `memory`, `swap` - `[used, total]`, in gigabytes.
-    * `load` - the load averages, up to three.
-    * `tasks` - the number of tasks.
-    * `uptime` - seconds up at play time 0; it counts on as play goes.
+      More than eight make the frame taller; up to 32 show. Default `[]`:
+      upstream's eight.
+    * `memory`, `swap` - `[used, total]`, in gigabytes. Default `[]`.
+    * `load` - the load averages, up to three. Default `[]`.
+    * `tasks` - the number of tasks, up to a million. Default `nil`.
+    * `uptime` - seconds up at play time 0, up to a billion; it counts on as
+      play goes. Default `nil`.
     * `processes` - rows of `%{pid, user, cpu, mem, virt, res, time, state,
       command}` (cpu and mem in percent, virt and res in gigabytes, time in
-      seconds; any may be left out), of which the five busiest are shown.
+      seconds, state a letter as `"R"` or `"S"`; any may be left out), of
+      which the five busiest are shown. Default `[]`.
+    * `commands` - the names of upstream's made-up processes. Default
+      `["build", "indexer", "server", "backup", "sync", "editor", "shell"]`;
+      new ones start its simulation afresh.
+
+  The frame is 66 wide, and 16 rows tall, or more for more than eight
+  cores. Every row of the table is the frame's width, whatever it holds. A
+  reading too wide for its column is written shorter: a pid takes room
+  from the user's name, a size from 100G is in whole gigabytes and from
+  1000G in terabytes (`1.95T`) or petabytes, a percentage loses its
+  decimal, then goes to thousands (`12k`) or millions, and a CPU time from
+  a thousand hours is in days and hours (`41d16h`). Each reading has a
+  range of its own: a pid up to 4,294,967,295, CPU% up to ten million,
+  MEM% up to 100, sizes up to a billion gigabytes and times up to a
+  billion seconds, none below zero. Upstream's own readings always fit,
+  and are written as upstream writes them, but for CPU times past a
+  thousand hours, which upstream's simulation reaches after some ten days
+  of play.
+
+  ## Colours
+
+  In one ink, or a gradient, with `:ink` and `:gradient` (see
+  `AsciiArt.Ink`); part by part with `:parts` (see `AsciiArt.Parts`),
+  `parts: true` taking the colours suggested here, htop's own:
+
+    * `label` - a meter's or a reading's name, cyan: a core's number,
+      `Mem`, `Swp`, `Tasks:`, `Load average:`, `Uptime:`.
+    * `frame` - a meter's brackets, grey; `track`, its empty cells, grey.
+    * `bar.user`, `bar.system` - a core's user and kernel time (`|` and
+      `#`), green and red; a core's use given is all `bar.user`.
+    * `bar.used`, `bar.buffers`, `bar.cache` - memory's and swap's (`|`,
+      `#` and `*`), green, blue and yellow.
+    * `value` - a reading, and in the table `value.virt`, `value.res`,
+      `value.cpu`, `value.mem` and `value.time`.
+    * `header` - the table's, green.
+    * `pid`, `user`, `command` - a process's.
+    * `status.running` (`R`), green, or `status.sleeping` (`S`), grey, a
+      process's state; or for a state given, `status.waiting` (`D`),
+      `status.zombie` (`Z`), `status.stopped` (`T`), `status.idle` (`I`),
+      or just `status`.
+
+  ## Keys and clicks
+
+  It takes none: it shows readings, and `AsciiArt.handle_event/2` ignores
+  every event. A Phoenix player given `interactive` and `notify` still tells
+  your LiveView where it was clicked, and on which part
+  (`AsciiArt.part_at/4`): a process's `pid` or `command`, say, to show more
+  of it.
+
+  ## Screen readers
+
+  `AsciiArt.describe/1` reads the readings given: the cores' average,
+  memory and swap, the load, tasks, uptime and the busiest process, as
+  "cpu meters: 2 cores 52% busy on average, memory 5.3 of 15.5 gb, load
+  0.50 0.25 0.13, 142 tasks". With none given, it gives the piece's name
+  and note.
+
+  ## Example
+
+  ```elixir
+  readings = %{cores: [72, 31], memory: [5.3, 15.5], load: [0.5, 0.25, 0.13], tasks: 142}
+  meters = AsciiArt.new!("cpu-meters", options: readings, parts: true)
+
+  AsciiArt.describe(meters)
+  #=> "cpu meters: 2 cores 52% busy on average, memory 5.3 of 15.5 gb, load 0.50 0.25 0.13, 142 tasks"
+
+  # This BEAM's own, measured between two samples.
+  sample = AsciiArt.BEAM.sample(AsciiArt.BEAM.sample())
+  meters = AsciiArt.put_options!(meters, AsciiArt.BEAM.cpu_meters(sample))
+  length(meters.options.cores) == System.schedulers_online()
+  #=> true
+  ```
+
+  ```heex
+  <AsciiArt.Phoenix.live_player id="top" piece="cpu-meters" options={AsciiArt.BEAM.cpu_meters(@sample)} parts />
+  ```
 
   Ported from `src/pieces/cpu-meters.ts` in bas3line/ascii (MIT).
   """
   @behaviour AsciiArt.Piece
 
-  alias AsciiArt.{Int32, JSMath}
+  alias AsciiArt.{Int32, JSMath, Parts}
   alias AsciiArt.Kit.Text
 
   @meta %AsciiArt.Meta{
@@ -46,7 +127,20 @@ defmodule AsciiArt.Pieces.CpuMeters do
       uptime: nil,
       processes: []
     },
-    bounds: %{tasks: {0, 1_000_000}, uptime: {0, 1_000_000_000}},
+    bounds: %{
+      tasks: {0, 1_000_000},
+      uptime: {0, 1_000_000_000},
+      # A pid as wide as any system's; CPU% for a thousand cores and more;
+      # sizes to a petabyte; CPU time to thirty years.
+      processes: %{
+        pid: {0, 4_294_967_295},
+        cpu: {0, 1.0e7},
+        mem: {0, 100},
+        virt: {0, 1.0e9},
+        res: {0, 1.0e9},
+        time: {0, 1.0e9}
+      }
+    },
     shapes: %{
       cores: [0.0],
       memory: [0.0],
@@ -65,7 +159,24 @@ defmodule AsciiArt.Pieces.CpuMeters do
           command: ""
         }
       ]
-    }
+    },
+    parts: [
+      {"label", "#39c5cf"},
+      {"frame", "#8b949e"},
+      {"bar.user", "#3fb950"},
+      {"bar.system", "#f85149"},
+      {"bar.used", "#3fb950"},
+      {"bar.buffers", "#58a6ff"},
+      {"bar.cache", "#d29922"},
+      {"track", "#8b949e"},
+      {"value", nil},
+      {"header", "#3fb950"},
+      {"pid", nil},
+      {"user", nil},
+      {"status.running", "#3fb950"},
+      {"status.sleeping", "#8b949e"},
+      {"command", nil}
+    ]
   }
 
   @max_cores 32
@@ -317,36 +428,83 @@ defmodule AsciiArt.Pieces.CpuMeters do
   defp human_size(gb) when gb < 0.98, do: JSMath.to_string(JSMath.round(gb * 1024)) <> "M"
   defp human_size(gb), do: JSMath.to_fixed(gb, if(gb < 10, do: 2, else: 1)) <> "G"
 
+  # This port's own: the table's columns hold whatever they are given.
+  # Upstream's readings always fit theirs, and are written as upstream
+  # writes them; a reading too wide for its column is written shorter, where
+  # upstream's row would grow past the frame's edge.
+
+  # A size for VIRT or RES: upstream's, or whole gigabytes, or terabytes, or
+  # petabytes.
+  defp column_size(gb) do
+    size = human_size(gb)
+
+    cond do
+      byte_size(size) <= 5 -> size
+      gb < 999.5 -> JSMath.to_string(JSMath.round(gb)) <> "G"
+      gb < 9_999.5 * 1024 -> four(gb / 1024) <> "T"
+      true -> four(gb / 1024 / 1024) <> "P"
+    end
+  end
+
+  # A number in four characters: two decimals, one, or none.
+  defp four(x) do
+    whole = JSMath.to_string(JSMath.round(x))
+    Enum.find([JSMath.to_fixed(x, 2), JSMath.to_fixed(x, 1)], whole, &(byte_size(&1) <= 4))
+  end
+
+  # A percentage for CPU% or MEM%: upstream's one decimal, or whole, or in
+  # thousands or millions, whichever is first to fit the column.
+  defp percent(x, width) do
+    fixed = JSMath.to_fixed(x, 1)
+
+    if byte_size(fixed) <= width do
+      fixed
+    else
+      millions = JSMath.to_string(JSMath.round(x / 1.0e6)) <> "M"
+
+      Enum.find(
+        [JSMath.to_string(JSMath.round(x)), JSMath.to_string(JSMath.round(x / 1000)) <> "k"],
+        millions,
+        &(byte_size(&1) <= width)
+      )
+    end
+  end
+
+  # Past a thousand hours, where upstream's TIME+ grows past its column, in
+  # days and hours.
   defp cpu_time(s) do
     m = JSMath.floor(s / 60)
     sec = s - m * 60
 
-    if m < 60 do
-      "#{m}:" <> Text.pad_start(JSMath.to_fixed(sec, 2), 5, "0")
-    else
-      "#{div(m, 60)}h" <> pad2(rem(m, 60)) <> ":" <> pad2(JSMath.floor(sec))
+    cond do
+      m < 60 -> "#{m}:" <> Text.pad_start(JSMath.to_fixed(sec, 2), 5, "0")
+      m < 60_000 -> "#{div(m, 60)}h" <> pad2(rem(m, 60)) <> ":" <> pad2(JSMath.floor(sec))
+      true -> "#{div(m, 1440)}d" <> pad2(rem(div(m, 60), 24)) <> "h"
     end
   end
 
   defp pad2(n), do: n |> JSMath.to_string() |> Text.pad_start(2, "0")
 
+  # A row of the table, `cols` wide. A pid too long for its column takes
+  # room from the user's name, so the columns after it stay where they are.
   defp row(pid, user, virt, res, s, cpu, mem, time, cmd) do
+    who = Text.pad_start(pid, 5) <> " " <> Text.pad_end(user, 8)
+
     Text.pad_end(
       " " <>
-        Text.pad_start(pid, 5) <>
-        " " <>
-        Text.pad_end(user, 8) <>
+        Text.slice(who, 0, 14) <>
         " " <>
         Text.pad_start(virt, 5) <>
         " " <>
         Text.pad_start(res, 5) <>
         " " <>
-        s <>
+        Text.pad_end(s, 1) <>
         " " <>
         Text.pad_start(cpu, 5) <>
         " " <> Text.pad_start(mem, 4) <> " " <> Text.pad_start(time, 9) <> "  " <> cmd,
       @meta.cols
     )
+    |> Text.slice(0, @meta.cols)
   end
 
   defp fit(s), do: s |> Text.slice(0, @col) |> Text.pad_end(@col)
@@ -445,11 +603,11 @@ defmodule AsciiArt.Pieces.CpuMeters do
       row(
         Integer.to_string(p.pid),
         p.user,
-        human_size(p.virt),
-        human_size(p.mem / 100 * @mem),
+        column_size(p.virt),
+        column_size(p.mem / 100 * @mem),
         if(p.cpu > 30, do: "R", else: "S"),
-        JSMath.to_fixed(p.cpu, 1),
-        JSMath.to_fixed(p.mem, 1),
+        percent(p.cpu, 5),
+        percent(p.mem, 4),
         cpu_time(p.time),
         p.cmd
       )
@@ -467,14 +625,180 @@ defmodule AsciiArt.Pieces.CpuMeters do
       row(
         if(pid = Map.get(p, :pid), do: JSMath.to_string(pid), else: ""),
         p |> Map.get(:user, "") |> Text.slice(0, 8),
-        if(v = Map.get(p, :virt), do: human_size(v), else: ""),
-        if(r = Map.get(p, :res), do: human_size(r), else: ""),
+        if(v = Map.get(p, :virt), do: column_size(v), else: ""),
+        if(r = Map.get(p, :res), do: column_size(r), else: ""),
         Text.slice(state, 0, 1),
-        JSMath.to_fixed(cpu, 1),
-        JSMath.to_fixed(Map.get(p, :mem) || 0, 1),
+        percent(cpu, 5),
+        percent(Map.get(p, :mem) || 0, 4),
         if(time = Map.get(p, :time), do: cpu_time(time), else: ""),
         p |> Map.get(:command, "") |> Text.slice(0, 13)
       )
     end)
+  end
+
+  # This port's own: in words, the readings given, the simulation's left out.
+  @impl true
+  def describe(options) do
+    told =
+      [
+        cores_told(options.cores),
+        size_told("memory", options.memory),
+        size_told("swap", options.swap),
+        load_told(options.load),
+        options.tasks && "#{JSMath.floor(options.tasks)} tasks",
+        options.uptime && "up " <> uptime_told(JSMath.floor(options.uptime)),
+        busiest_told(options.processes)
+      ]
+      |> Enum.reject(&is_nil/1)
+
+    if told != [], do: "cpu meters: " <> Enum.join(told, ", ")
+  end
+
+  defp cores_told([]), do: nil
+
+  defp cores_told(cores) do
+    cores = Enum.take(cores, @max_cores)
+    average = Enum.sum_by(cores, &clamp(&1, 0, 100)) / length(cores)
+
+    "#{length(cores)} core#{if length(cores) == 1, do: "", else: "s"} #{JSMath.round(average)}% busy on average"
+  end
+
+  defp size_told(_name, []), do: nil
+  defp size_told(name, [used]), do: "#{name} #{JSMath.to_fixed(used, 1)} gb used"
+
+  defp size_told(name, [used, total | _]),
+    do: "#{name} #{JSMath.to_fixed(used, 1)} of #{JSMath.to_fixed(total, 1)} gb"
+
+  defp load_told([]), do: nil
+
+  defp load_told(load),
+    do: "load " <> Enum.map_join(Enum.take(load, 3), " ", &JSMath.to_fixed(&1, 2))
+
+  defp uptime_told(s) do
+    days = div(s, 86_400)
+    hms = Enum.map_join([rem(div(s, 3600), 24), rem(div(s, 60), 60), rem(s, 60)], ":", &pad2/1)
+    "#{days} day#{if days == 1, do: "", else: "s"}, " <> hms
+  end
+
+  defp busiest_told([]), do: nil
+
+  defp busiest_told(processes) do
+    p = Enum.max_by(processes, &(Map.get(&1, :cpu) || 0))
+    name = Text.slice(Map.get(p, :command) || "", 0, 24)
+    name = if name == "", do: "pid #{JSMath.to_string(Map.get(p, :pid) || 0)}", else: name
+    "busiest " <> name <> " " <> JSMath.to_fixed(Map.get(p, :cpu) || 0, 1) <> "%"
+  end
+
+  # This port's own: the parts of a frame, read off its rows, which sit
+  # where frame/3 puts them for the cores given: a blank, rows of meters in
+  # two columns (the right one's last three the stats), a blank, the
+  # table's header, and its processes.
+
+  @meters [
+    {~r/^( *)(\d+)(\[)(\|*)(#*)( *)(.*?)(\])$/,
+     [nil, "label", "frame", "bar.user", "bar.system", "track", "value", "frame"]},
+    {~r/^( *)(Mem)(\[)(\|*)(#*)(\**)( *)(.*?)(\])$/,
+     [nil, "label", "frame", "bar.used", "bar.buffers", "bar.cache", "track", "value", "frame"]},
+    {~r/^( *)(Swp)(\[)(\|*)( *)(.*?)(\])$/,
+     [nil, "label", "frame", "bar.used", "track", "value", "frame"]}
+  ]
+  @stat ~r/^(Tasks:|Load average:|Uptime:)(.*)$/
+  @number ~r/-?\d[\d.:]*(?:e[+-]\d+)?/
+  @text ~r/^( *)(.*?)( *)$/
+
+  # A process's row as row/9 lays it out, every column at its place: the
+  # widths of the margin, pid and user, VIRT, RES, state, CPU%, MEM% and
+  # TIME+ and the gaps between them; the command is the rest.
+  @columns [1, 14, 1, 5, 1, 5, 1, 1, 1, 5, 1, 4, 1, 9, 2]
+
+  @states %{
+    "R" => "status.running",
+    "S" => "status.sleeping",
+    "D" => "status.waiting",
+    "Z" => "status.zombie",
+    "T" => "status.stopped",
+    "t" => "status.stopped",
+    "I" => "status.idle",
+    " " => nil,
+    "" => nil
+  }
+
+  @impl true
+  def parts(%{lines: lines}, %{cores: cores}) do
+    header = half(cores) + 5
+
+    for {line, y} <- Enum.with_index(lines) do
+      cond do
+        y in 1..(header - 2)//1 -> meters(line)
+        y == header -> Parts.captures(line, @text, [nil, "header", nil])
+        y > header -> process(line)
+        true -> Parts.line(line, nil)
+      end
+    end
+  end
+
+  # A row of meters is two columns, each of a meter, the stats or nothing.
+  defp meters(<<" ", left::binary-size(@col), "  ", right::binary-size(@col), " ">>),
+    do: Parts.merge([{nil, " "} | meter(left)] ++ [{nil, "  "} | meter(right)] ++ [{nil, " "}])
+
+  defp meters(line), do: Parts.line(line, nil)
+
+  defp meter(text) do
+    case Parts.captures(text, @stat, ["label", nil]) do
+      nil -> Parts.first(text, @meters)
+      runs -> Parts.refine(runs, &Parts.matches(&1, @number, "value"))
+    end
+  end
+
+  defp process(line) do
+    [lead, who, g1, virt, g2, res, g3, s, g4, cpu, g5, mem, g6, time, g7, command] =
+      columns(line, @columns)
+
+    {pid, gap, user} = who(who)
+
+    Parts.merge(
+      [{nil, lead} | padded(pid, "pid")] ++
+        [{nil, gap} | named(user, "user")] ++
+        [{nil, g1} | padded(virt, "value.virt")] ++
+        [{nil, g2} | padded(res, "value.res")] ++
+        [{nil, g3}, {Map.get(@states, s, "status"), s}] ++
+        [{nil, g4} | padded(cpu, "value.cpu")] ++
+        [{nil, g5} | padded(mem, "value.mem")] ++
+        [{nil, g6} | padded(time, "value.time")] ++
+        [{nil, g7} | named(command, "command")]
+    )
+  end
+
+  # The line cut into columns of these widths, in characters, and the rest.
+  defp columns(line, widths) do
+    {columns, rest} =
+      Enum.map_reduce(widths, line, fn width, rest ->
+        column = Text.slice(rest, 0, width)
+        {column, binary_part(rest, byte_size(column), byte_size(rest) - byte_size(column))}
+      end)
+
+    columns ++ [rest]
+  end
+
+  # The pid at its column's end and the user after it; or a pid longer than
+  # its column, and the user in what is left.
+  defp who(<<pid::binary-size(5), " ", user::binary>>), do: {pid, " ", user}
+
+  defp who(who) do
+    case :binary.split(who, " ") do
+      [pid, user] -> {pid, " ", user}
+      [pid] -> {pid, "", ""}
+    end
+  end
+
+  # A column padded at its start, and one at its end.
+  defp padded(text, name) do
+    rest = String.trim_leading(text, " ")
+    [{nil, binary_part(text, 0, byte_size(text) - byte_size(rest))}, {name, rest}]
+  end
+
+  defp named(text, name) do
+    rest = String.trim_trailing(text, " ")
+    [{name, rest}, {nil, binary_part(text, byte_size(rest), byte_size(text) - byte_size(rest))}]
   end
 end

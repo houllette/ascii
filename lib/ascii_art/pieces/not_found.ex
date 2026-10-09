@@ -3,7 +3,54 @@ defmodule AsciiArt.Pieces.NotFound do
   A block-letter 404 with a small ghost drifting beneath it.
 
   A 404 page. The code in heavy block digits with a double-line shadow, a
-  small ghost drifting to and fro beneath it, and a line of copy.
+  small ghost drifting to and fro beneath it, and a line of copy: your
+  error page's, in your words, for any code.
+
+  ## Options
+
+  Give them to `AsciiArt.new/2` as `options:`, and new ones while it plays
+  with `AsciiArt.put_options/2` (or a Phoenix player's `options`): the page
+  is drawn anew from them, the ghost drifting on.
+
+    * `code` - the digits set big: the first three digits in it, as
+      `"500"`; with none, `404`. Default `"404"`.
+    * `title` - the first line of copy, centred under the ghost. Default
+      `"page not found"`.
+    * `message` - the line under it. Default `"the page you asked for has
+      moved or never existed"`.
+
+  Lines of copy longer than the frame's 60 columns are cut. The frame is
+  60 by 21, and the ghost's drift comes round every 9 seconds.
+
+  ## Colours
+
+  It has no parts to colour one by one: in one ink, or a gradient, with
+  `:ink` and `:gradient` (see `AsciiArt.Ink`). A vertical gradient sets
+  the digits, the ghost and the copy in colours of their own.
+
+  ## Keys and clicks
+
+  It takes none: it is a page to read, and `AsciiArt.handle_event/2`
+  ignores every event. A Phoenix player given `interactive` and `notify`
+  still tells your LiveView where it was clicked.
+
+  ## Screen readers
+
+  `AsciiArt.describe/1` reads the code and the copy, as "404: page not
+  found; the page you asked for has moved or never existed".
+
+  ## Example
+
+  ```elixir
+  options = %{code: "500", title: "server error", message: "we are on it"}
+  page = AsciiArt.new!("not-found", options: options, ink: "#f85149")
+  AsciiArt.describe(page)
+  #=> "500: server error; we are on it"
+  ```
+
+  ```heex
+  <AsciiArt.Phoenix.Components.ascii piece="not-found" options={%{code: "503", title: "back soon"}} />
+  ```
 
   Ported from `src/pieces/not-found.ts` in bas3line/ascii (MIT).
   """
@@ -207,4 +254,17 @@ defmodule AsciiArt.Pieces.NotFound do
 
     {Enum.intersperse(out, ?\n), nil, state}
   end
+
+  # This port's own: the page's words, for a screen reader.
+  @impl true
+  def describe(%{code: code, title: title, message: message}) do
+    case {words(code), for(s <- [title, message], said = words(s), said != "", do: said)} do
+      {"", []} -> nil
+      {code, []} -> code
+      {"", said} -> "not found: " <> Enum.join(said, "; ")
+      {code, said} -> code <> ": " <> Enum.join(said, "; ")
+    end
+  end
+
+  defp words(s), do: s |> String.split() |> Enum.join(" ")
 end

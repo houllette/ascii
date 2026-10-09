@@ -69,5 +69,31 @@ defmodule AsciiArt.Piece do
   """
   @callback update(state :: term(), options :: map()) :: state :: term()
 
-  @optional_callbacks size: 1, update: 2
+  @doc """
+  The parts of a frame in one ink, for a piece whose meta lists `parts`:
+  each row as runs of `{name, text}` making up the row (see
+  `AsciiArt.Parts`). Given the frame as drawn, and the options it was drawn
+  with; called only when parts are to be coloured.
+  """
+  @callback parts(frame :: AsciiArt.Frame.t(), options :: map()) :: AsciiArt.Parts.t()
+
+  @doc """
+  What the piece shows, in words, for a screen reader: read off the
+  options, the data a component draws ("load: 72%", "boot log: 9 ok, 1
+  warning"). `nil` when the options hold nothing to tell (the piece plays
+  its own script), for `AsciiArt.describe/1` to say what the piece is.
+  """
+  @callback describe(options :: map()) :: String.t() | nil
+
+  @doc """
+  The options after an event, for a piece that can be used: a key or a
+  click (see `t:AsciiArt.event/0`) moving a cursor, opening a folder,
+  ticking a box. What it changes is in the options it returns, so an app
+  reads what was chosen from them. `:ignore` for an event it has no use
+  for.
+  """
+  @callback handle_event(event :: AsciiArt.event(), options :: map()) ::
+              {:ok, options :: map()} | :ignore
+
+  @optional_callbacks size: 1, update: 2, parts: 2, describe: 1, handle_event: 2
 end

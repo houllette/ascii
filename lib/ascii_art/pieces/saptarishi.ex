@@ -5,6 +5,40 @@ defmodule AsciiArt.Pieces.Saptarishi do
   The seven stars of the Big Dipper where they really sit, with Alcor beside
   Mizar, in a strip of twinkling sky crossed now and then by a meteor.
 
+  ## Options
+
+  Give them to `AsciiArt.new/2` as `options:`, and new ones while it plays
+  with `AsciiArt.put_options/2` (or a Phoenix player's `options`): it starts
+  afresh with them.
+
+    * `lines` - the dipper's shape, drawn in dotted lines from star to star.
+      Default `true`; `false` leaves the stars on their own.
+
+  The picture is always 64 by 18.
+
+  ## Colours
+
+  In one ink, or a gradient, with `:ink` and `:gradient` (see `AsciiArt.Ink`),
+  or on a page a CSS variable. It has no parts to colour one by one.
+
+  ## Screen readers
+
+  `AsciiArt.describe/1` gives its name and note, "saptarishi: the big dipper
+  at true positions in a twinkling sky". A player's or a component's `label`
+  gives words of your own, as "the Big Dipper".
+
+  ## Example
+
+  ```elixir
+  draw = fn lines -> "saptarishi" |> AsciiArt.new!(options: %{lines: lines}) |> AsciiArt.frame(0.0) |> elem(0) end
+  draw.(true).text == draw.(false).text
+  #=> false
+  ```
+
+  ```heex
+  <AsciiArt.Phoenix.player socket={@socket} id="sky" piece="saptarishi" options={%{lines: false}} ink="#cfd8dc" />
+  ```
+
   Ported from `src/pieces/saptarishi.ts` in bas3line/ascii (MIT).
   """
   @behaviour AsciiArt.Piece

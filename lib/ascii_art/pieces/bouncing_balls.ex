@@ -5,6 +5,43 @@ defmodule AsciiArt.Pieces.BouncingBalls do
   Rubber balls dropping onto a floor and knocking into each other, squashing
   on every landing; a ball that comes to rest crouches and leaps.
 
+  ## Options
+
+  Give them to `AsciiArt.new/2` as `options:`, and new ones while it plays
+  with `AsciiArt.put_options/2` (or a Phoenix player's `options`): it starts
+  afresh with them.
+
+    * `balls` - how many, 1 to 5 (rounded), each its own size and bounce,
+      spread across the floor and taking turns to leap. Default 3.
+
+  The picture is always 64 by 22.
+
+  ## Colours
+
+  In one ink, or a gradient, with `:ink` and `:gradient` (see `AsciiArt.Ink`),
+  or on a page a CSS variable. On a light page, give it `paper: true`: its
+  shading reads from the other end of its ramp, so dense characters still mean
+  dark. It has no parts to colour one by one.
+
+  ## Screen readers
+
+  `AsciiArt.describe/1` gives its name and note, "bouncing balls: rubber balls
+  bouncing lower each time, squashing on landing". A player's or a component's
+  `label` gives words of your own, as "balls bouncing".
+
+  ## Example
+
+  ```elixir
+  anim = AsciiArt.new!("bouncing-balls", options: %{balls: 5}, ink: "#ff7a59")
+  {frame, _} = AsciiArt.frame(anim, 1.5)
+  {frame.cols, frame.rows, frame.palette}
+  #=> {64, 22, ["#ff7a59"]}
+  ```
+
+  ```heex
+  <AsciiArt.Phoenix.player socket={@socket} id="balls" piece="bouncing-balls" options={%{balls: 1}} />
+  ```
+
   Ported from `src/pieces/bouncing-balls.ts` in bas3line/ascii (MIT).
   """
   @behaviour AsciiArt.Piece

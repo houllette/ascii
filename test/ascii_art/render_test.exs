@@ -2,7 +2,7 @@ defmodule AsciiArt.RenderTest do
   use ExUnit.Case, async: true
 
   alias AsciiArt.Frame
-  alias AsciiArt.Render.{ANSI, HTML, Text}
+  alias AsciiArt.Render.{ANSI, HTML, SVG, Text}
 
   # Two rows of three: "ab " in red, red, blue; "c d" in blue, blue, red.
   @frame %Frame{
@@ -140,6 +140,85 @@ defmodule AsciiArt.RenderTest do
 
       for frame <- [@frame, @text_frame], y <- 0..1 do
         assert IO.iodata_to_binary(HTML.row(frame, y)) == Enum.at(html.(HTML.rows(frame)), y)
+      end
+    end
+  end
+
+  describe "SVG" do
+    defp svg(frame, opts \\ []), do: frame |> SVG.render(opts) |> IO.iodata_to_binary()
+
+    # Well-formed XML, or it raises.
+    defp parse(svg) do
+      {doc, _rest} = svg |> :binary.bin_to_list() |> :xmerl_scan.string(quiet: true)
+      doc
+    end
+
+    test "a run of one colour a tspan, placed at its column and held to its width" do
+      out = svg(@frame)
+
+      assert out =~
+               ~s(<text y="8.4" dominant-baseline="central" xml:space="preserve"><tspan x="0" textLength="16.8" lengthAdjust="spacingAndGlyphs" fill="#ff0000">ab</tspan></text>)
+
+      assert out =~
+               ~s(<tspan x="0" textLength="8.4" lengthAdjust="spacingAndGlyphs" fill="#0000ff">c</tspan><tspan x="16.8" textLength="8.4" lengthAdjust="spacingAndGlyphs" fill="#ff0000">d</tspan>)
+
+      assert out =~ ~s(width="25.2" height="33.6" viewBox="0 0 25.2 33.6")
+      parse(out)
+    end
+
+    test "words a space apart are one run; two spaces or more part runs" do
+      lines = ["a b  c   d"]
+      frame = %Frame{text: hd(lines), lines: lines, cols: 10, rows: 1, t: 0.0}
+      out = svg(frame, font_size: 10)
+      assert out =~ ~s(<tspan x="0" textLength="18" lengthAdjust="spacingAndGlyphs">a b</tspan>)
+      assert out =~ ~s(<tspan x="30" textLength="6" lengthAdjust="spacingAndGlyphs">c</tspan>)
+      assert out =~ ~s(<tspan x="54" textLength="6" lengthAdjust="spacingAndGlyphs">d</tspan>)
+    end
+
+    test "over the ground, or another background, or none" do
+      assert svg(@frame) =~ ~s(<rect width="100%" height="100%" fill="#101010"/>)
+      assert svg(@frame, background: "#fff") =~ ~s(fill="#fff"/>)
+      refute svg(@text_frame) =~ "<rect"
+      refute svg(%{@frame | ground: nil}) =~ "<rect"
+    end
+
+    test "uncoloured text in the foreground; spaces left out; text escaped" do
+      out = svg(%{@text_frame | lines: ["<&", " y"]}, foreground: "#333333")
+      assert out =~ ~s(<g font-family="ui-monospace)
+      assert out =~ ~s(fill="#333333">)
+
+      assert out =~
+               ~s(<tspan x="0" textLength="16.8" lengthAdjust="spacingAndGlyphs">&lt;&amp;</tspan>)
+
+      assert out =~ ~s(<tspan x="8.4" textLength="8.4" lengthAdjust="spacingAndGlyphs">y</tspan>)
+      parse(out)
+    end
+
+    test "a cell as tall as the piece's cell says, at the font size asked" do
+      out = svg(%{@text_frame | cell: 1}, font_size: 10)
+      assert out =~ ~s(width="12" height="12")
+      assert out =~ ~s(font-size="10")
+    end
+
+    test "a title for screen readers, escaped" do
+      out = svg(@frame, title: ~s(a "red" & blue))
+      assert out =~ ~s(aria-label="a &quot;red&quot; &amp; blue">)
+      assert out =~ "<title>a &quot;red&quot; &amp; blue</title>"
+      parse(out)
+    end
+
+    test "a CSS variable stays one, with the foreground as its fallback if it has none" do
+      frame = %{@frame | palette: ["var(--a, #ff0000)", "var(--b)"]}
+      out = svg(frame)
+      assert out =~ ~s|style="fill:var(--a, #ff0000)"|
+      assert out =~ ~s|style="fill:var(--b, currentColor)"|
+    end
+
+    test "a real piece, in colour and in an ink with parts, is well-formed" do
+      for opts <- [[], [parts: true, ink: "#c9d1d9"]], piece <- ["night-coast", "boot-log"] do
+        {:ok, frame} = AsciiArt.still(piece, opts)
+        doc = frame |> svg(title: piece) |> parse()
+        assert elem(doc, 0) == :xmlElement
       end
     end
   end

@@ -2,8 +2,44 @@ defmodule AsciiArt.Pieces.TvStatic do
   @moduledoc """
   Snow on an old set that tunes into a test card and loses it.
 
-  An old set showing snow, with a hum bar rolling through it. The dial
-  clicks over, a test card rolls into place and holds, then is lost.
+  An old set showing snow, with a hum bar rolling through it. The dial clicks
+  over, a test card rolls into place and holds, then is lost.
+
+  ## Options
+
+  Give them to `AsciiArt.new/2` as `options:`, and new ones while it plays
+  with `AsciiArt.put_options/2` (or a Phoenix player's `options`): it starts
+  afresh with them.
+
+    * `set` - the old set around the screen, its cabinet, dial and knobs.
+      Default `true`; `false` fills the whole frame with the screen.
+
+  The picture is always 58 by 26.
+
+  ## Colours
+
+  In one ink, or a gradient, with `:ink` and `:gradient` (see `AsciiArt.Ink`),
+  or on a page a CSS variable. On a light page, give it `paper: true`: its
+  shading reads from the other end of its ramp, so dense characters still mean
+  dark. It has no parts to colour one by one.
+
+  ## Screen readers
+
+  `AsciiArt.describe/1` gives its name and note, "tv static: snow on an old
+  set that tunes into a test card and loses it". A player's or a component's
+  `label` gives words of your own, as "static on an old television".
+
+  ## Example
+
+  ```elixir
+  {frame, _} = "tv-static" |> AsciiArt.new!(options: %{set: false}) |> AsciiArt.frame(1.0)
+  {frame.cols, frame.rows}
+  #=> {58, 26}
+  ```
+
+  ```heex
+  <AsciiArt.Phoenix.player socket={@socket} id="snow" piece="tv-static" options={%{set: false}} />
+  ```
 
   Ported from `src/pieces/tv-static.ts` in bas3line/ascii (MIT).
   """

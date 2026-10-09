@@ -206,6 +206,37 @@ defmodule AsciiArt.ExRatatui.ViewerTest do
     assert colors != [] and Enum.all?(colors, &match?({:indexed, _}, &1))
   end
 
+  test "in ink, the pieces drawn in one ink" do
+    state = [piece: "spinners", ink: "#ff8800"] |> mount() |> next_frame()
+    colors = for cell <- cells(state, @size), cell.fg != :reset, uniq: true, do: cell.fg
+    assert colors == [{:rgb, 255, 136, 0}]
+    assert {:error, {:invalid_option, :ink}} = Viewer.mount(piece: "spinners", ink: "red")
+  end
+
+  test "parts: true colours every piece's parts as it suggests; a map, the given piece's" do
+    state =
+      [piece: "boot-log", pieces: ["boot-log", "file-tree"], parts: true]
+      |> mount()
+      |> next_frame()
+
+    assert {:rgb, 0x3F, 0xB9, 0x50} in for(cell <- cells(state, @size), do: cell.fg)
+
+    state = state |> event(key("right")) |> next_frame()
+    assert {:rgb, 0x58, 0xA6, 0xFF} in for(cell <- cells(state, @size), do: cell.fg)
+
+    state =
+      [piece: "file-tree", pieces: ["file-tree", "boot-log"], parts: %{folder: "#ff0000"}]
+      |> mount()
+      |> next_frame()
+
+    assert {:rgb, 255, 0, 0} in for(cell <- cells(state, @size), do: cell.fg)
+    state = state |> event(key("right")) |> next_frame()
+    assert Enum.all?(cells(state, @size), &(&1.fg in [nil, :reset]))
+
+    assert {:error, {:invalid_option, {:parts, :evil}}} =
+             Viewer.mount(piece: "file-tree", parts: %{evil: "#fff"})
+  end
+
   test "a piece or option it does not know is an error" do
     assert {:error, :unknown_piece} = Viewer.mount(piece: "nope")
     assert {:error, :unknown_piece} = Viewer.mount(pieces: ["spinners", "nope"])
@@ -263,6 +294,52 @@ defmodule AsciiArt.ExRatatui.ViewerTest do
 
       :ok = Runtime.inject_event(name, key("q"))
       assert Task.await(task) == :ok
+    end
+  end
+
+  describe "interactive" do
+    @tree [piece: "file-tree", options: %{walk: false}, interactive: true]
+
+    # Frames until one shows `text`: the player's ticks come between.
+    defp until_shown(state, text, n \\ 30) do
+      state = next_frame(state)
+      if n == 0 or screen(state) =~ text, do: state, else: until_shown(state, text, n - 1)
+    end
+
+    test "keys go to the piece first: the tree's cursor moves, and is drawn" do
+      state = @tree |> mount() |> next_frame()
+      assert screen(state) =~ "keys to the piece first"
+      refute screen(state) =~ "─> "
+      state = state |> event(key("down")) |> until_shown("├─> docs/")
+      assert screen(state) =~ "├─> docs/"
+      state = state |> event(key("down")) |> until_shown("├─> public/")
+      assert screen(state) =~ "├─> public/"
+    end
+
+    test "keys the piece has no use for are the viewer's" do
+      state = (@tree ++ [pieces: ["file-tree", "spinners"]]) |> mount() |> next_frame()
+      # Space with no cursor is nothing to the tree: the viewer pauses.
+      state = event(state, key(" "))
+      assert screen(state) =~ "paused"
+      state = event(state, key(" "))
+      # With a cursor, space opens the folder under it; q is nothing to the tree.
+      state = state |> event(key("down")) |> event(key(" ")) |> until_shown("guide.md")
+      assert screen(state) =~ "guide.md"
+      assert {:stop, _} = Viewer.handle_event(key("q"), state)
+    end
+
+    test "Ctrl-C quits whatever the piece takes" do
+      state = @tree |> mount() |> next_frame()
+      assert {:stop, _} = Viewer.handle_event(key("c", ["ctrl"]), state)
+    end
+
+    test "without it, the piece gets no keys" do
+      state = [piece: "file-tree", options: %{walk: false}] |> mount() |> next_frame()
+      flush_frames()
+      state = event(state, key("down"))
+      Process.sleep(150)
+      state = next_frame(state)
+      refute screen(state) =~ "─> "
     end
   end
 end

@@ -17,16 +17,36 @@ defmodule AsciiArt.Phoenix.PlayerComponentTest do
          piece: session["piece"] || "gauge",
          options: session["options"] || %{value: 40},
          render: session["render"] || :client,
+         ink: session["ink"],
+         parts: session["parts"],
+         interactive: session["interactive"] == true,
+         notify: session["notify"] == true,
+         test: session["test"],
          other: 0
        )}
     end
 
     def handle_info({:set, assigns}, socket), do: {:noreply, assign(socket, assigns)}
 
+    # What the player tells us of its keys and clicks, passed on to the test.
+    def handle_info({:ascii_art, _id, _info} = told, socket) do
+      send(socket.assigns.test, told)
+      {:noreply, socket}
+    end
+
     def render(assigns) do
       ~H"""
       <div>
-        <AsciiArt.Phoenix.live_player id="w" piece={@piece} options={@options} render={@render} />
+        <AsciiArt.Phoenix.live_player
+          id="w"
+          piece={@piece}
+          options={@options}
+          render={@render}
+          ink={@ink}
+          parts={@parts}
+          interactive={@interactive}
+          notify={@notify}
+        />
         <span id="other">{@other}</span>
       </div>
       """
@@ -147,8 +167,95 @@ defmodule AsciiArt.Phoenix.PlayerComponentTest do
     refute hook =~ "this.pushEvent("
   end
 
+  test "an ink colours it, and another starts it afresh" do
+    {:ok, view, _} = host(%{"render" => :server, "ink" => "#ff8800"})
+    assert render(view) =~ ~s(<span style="color:#ff8800">)
+    html = set(view, ink: "#00ff88")
+    assert html =~ ~s(<span style="color:#00ff88">)
+    assert html =~ ~s(id="ascii-art-w-2-art-pre")
+  end
+
+  test "colours for parts, and others start it afresh" do
+    {:ok, view, _} =
+      host(%{"render" => :server, "piece" => "boot-log", "options" => %{}, "parts" => true})
+
+    assert render(view) =~ ~s(<span style="color:#3fb950">[  OK  ])
+    html = set(view, parts: %{"status.ok" => "#ff0000"})
+    assert html =~ ~s(<span style="color:#ff0000">[  OK  ])
+    assert html =~ ~s(id="ascii-art-w-2-art-pre")
+  end
+
   test "options it refuses show why" do
     {:ok, view, _} = host()
     assert set(view, options: %{evil: 1}) =~ "invalid option"
+  end
+
+  describe "keys and clicks" do
+    alias AsciiArt.TestPieces.Switches
+
+    defp switches(session),
+      do: host(Map.merge(%{"piece" => Switches, "options" => %{}, "test" => self()}, session))
+
+    defp hook(view, event, params),
+      do: view |> element("#ascii-art-w-1-art") |> render_hook(event, params)
+
+    test "an interactive player takes focus, and is labelled with what the piece tells" do
+      {:ok, _view, html} = switches(%{"interactive" => true})
+      assert html =~ ~s(role="application")
+      assert html =~ ~s(tabindex="0")
+      assert html =~ ~s(data-interactive="true")
+      assert html =~ ~s(aria-label="switches: 1 of 3 on")
+    end
+
+    test "keys reach the piece by their names, and what changed is sent at once" do
+      {:ok, view, _} = switches(%{"interactive" => true})
+      ready(view)
+      hook(view, "ascii_art:key", %{"key" => "ArrowRight"})
+      assert_runs_with(view, "ascii_art:ascii-art-w-1", ">")
+      hook(view, "ascii_art:key", %{"key" => " "})
+      assert_push_event(view, "ascii_art:ascii-art-w-1", %{label: "switches: 0 of 3 on"}, 1000)
+    end
+
+    test "a click on a cell, and the LiveView told what was clicked, if it asked" do
+      {:ok, view, _} = switches(%{"interactive" => true, "notify" => true})
+      ready(view)
+      hook(view, "ascii_art:click", %{"x" => 12, "y" => 0})
+
+      assert_receive {:ascii_art, "w",
+                      %{event: {:click, 12, 0}, part: "switch", text: "[ ]", options: options}}
+
+      assert options == %{on: [false, true, true], cursor: 2}
+
+      hook(view, "ascii_art:key", %{"key" => "q"})
+      assert_receive {:ascii_art, "w", %{event: {:key, "q"}, part: nil, options: ^options}}
+    end
+
+    test "shift and tab is back_tab; keys held with ctrl or meta are the browser's" do
+      {:ok, view, _} = switches(%{"interactive" => true, "notify" => true})
+      ready(view)
+      hook(view, "ascii_art:key", %{"key" => "Tab", "shiftKey" => true})
+      assert_receive {:ascii_art, "w", %{event: {:key, "back_tab"}}}
+      hook(view, "ascii_art:key", %{"key" => "r", "metaKey" => true})
+      hook(view, "ascii_art:key", %{"key" => "Shift"})
+      refute_receive {:ascii_art, "w", _}, 100
+    end
+
+    test "a player that is not interactive takes no keys, and tells nothing" do
+      {:ok, view, html} = switches(%{"notify" => true})
+      refute html =~ "tabindex"
+      ready(view)
+      hook(view, "ascii_art:key", %{"key" => "ArrowRight"})
+      hook(view, "ascii_art:click", %{"x" => 12, "y" => 0})
+      refute_receive {:ascii_art, "w", _}, 100
+    end
+
+    test "on the server, keys come by phx-keydown and the picture is patched" do
+      {:ok, view, html} = switches(%{"interactive" => true, "render" => :server})
+      assert html =~ ~s(phx-keydown="ascii_art:key")
+      pre = element(view, "#ascii-art-w-1-art-pre")
+      render_keydown(pre, %{"key" => "ArrowRight"})
+      assert render_keydown(pre, %{"key" => " "}) =~ " [ ] &gt;[ ]  [ ]"
+      assert render(view) =~ ~s(aria-label="switches: 0 of 3 on")
+    end
   end
 end

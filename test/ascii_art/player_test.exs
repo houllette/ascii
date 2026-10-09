@@ -16,6 +16,24 @@ defmodule AsciiArt.PlayerTest do
     Player.stop(pid)
   end
 
+  test "in ink, checked as AsciiArt.new/2 checks it" do
+    {:ok, pid} = Player.start_link(piece: Blink, ink: "#ff8800")
+    ref = Player.ref(pid)
+    assert_receive {:ascii_art_frame, ^ref, %Frame{palette: ["#ff8800"], text: " * "}}, 500
+    Player.stop(pid)
+    assert Player.start_link(piece: Blink, ink: "red") == {:error, {:invalid_option, :ink}}
+  end
+
+  test "colours for parts, checked as AsciiArt.new/2 checks them" do
+    {:ok, pid} = Player.start_link(piece: "file-tree", parts: %{folder: "#58a6ff"})
+    ref = Player.ref(pid)
+    assert_receive {:ascii_art_frame, ^ref, %Frame{palette: [nil, "#58a6ff"]}}, 1000
+    Player.stop(pid)
+
+    assert Player.start_link(piece: "file-tree", parts: %{evil: "#fff"}) ==
+             {:error, {:invalid_option, {:parts, :evil}}}
+  end
+
   test "a callback instead of messages" do
     test = self()
 

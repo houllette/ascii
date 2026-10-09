@@ -3,28 +3,96 @@ defmodule AsciiArt.Pieces.Sparkline do
   Three live block sparklines scrolling left, values at right.
 
   Live metrics as one-row block sparklines, scrolling left as new samples
-  arrive, each with its label, its latest value and the span's range.
+  arrive, each with its label, its latest value and the span's range. As
+  upstream draws it, three made-up signals play; give each series its
+  `values` and it shows yours.
 
-  A series with `values` (a list of numbers) shows the newest of them;
-  without, it plays a sample signal. `lo` and `hi` fix the scale (else it fits
-  what is shown), `unit` and `digits` format the value. Up to five series fit,
-  spaced a row apart when there are three or fewer. Without `range` the min
-  and max columns go and the lines grow longer. `rate` is samples a second,
-  which labels the time axis. Upstream's `format` function is not supported:
-  options are data.
+  ## Options
 
-  For a terminal UI, give each series its `values` and update them as samples
-  come (`AsciiArt.put_options/2`); this port also takes `cols`, the frame's
-  width, 40 to 200 (the lines take what the label, value and range leave),
-  and `rows`, 3 to 32, never fewer than the series and their header and axis
-  need.
+  Give them to `AsciiArt.new/2` as `options:`, and new ones while it plays
+  with `AsciiArt.put_options/2` (or a Phoenix player's `options`) as
+  samples come: a series' `values` show as given, the newest at the right.
+  `AsciiArt.Telemetry.sparkline/2` gives a series a metric from your app's
+  telemetry, and `AsciiArt.BEAM.sparkline/2` this BEAM's memory, processes
+  and run queue.
+
+    * `series` - up to five, each a map of:
+      * `label` - its name, on the left.
+      * `values` - its samples, oldest first, up to 10^15 either way; the
+        newest that fit show. Without, it plays a sample signal.
+      * `lo`, `hi` - the scale's ends; without, it fits what is shown.
+      * `unit`, `digits` - after the latest value, and its decimals.
+
+      Spaced a row apart when there are three or fewer. Default upstream's
+      cpu, memory and requests. Upstream's `format` function is not taken:
+      options are data.
+    * `range` - `false` drops the min and max columns, and the lines grow
+      longer. Default `true`.
+    * `rate` - samples a second, 0 to 100, which labels the time axis.
+      Default 4.
+    * `cols` - the frame's width, 40 to 200; the lines take what the label,
+      value and range leave. Default 72.
+    * `rows` - the frame's height, 3 to 32, never fewer than the series and
+      their header and axis need. Default 9.
+
+  A value too wide for its column, which upstream writes past it, is
+  written to fit: with fewer decimals, then compactly, in thousands,
+  millions and on (`17.5M`, `3.02G`; see `AsciiArt.Kit.Number`).
+
+  ## Colours
+
+  In one ink, or a gradient, with `:ink` and `:gradient` (see
+  `AsciiArt.Ink`); part by part with `:parts` (see `AsciiArt.Parts`),
+  `parts: true` taking the colours suggested here:
+
+    * `title` - the headings over the range, grey.
+    * `label` - a series' name.
+    * `spark` - the sparklines, blue, and `spark.1` to `spark.5`, one series
+      each from the top: `spark.1` as `spark`, `spark.2` cyan, `spark.3`
+      purple, `spark.4` pink, `spark.5` orange.
+    * `axis` - the mark closing each line at now, grey.
+    * `value`, `unit` - a series' latest value.
+    * `value.min`, `value.max` - its range, grey.
+    * `scale` - the time axis under them, grey.
+
+  ## Keys and clicks
+
+  It takes none: it shows samples, and `AsciiArt.handle_event/2` ignores
+  every event. A Phoenix player given `interactive` and `notify` still tells
+  your LiveView where it was clicked, and on which part
+  (`AsciiArt.part_at/4`): `spark.2`, say, for the second series.
+
+  ## Screen readers
+
+  `AsciiArt.describe/1` reads each series given values, its label and
+  latest value: "sparkline: cpu 34%, memory 2.1 gb". With no series given
+  values, it gives the piece's name and note.
+
+  ## Example
+
+  ```elixir
+  cpu = %{label: "cpu", unit: "%", lo: 0, hi: 100, values: [12, 30, 25, 60]}
+  spark = AsciiArt.new!("sparkline", options: %{series: [cpu], range: false, rows: 3}, parts: true)
+
+  spark = AsciiArt.put_options!(spark, series: [%{cpu | values: cpu.values ++ [45]}])
+  AsciiArt.describe(spark)
+  #=> "sparkline: cpu 45%"
+
+  {frame, _spark} = AsciiArt.frame(spark, 1.0)
+  frame.text =~ "45%"
+  #=> true
+  ```
+
+  ```heex
+  <AsciiArt.Phoenix.live_player id="history" piece="sparkline" options={%{series: [%{label: "cpu", unit: "%", values: @cpu}]}} parts />
+  ```
 
   Ported from `src/pieces/sparkline.ts` in bas3line/ascii (MIT).
   """
   @behaviour AsciiArt.Piece
 
-  alias AsciiArt.{Int32, JSMath}
-  alias AsciiArt.Kit.Text
+  alias AsciiArt.{Int32, JSMath, Parts}
+  alias AsciiArt.Kit.{Number, Text}
 
   @meta %AsciiArt.Meta{
     name: "sparkline",
@@ -44,10 +112,31 @@ defmodule AsciiArt.Pieces.Sparkline do
       cols: 72,
       rows: 9
     },
-    bounds: %{rate: {0, 100}, cols: {40, 200}, rows: {3, 32}},
+    bounds: %{
+      rate: {0, 100},
+      cols: {40, 200},
+      rows: {3, 32},
+      series: %{values: {-1.0e15, 1.0e15}, lo: {-1.0e15, 1.0e15}, hi: {-1.0e15, 1.0e15}}
+    },
     shapes: %{
       series: [%{label: "", unit: "", lo: 0.0, hi: 0.0, digits: 0, values: [0.0]}]
-    }
+    },
+    parts: [
+      {"title", "#8b949e"},
+      {"label", nil},
+      {"spark", "#58a6ff"},
+      {"spark.1", nil},
+      {"spark.2", "#39c5cf"},
+      {"spark.3", "#a371f7"},
+      {"spark.4", "#db61a2"},
+      {"spark.5", "#db6d28"},
+      {"axis", "#8b949e"},
+      {"value", nil},
+      {"unit", nil},
+      {"value.min", "#8b949e"},
+      {"value.max", "#8b949e"},
+      {"scale", "#8b949e"}
+    ]
   }
 
   @bars {"▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"}
@@ -256,7 +345,7 @@ defmodule AsciiArt.Pieces.Sparkline do
         elem(@bars, max(0, min(7, JSMath.round((v - lo) / d * 7))))
       end)
 
-    value = s |> fmt(List.last(win), true) |> Text.pad_start(@vw)
+    value = s |> reading(List.last(win)) |> Text.pad_start(@vw)
     pad = String.duplicate(" ", w - length(win))
     line = IO.chardata_to_string(["  ", label(s), pad, bars, "▏ ", value])
 
@@ -264,8 +353,8 @@ defmodule AsciiArt.Pieces.Sparkline do
       do:
         line <>
           "  " <>
-          Text.pad_start(fmt(s, least, false), @rw) <>
-          " " <> Text.pad_start(fmt(s, most, false), @rw),
+          Text.pad_start(figure(s, least), @rw) <>
+          " " <> Text.pad_start(figure(s, most), @rw),
       else: line
   end
 
@@ -273,7 +362,144 @@ defmodule AsciiArt.Pieces.Sparkline do
 
   # JS's toFixed takes 0 to 100 digits and throws past them; here they are held to that range.
   defp fmt(s, v, unit?) do
-    digits = (Map.get(s, :digits) || 0) |> trunc() |> max(0) |> min(100)
-    JSMath.to_fixed(v, digits) <> if(unit?, do: Map.get(s, :unit) || "", else: "")
+    JSMath.to_fixed(v, digits(s)) <> if(unit?, do: Map.get(s, :unit) || "", else: "")
   end
+
+  defp digits(s), do: (Map.get(s, :digits) || 0) |> trunc() |> max(0) |> min(100)
+
+  # This port's own: a value too wide for its column, which upstream writes
+  # past it, is written to fit (see AsciiArt.Kit.Number), its unit after it.
+  defp reading(s, v) do
+    plain = fmt(s, v, true)
+    unit = Map.get(s, :unit) || ""
+    room = @vw - Text.length(unit)
+
+    if Text.length(plain) <= @vw or room < 1,
+      do: plain,
+      else: Number.fit(v, digits(s), room) <> unit
+  end
+
+  defp figure(s, v) do
+    plain = fmt(s, v, false)
+    if Text.length(plain) <= @rw, do: plain, else: Number.fit(v, digits(s), @rw)
+  end
+
+  # This port's own: in words, each series given values, its label and its
+  # latest value written in full (but for a hundred decimals or a long unit).
+  @impl true
+  def describe(%{series: series}) do
+    case for(s <- Enum.take(series, @slots), Map.has_key?(s, :values), do: told(s)) do
+      [] -> nil
+      told -> "sparkline: " <> Enum.join(told, ", ")
+    end
+  end
+
+  defp told(s) do
+    label = Text.slice(Map.get(s, :label) || "", 0, 24)
+
+    value =
+      case Map.get(s, :values) do
+        [] ->
+          "no samples"
+
+        values ->
+          JSMath.to_fixed(List.last(values), min(digits(s), 6)) <>
+            Text.slice(Map.get(s, :unit) || "", 0, 12)
+      end
+
+    String.trim(label <> " " <> value)
+  end
+
+  # This port's own: the parts of a frame, read off its lines where init/1
+  # lays them out: the headings, a row per series, then the time axis. A
+  # series' row is its label, its line and the line's end at fixed columns,
+  # then its value, unit and range, found in turn as fmt/3 wrote them.
+
+  @word ~r/\S+/u
+  @label ~r/\A( *)(.*?)( *)\z/u
+  @spark ~r/\A( *)(.*)\z/u
+  @number ~r/\A-?\d+(?:\.\d+)?(?:e[+-]\d+)?[kMGTPE]?/
+  @unit ~r/\A( *)(.*)\z/su
+  @range ~r/\A( *)(\S*)( *)(\S*)( *)\z/u
+
+  @impl true
+  def parts(%{lines: lines, cols: cols, rows: rows}, %{series: series, range: range}) do
+    series = Enum.take(series, @slots)
+    w = cols - 2 - @lw - 2 - @vw - if(range, do: 2 + @rw + 1 + @rw, else: 0) - 2
+    {gap, span} = span(series)
+    top = JSMath.floor((rows - span - 2) / 2) + 1
+    at = series |> Enum.with_index() |> Map.new(fn {s, i} -> {top + i * gap, {s, i + 1}} end)
+
+    for {line, y} <- Enum.with_index(lines) do
+      case {Map.fetch(at, y), y - top} do
+        {{:ok, s}, _} -> series_parts(line, s, w)
+        {:error, -1} -> Parts.matches(line, @word, "title")
+        {:error, ^span} -> Parts.matches(line, @word, "scale")
+        {:error, _} -> Parts.line(line, nil)
+      end
+    end
+  end
+
+  defp series_parts(line, {s, n}, w) do
+    {head, rest} = line |> String.to_charlist() |> Enum.split(2)
+    {label, rest} = Enum.split(rest, @lw)
+    {spark, rest} = Enum.split(rest, w)
+
+    case rest do
+      [?▏ | rest] ->
+        {gap, rest} = Enum.split(rest, 1)
+
+        Parts.merge(
+          [{nil, List.to_string(head)}] ++
+            Parts.captures(List.to_string(label), @label, [nil, "label", nil]) ++
+            Parts.captures(List.to_string(spark), @spark, [nil, "spark.#{n}"]) ++
+            [{"axis", "▏"}, {nil, List.to_string(gap)}] ++
+            readings(List.to_string(rest), Map.get(s, :unit) || "")
+        )
+
+      _ ->
+        Parts.line(line, nil)
+    end
+  end
+
+  # The value, padded at the start, its unit after it, then the range. The
+  # number is the longest the unit follows: a unit can start with a digit.
+  defp readings(text, unit) do
+    pad = byte_size(text) - byte_size(String.trim_leading(text, " "))
+    <<lead::binary-size(^pad), rest::binary>> = text
+
+    with [number] <- Regex.run(@number, rest),
+         n when is_integer(n) <- Enum.find(byte_size(number)..1//-1, &unit_after?(rest, &1, unit)) do
+      [{nil, lead}, {"value", binary_part(rest, 0, n)} | unit_parts(after_number(rest, n), unit)]
+    else
+      _ -> [{nil, text}]
+    end
+  end
+
+  defp after_number(rest, n), do: binary_part(rest, n, byte_size(rest) - n)
+
+  defp unit_after?(rest, n, unit) do
+    text = after_number(rest, n)
+    String.starts_with?(text, unit) or String.starts_with?(unit, text)
+  end
+
+  # The unit as given, or as much of it as the frame's edge leaves.
+  defp unit_parts(text, unit) do
+    cond do
+      String.starts_with?(text, unit) ->
+        n = byte_size(unit)
+
+        Parts.captures(unit, @unit, [nil, "unit"]) ++
+          range_parts(binary_part(text, n, byte_size(text) - n))
+
+      String.starts_with?(unit, text) ->
+        Parts.captures(text, @unit, [nil, "unit"])
+
+      true ->
+        [{nil, text}]
+    end
+  end
+
+  defp range_parts(text),
+    do: Parts.captures(text, @range, [nil, "value.min", nil, "value.max"]) || [{nil, text}]
 end

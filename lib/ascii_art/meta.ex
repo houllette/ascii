@@ -11,7 +11,9 @@ defmodule AsciiArt.Meta do
   height in cell widths on a canvas: 2, the shape of a character, or 1.
 
   `bounds` is this port's own addition: the range each numeric option is
-  clamped to when it comes from outside (see `AsciiArt.Options`). So is
+  clamped to when it comes from outside (see `AsciiArt.Options`); for an
+  option that holds lists or maps, a range for every number within it, or a
+  map of ranges by key. So is
   `loop`: for a piece that closes a loop, the seconds after which its
   frames come round again exactly, with its default options and frame rate
   (measured by `tools/loops.exs`, held by a test). `AsciiArt.loop/1` gives
@@ -19,6 +21,9 @@ defmodule AsciiArt.Meta do
   And `shapes`: for an option whose default cannot show what it takes (an
   empty list that takes numbers, a series that may carry its own values), an
   example of what it takes, which `AsciiArt.Options` checks against instead.
+  And `parts`: for a piece in one ink that labels its frames' cells (see
+  `AsciiArt.Parts`), the names of its parts, in the order they read best,
+  each with the colour it suggests for it, or `nil`.
 
   `cols` and `rows` are the size with the default options. A piece whose
   size follows its options (see `c:AsciiArt.Piece.size/1`) can be another
@@ -71,10 +76,14 @@ defmodule AsciiArt.Meta do
           palette: [String.t()] | nil,
           ground: String.t() | nil,
           cell: 1 | 2,
-          bounds: %{optional(atom()) => {number(), number()}},
+          bounds: %{optional(atom()) => bound()},
           shapes: %{optional(atom()) => term()},
+          parts: [{String.t(), String.t() | nil}],
           loop: number() | nil
         }
+
+  @typedoc "A range, or ranges by key for the maps an option holds."
+  @type bound :: {number(), number()} | %{optional(atom()) => bound()}
 
   @enforce_keys [:name, :category, :note, :cols, :rows, :fps]
   defstruct [
@@ -91,6 +100,7 @@ defmodule AsciiArt.Meta do
     cell: 2,
     bounds: %{},
     shapes: %{},
+    parts: [],
     loop: nil
   ]
 

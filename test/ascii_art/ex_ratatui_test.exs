@@ -212,4 +212,102 @@ defmodule AsciiArt.ExRatatuiTest do
       assert draw([{paragraph, rect}], 4, 4) |> Map.values() |> Enum.all?(&(&1.symbol == " "))
     end
   end
+
+  describe "event/2 and handle_event/3" do
+    alias ExRatatui.Event.{Key, Mouse}
+
+    defp click(x, y), do: %Mouse{kind: "down", button: "left", x: x, y: y}
+
+    test "keys by their codes, pressed or held; not released, nor with ctrl or alt" do
+      assert AsciiArt.ExRatatui.event(%Key{code: "up", kind: "press"}, %Rect{}) == {:key, "up"}
+      assert AsciiArt.ExRatatui.event(%Key{code: "j", kind: "repeat"}, %Rect{}) == {:key, "j"}
+
+      assert AsciiArt.ExRatatui.event(
+               %Key{code: "A", kind: "press", modifiers: ["shift"]},
+               %Rect{}
+             ) ==
+               {:key, "A"}
+
+      assert AsciiArt.ExRatatui.event(%Key{code: "up", kind: "release"}, %Rect{}) == nil
+
+      assert AsciiArt.ExRatatui.event(
+               %Key{code: "c", kind: "press", modifiers: ["ctrl"]},
+               %Rect{}
+             ) == nil
+
+      assert AsciiArt.ExRatatui.event(%Key{code: "x", kind: "press", modifiers: ["alt"]}, %Rect{}) ==
+               nil
+    end
+
+    test "a click is the frame's cell drawn there, wherever place/3 put it" do
+      frame = grid(30, 20)
+
+      cases = [
+        # Centred in its border: frame 0, 0 at 10, 10.
+        {AsciiArt.ExRatatui.place(frame, %Rect{x: 0, y: 0, width: 50, height: 40}, title: "Grid"),
+         {10, 10}, {0, 0}},
+        # Too big: its middle shows, frame 7, 5 at the area's corner.
+        {AsciiArt.ExRatatui.place(frame, %Rect{x: 4, y: 2, width: 15, height: 9}), {4, 2},
+         {7, 5}},
+        # Too big, in a border.
+        {AsciiArt.ExRatatui.place(frame, %Rect{x: 0, y: 0, width: 17, height: 11}, border: true),
+         {1, 1}, {7, 5}},
+        # A box wider than the picture, for its title.
+        {AsciiArt.ExRatatui.place(@frame, %Rect{x: 0, y: 0, width: 20, height: 6},
+           title: "Elixir!"
+         ), {7, 2}, {0, 0}},
+        # Drawn from a rect's corner.
+        {%Rect{x: 3, y: 4, width: 30, height: 20}, {3, 4}, {0, 0}}
+      ]
+
+      for {placed, {sx, sy}, {fx, fy}} <- cases, {dx, dy} <- [{0, 0}, {1, 0}, {2, 1}] do
+        assert AsciiArt.ExRatatui.event(click(sx + dx, sy + dy), placed) ==
+                 {:click, fx + dx, fy + dy}
+      end
+
+      # The drawing agrees: what is at the screen cell is the frame's cell.
+      {paragraph, rect} =
+        placed = AsciiArt.ExRatatui.place(frame, %Rect{x: 4, y: 2, width: 15, height: 9})
+
+      cells = draw([{paragraph, rect}], 20, 12)
+      {:click, fx, fy} = AsciiArt.ExRatatui.event(click(9, 6), placed)
+      assert cells[{9, 6}].symbol == char_at(frame, fx, fy)
+    end
+
+    test "outside the picture, on its border, or not a left click, no event" do
+      placed =
+        AsciiArt.ExRatatui.place(@frame, %Rect{x: 0, y: 0, width: 20, height: 6},
+          title: "Elixir!"
+        )
+
+      assert AsciiArt.ExRatatui.event(click(5, 1), placed) == nil
+      assert AsciiArt.ExRatatui.event(click(5, 2), placed) == nil
+      assert AsciiArt.ExRatatui.event(click(6, 2), placed) == nil
+      assert AsciiArt.ExRatatui.event(click(19, 5), placed) == nil
+
+      assert AsciiArt.ExRatatui.event(%Mouse{kind: "down", button: "right", x: 7, y: 2}, placed) ==
+               nil
+
+      assert AsciiArt.ExRatatui.event(%Mouse{kind: "moved", button: "", x: 7, y: 2}, placed) ==
+               nil
+    end
+
+    test "a piece takes them up" do
+      anim = AsciiArt.new!(AsciiArt.TestPieces.Switches)
+      {frame, anim} = AsciiArt.frame(anim, 0.0)
+      placed = AsciiArt.ExRatatui.place(frame, %Rect{x: 0, y: 0, width: 14, height: 1})
+
+      {:ok, anim} =
+        AsciiArt.ExRatatui.handle_event(anim, %Key{code: "right", kind: "press"}, placed)
+
+      assert anim.options.cursor == 1
+      {:ok, anim} = AsciiArt.ExRatatui.handle_event(anim, click(12, 0), placed)
+      assert anim.options == %{on: [false, true, true], cursor: 2}
+
+      assert AsciiArt.ExRatatui.handle_event(anim, %Key{code: "q", kind: "press"}, placed) ==
+               :ignore
+
+      assert AsciiArt.ExRatatui.handle_event(anim, :resize, placed) == :ignore
+    end
+  end
 end

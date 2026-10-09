@@ -27,10 +27,20 @@ if Code.ensure_loaded?(ExRatatui.App) do
         every piece. A `:piece` not among them comes first.
       * `:options` - options for `:piece`, whenever it plays; the others
         play with their own.
-      * `:fps`, `:paper`, `:color` - as for `AsciiArt.new/2`, for every
-        piece.
+      * `:fps`, `:paper`, `:color`, `:ink`, `:gradient` - as for
+        `AsciiArt.new/2`, for every piece: `ink: "#7fdbca"` draws each piece
+        in one ink in that colour.
+      * `:parts` - colours for parts (see `AsciiArt.Parts`): `true` for
+        those each piece suggests, or a map for `:piece`'s, whenever it
+        plays.
       * `:mode`, `:ground` - how colour is drawn, as for `AsciiArt.ExRatatui`:
         `mode: :ansi256` for terminals without 24-bit colour.
+      * `:interactive` - keys go to a piece that can be used first (see
+        `AsciiArt.handle_event/2`): a file tree's arrows, a form's typing.
+        Those it has no use for are the viewer's, so q still quits unless
+        the piece takes it; Ctrl-C always does.
+
+            AsciiArt.ExRatatui.Viewer.run(piece: "file-tree", options: %{walk: false}, interactive: true)
 
     and `ExRatatui.App`'s own, such as `:transport`, `:name` and
     `:test_mode`.
@@ -45,7 +55,7 @@ if Code.ensure_loaded?(ExRatatui.App) do
     alias ExRatatui.Style
     alias ExRatatui.Widgets.Paragraph
 
-    @play [:fps, :paper, :color]
+    @play [:fps, :paper, :color, :ink, :gradient]
 
     @doc """
     Plays in this terminal until it is quit, for a script or `mix run`:
@@ -59,7 +69,8 @@ if Code.ensure_loaded?(ExRatatui.App) do
       # Checked first: a viewer that fails to start takes its caller with it.
       with {:ok, pieces, index} <- lineup(opts),
            piece = Enum.at(pieces, index),
-           {:ok, _anim} <- AsciiArt.prepare(piece, Keyword.take(opts, @play ++ [:options])),
+           {:ok, _anim} <-
+             AsciiArt.prepare(piece, Keyword.take(opts, @play ++ [:options, :parts])),
            {:ok, pid} <- start_link(Keyword.put_new(opts, :name, nil)) do
         ref = Process.monitor(pid)
 
@@ -77,7 +88,9 @@ if Code.ensure_loaded?(ExRatatui.App) do
           index: index,
           given: {Enum.at(pieces, index), Keyword.get(opts, :options, %{})},
           play: Keyword.take(opts, @play),
+          parts: Keyword.get(opts, :parts),
           draw: Keyword.take(opts, [:mode, :ground]),
+          interactive: Keyword.get(opts, :interactive, false),
           paused: false,
           player: nil,
           ref: nil,
@@ -109,16 +122,20 @@ if Code.ensure_loaded?(ExRatatui.App) do
     defp play(state) do
       piece = Enum.at(state.pieces, state.index)
 
-      options =
+      # Its own options and parts if it is the piece given them; parts: true
+      # is for every piece.
+      {options, parts} =
         case state.given do
-          {^piece, options} -> options
-          _other -> %{}
+          {^piece, options} -> {options, state.parts}
+          _other -> {%{}, if(state.parts == true, do: true)}
         end
 
       ref = make_ref()
 
       with {:ok, player} <-
-             Player.start_link([piece: piece, options: options, ref: ref] ++ state.play) do
+             Player.start_link(
+               [piece: piece, options: options, parts: parts, ref: ref] ++ state.play
+             ) do
         drop(state.player)
         meta = AsciiArt.meta!(piece)
         {:ok, %{state | player: player, ref: ref, meta: meta, frame: blank(meta), shown: false}}
@@ -152,12 +169,25 @@ if Code.ensure_loaded?(ExRatatui.App) do
 
     defp status(state) do
       keys = if match?([_], state.pieces), do: [], else: ["←/→ piece"]
+      keys = if state.interactive, do: ["keys to the piece first" | keys], else: keys
       paused = if state.paused, do: ["paused"], else: []
       text = Enum.join(paused ++ ["space pause" | keys] ++ ["q quit"], " · ")
       %Paragraph{text: " " <> text, style: %Style{modifiers: [:dim]}}
     end
 
     @impl true
+    def handle_event(%Key{code: "c", modifiers: ["ctrl"]}, state), do: {:stop, state}
+
+    def handle_event(%Key{kind: kind} = key, %{interactive: true, shown: true} = state)
+        when kind in ["press", "repeat"] do
+      with {:key, _} = event <- AsciiArt.ExRatatui.event(key, %Rect{}),
+           {:ok, _options} <- Player.handle_event(state.player, event) do
+        {:noreply, state}
+      else
+        _ -> if kind == "press", do: key(key, state), else: {:noreply, state}
+      end
+    end
+
     def handle_event(%Key{kind: "press"} = key, state), do: key(key, state)
     def handle_event(_event, state), do: {:noreply, state}
 

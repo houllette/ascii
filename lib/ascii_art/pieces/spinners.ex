@@ -3,11 +3,66 @@ defmodule AsciiArt.Pieces.Spinners do
   Twelve loading spinners side by side, each with its name.
 
   Twelve classic loading spinners in a grid, each drawn in a three-row box
-  with its name underneath. Pass `names` to pick some of them, in that order;
-  the frame then shrinks to fit just those, so one spinner is an 11-column
-  widget for a terminal UI. Names it does not know are left out, and if none
-  is left it shows all twelve (upstream would draw nothing, which a frame
-  cannot be). A negative `speed` turns them backwards.
+  with its name underneath. Pick some of them with `names`, and the frame
+  shrinks to fit just those: one spinner is an 11-column widget for a
+  terminal UI or a page.
+
+  ## Options
+
+  Give them to `AsciiArt.new/2` as `options:`, and new ones while it plays
+  with `AsciiArt.put_options/2` (or a Phoenix player's `options`): it is laid
+  out anew, at its new size, and the spinners carry on, being a function of
+  play time.
+
+    * `names` - the spinners to show, in that order: `line`, `dots`, `pipe`,
+      `arc`, `bounce`, `clock`, `bar`, `loop`, `scan`, `wave`, `slide` and
+      `orbit`. Names it does not know are left out, and if none is left it
+      shows all twelve (upstream would draw nothing, which a frame cannot
+      be). Default `[]`: all twelve.
+    * `labels` - each spinner's name under it. With `names`, `false` leaves
+      the names out and the frame two rows a line shorter. Default `true`.
+    * `speed` - how fast they turn, upstream's pace times this, -60 to 60:
+      0 holds them, and a negative speed turns them backwards. Default 1.
+
+  The frame is 11 columns a spinner, six to a line, and 6 rows a line of
+  them with names (4 without), and one more; all twelve fill 66 by 13.
+
+  ## Colours
+
+  It has no parts to colour one by one: in one ink, or a gradient, with
+  `:ink` and `:gradient` (see `AsciiArt.Ink`). A gradient across several
+  spinners gives each its own colour.
+
+  ## Keys and clicks
+
+  It takes none: it says something is loading, and
+  `AsciiArt.handle_event/2` ignores every event. A Phoenix player given
+  `interactive` and `notify` still tells your LiveView where it was
+  clicked.
+
+  ## Screen readers
+
+  `AsciiArt.describe/1` gives the piece's name and note, "spinners: twelve
+  loading spinners side by side, each with its name"; give a player a
+  `label` of your own, as "saving", to say what is loading.
+
+  ## Example
+
+  ```elixir
+  spinner = AsciiArt.new!("spinners", options: %{names: ["dots"]}, ink: "#58a6ff")
+  {frame, _spinner} = AsciiArt.frame(spinner, 0.5)
+  {frame.cols, frame.rows}
+  #=> {11, 7}
+
+  two = AsciiArt.new!("spinners", options: %{names: ["dots", "clock"], labels: false, speed: 2})
+  {frame, _two} = AsciiArt.frame(two, 0.0)
+  {frame.cols, frame.rows}
+  #=> {22, 5}
+  ```
+
+  ```heex
+  <AsciiArt.Phoenix.live_player id="saving" piece="spinners" options={%{names: ["dots"], labels: false}} label="saving" />
+  ```
 
   Ported from `src/pieces/spinners.ts` in bas3line/ascii (MIT).
   """

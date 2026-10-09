@@ -5,6 +5,44 @@ defmodule AsciiArt.Pieces.Starfield do
   Flying through stars at warp. Each star drifts out from the vanishing point
   as a dot, then streaks as it rushes past the edge.
 
+  ## Options
+
+  Give them to `AsciiArt.new/2` as `options:`, and new ones while it plays
+  with `AsciiArt.put_options/2` (or a Phoenix player's `options`): it starts
+  afresh with them.
+
+    * `stars` - how many, 0 to 1000, taken as a whole number. Default 60.
+    * `speed` - how fast you fly, -100 to 100: at 1 a star takes 4 seconds to
+      come from the far plane past the edge, at 2 half that; a negative speed
+      flies backwards, and 0 holds them still. Default 1.
+
+  The picture is always 64 by 24.
+
+  ## Colours
+
+  In one ink, or a gradient, with `:ink` and `:gradient` (see `AsciiArt.Ink`),
+  or on a page a CSS variable. It has no parts to colour one by one.
+
+  ## Screen readers
+
+  `AsciiArt.describe/1` gives its name and note, "starfield: stars rush out
+  from the centre and streak at the edges". A player's or a component's
+  `label` gives words of your own, as "flying through stars".
+
+  ## Example
+
+  ```elixir
+  still = AsciiArt.new!("starfield", options: %{stars: 200, speed: 0})
+  {first, still} = AsciiArt.frame(still, 0.0)
+  {later, _} = AsciiArt.frame(still, 3.0)
+  first.text == later.text
+  #=> true
+  ```
+
+  ```heex
+  <AsciiArt.Phoenix.player socket={@socket} id="warp" piece="starfield" options={%{stars: 150, speed: 3}} />
+  ```
+
   Ported from `src/pieces/starfield.ts` in bas3line/ascii (MIT).
   """
   @behaviour AsciiArt.Piece

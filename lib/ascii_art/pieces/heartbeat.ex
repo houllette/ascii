@@ -5,6 +5,51 @@ defmodule AsciiArt.Pieces.Heartbeat do
   An ECG monitor. A PQRST trace sweeps left to right over a dotted grid and
   its last pass, erasing a few columns ahead, beside a rate readout.
 
+  ## Options
+
+  Give them to `AsciiArt.new/2` as `options:`, and new ones while it plays
+  with `AsciiArt.put_options/2` (or a Phoenix player's `options`): the
+  monitor starts afresh at the new rate.
+
+    * `bpm` - the heart rate, beats a minute, 30 to 199: the trace's pace,
+      and the readout in large digits. Default 72.
+
+  The frame is always 72 by 15.
+
+  ## Colours
+
+  It has no parts to colour one by one: in one ink, or a gradient, with
+  `:ink` and `:gradient` (see `AsciiArt.Ink`). A green ink makes the
+  monitor's own.
+
+  ## Keys and clicks
+
+  It takes none: it shows a rate, and `AsciiArt.handle_event/2` ignores
+  every event. A Phoenix player given `interactive` and `notify` still tells
+  your LiveView where it was clicked.
+
+  ## Screen readers
+
+  `AsciiArt.describe/1` reads the rate, as the readout shows it: "heartbeat:
+  72 bpm".
+
+  ## Example
+
+  ```elixir
+  monitor = AsciiArt.new!("heartbeat", options: %{bpm: 90}, ink: "#3fb950")
+
+  AsciiArt.describe(monitor)
+  #=> "heartbeat: 90 bpm"
+
+  {frame, _monitor} = AsciiArt.frame(monitor, 1.0)
+  {frame.cols, frame.rows, frame.palette}
+  #=> {72, 15, ["#3fb950"]}
+  ```
+
+  ```heex
+  <AsciiArt.Phoenix.live_player id="pulse" piece="heartbeat" options={%{bpm: @bpm}} ink="#3fb950" />
+  ```
+
   Ported from `src/pieces/heartbeat.ts` in bas3line/ascii (MIT).
   """
   @behaviour AsciiArt.Piece
@@ -85,6 +130,12 @@ defmodule AsciiArt.Pieces.Heartbeat do
     # the rate averages true. Breathing sways it a little.
     %{base: base, rate: max(30, min(199, bpm)), beats: {-400}, rand: 7240}
   end
+
+  # The rate it beats at; the readout wanders a little about it, as a
+  # monitor's does.
+  @impl true
+  def describe(%{bpm: bpm}),
+    do: "heartbeat: #{bpm |> max(30) |> min(199) |> JSMath.round() |> JSMath.to_string()} bpm"
 
   defp extend(%{beats: beats} = state, g) do
     n = tuple_size(beats)

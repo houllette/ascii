@@ -265,6 +265,46 @@ defmodule AsciiArt.Phoenix.PlayerLiveTest do
     refute render(view) =~ "<span"
   end
 
+  test "ink, and which way it runs" do
+    html = dead(%{"piece" => "big-text", "ink" => "#ff5f6d,#ffc371", "gradient" => "vertical"})
+    assert html =~ ~s(data-palette=)
+    refute html =~ ~s(data-ground=)
+
+    {:ok, view, _} = mount(%{"piece" => "big-text", "ink" => "#ff8800", "render" => "server"})
+    assert render(view) =~ ~s(<span style="color:#ff8800">)
+
+    {:ok, view, _} = mount(%{"piece" => "big-text", "ink" => "red"})
+    assert render(view) =~ "invalid option :ink"
+  end
+
+  test "a piece in an ink is drawn as text in spans; a coloured piece, on a canvas" do
+    assert dead(%{"piece" => "big-text", "ink" => "#ff8800"}) =~ ~s(data-spans="true")
+    assert dead(%{"piece" => "boot-log", "parts" => true}) =~ ~s(data-spans="true")
+
+    assert dead(%{"piece" => "elixir", "mono" => true, "ink" => "#ff8800"}) =~
+             ~s(data-spans="true")
+
+    refute dead(%{"piece" => "elixir"}) =~ "data-spans"
+    refute dead(%{"piece" => "donut"}) =~ "data-spans"
+  end
+
+  test "parts, from the session" do
+    {:ok, view, _} =
+      mount(%{
+        "piece" => "boot-log",
+        "parts" => %{"status.warn" => "#d29922"},
+        "render" => "server"
+      })
+
+    assert render(view) =~ ~s(<span style="color:#d29922">[ WARN ])
+
+    html = dead(%{"piece" => "boot-log", "parts" => true})
+    assert html =~ ~s(data-palette="[null,)
+
+    {:ok, view, _} = mount(%{"piece" => "boot-log", "parts" => %{"evil" => "#fff"}})
+    assert render(view) =~ ~s(invalid option {:parts, &quot;evil&quot;})
+  end
+
   test "an unknown render mode is the default" do
     {:ok, view, _} = mount(%{"piece" => "elixir", "render" => "evil"})
     assert render(view) =~ ~s(phx-hook="AsciiArt")
@@ -273,7 +313,7 @@ defmodule AsciiArt.Phoenix.PlayerLiveTest do
   test "a piece module of our own, given in the session by the server" do
     {:ok, view, html} = mount(%{"piece" => Blink, "options" => %{"dot" => "o"}})
     assert html =~ " o "
-    assert render(view) =~ ~s(aria-label="blink")
+    assert render(view) =~ ~s(aria-label="blink: a dot that blinks")
   end
 
   test "a module named by a string is not a piece: strings are slugs" do
@@ -299,6 +339,7 @@ defmodule AsciiArt.Phoenix.PlayerLiveTest do
         ~H"""
         <AsciiArt.Phoenix.player socket={@socket} id="art" piece="spinners" fps={12} label="loading" />
         <AsciiArt.Phoenix.player socket={@socket} id="own" piece={AsciiArt.TestPieces.Blink} render={:server} />
+        <AsciiArt.Phoenix.player socket={@socket} id="inked" piece={AsciiArt.TestPieces.Blink} render={:server} ink="#ff8800" gradient={:vertical} />
         """
       end
     end
@@ -311,6 +352,35 @@ defmodule AsciiArt.Phoenix.PlayerLiveTest do
       assert render(art) =~ ~s(data-event="#{event(art)}")
       assert render(own) =~ " * "
       refute event(art) == event(own)
+      assert render(find_live_child(view, "inked")) =~ ~s(<span style="color:#ff8800">)
+    end
+
+    defmodule Listener do
+      use Phoenix.LiveView
+
+      def mount(_params, session, socket), do: {:ok, assign(socket, test: session["test"])}
+
+      def handle_info({:ascii_art, _id, _info} = told, socket) do
+        send(socket.assigns.test, told)
+        {:noreply, socket}
+      end
+
+      def render(assigns) do
+        ~H"""
+        <AsciiArt.Phoenix.player socket={@socket} id="sw" piece={AsciiArt.TestPieces.Switches} render={:server} interactive notify />
+        """
+      end
+    end
+
+    test "an interactive player tells the LiveView that embeds it of each key and click" do
+      {:ok, view, _html} = live_isolated(build_conn(), Listener, session: %{"test" => self()})
+      player = find_live_child(view, "sw")
+      player |> element("pre") |> render_keydown(%{"key" => " "})
+
+      assert_receive {:ascii_art, "sw",
+                      %{event: {:key, " "}, options: %{on: [true, true, false]}}}
+
+      assert render(player) =~ "&gt;[x]  [x]  [ ]"
     end
   end
 end
