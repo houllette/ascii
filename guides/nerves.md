@@ -9,7 +9,7 @@ on a display.
 # needs: a Nerves project's mix.exs
 def deps do
   [
-    {:ascii, "~> 0.4.0"},
+    {:ascii, "~> 0.4.1"},
     # ...
   ]
 end

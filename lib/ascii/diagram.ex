@@ -111,6 +111,8 @@ defmodule Ascii.Diagram do
 
   Options: `:label_width` (24), `:gap_cols` (8), `:gap_rows` (3),
   `:max_cols` (400), `:max_rows` (200). Oversize diagrams return an error.
+  Labels wrap at spaces, preserving explicit newlines. Words wider than
+  `:label_width` split by character count without truncation.
   Rendering options (`:charset`, `:theme`, `:color`) are also accepted.
   """
   @spec layout(diagram :: t(), opts :: keyword()) :: {:ok, Layout.t()} | error()

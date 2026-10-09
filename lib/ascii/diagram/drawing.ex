@@ -6,10 +6,39 @@ defmodule Ascii.Diagram.Drawing do
   def wrap(text, width) do
     text
     |> String.split("\n")
-    |> Enum.flat_map(fn
-      "" -> [""]
-      line -> line |> String.codepoints() |> Enum.chunk_every(width) |> Enum.map(&Enum.join/1)
-    end)
+    |> Enum.flat_map(&wrap_line(String.codepoints(&1), width))
+  end
+
+  defp wrap_line(codepoints, width) do
+    case Enum.split(codepoints, width) do
+      {line, []} ->
+        [Enum.join(line)]
+
+      {line, overflow} ->
+        case break_line(line, overflow) do
+          {[], rest} -> wrap_rest(rest, width)
+          {line, rest} -> [Enum.join(line) | wrap_rest(rest, width)]
+        end
+    end
+  end
+
+  defp wrap_rest([], _width), do: []
+  defp wrap_rest(codepoints, width), do: wrap_line(codepoints, width)
+
+  defp break_line(line, [next | rest] = overflow) do
+    # Include the next cell so a space exactly at the width boundary is a break.
+    {word, before_word} = Enum.split_while(Enum.reverse(line ++ [next]), &(&1 != " "))
+
+    case {word, before_word, Enum.drop_while(before_word, &(&1 == " "))} do
+      {_, [], _} ->
+        {line, overflow}
+
+      {[], _, []} ->
+        {line, overflow}
+
+      {_, _, prefix} ->
+        {Enum.reverse(prefix), Enum.drop_while(Enum.reverse(word) ++ rest, &(&1 == " "))}
+    end
   end
 
   @spec node(node :: map(), opts :: keyword()) :: map()

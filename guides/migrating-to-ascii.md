@@ -11,7 +11,7 @@ Replace the `ascii_art` dependency with:
 
 ```elixir
 # needs: a mix.exs to put it in
-{:ascii, "~> 0.4.0"}
+{:ascii, "~> 0.4.1"}
 ```
 
 Replace `AsciiArt` with `Ascii` in aliases, imports, function calls, struct

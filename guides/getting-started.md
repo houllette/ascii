@@ -19,7 +19,7 @@ the Phoenix components.
 # needs: a mix.exs to put it in
 def deps do
   [
-    {:ascii, "~> 0.4.0"},
+    {:ascii, "~> 0.4.1"},
     # optional:
     {:phoenix_live_view, "~> 1.1"}
   ]

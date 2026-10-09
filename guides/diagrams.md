@@ -466,7 +466,9 @@ Inputs are validated, with no silent truncation or user-created atoms:
   contract shared by the output adapters.
 - Layout: `label_width: 24`, `gap_cols: 8`, `gap_rows: 3`, `max_cols: 400`,
   `max_rows: 200` by default. Routes may reserve more space than the requested
-  gaps. Labels wrap by character count without dropping text.
+  gaps. Labels wrap at spaces, moving whole words to the next line. Explicit
+  newlines and blank lines are retained; words wider than `label_width` split
+  by character count without truncation.
 - Outputs: at most 200,000 cells; configurable maxima up to 2000 columns and
   1000 rows. An oversized result returns `{:error, {:too_large, {cols, rows}}}`
   before allocating its frame. There is no automatic cropping.

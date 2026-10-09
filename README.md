@@ -78,7 +78,7 @@ From [Hex](https://hex.pm/packages/ascii), with the docs on
 # in mix.exs
 def deps do
   [
-    {:ascii, "~> 0.4.0"},
+    {:ascii, "~> 0.4.1"},
     # optional, for the Phoenix components and the LiveView player:
     {:phoenix_live_view, "~> 1.1"},
     # optional, for ratatui widgets and the full-screen terminal viewer:
@@ -88,6 +88,9 @@ def deps do
   ]
 end
 ```
+
+Version 0.4.1 wraps diagram labels at word boundaries, splitting words only
+when they exceed the full label width.
 
 Version 0.4.0 adds nested flowchart groups, state and ER diagrams, compact
 layouts, selection styling and panned viewports.

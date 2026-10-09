@@ -3,6 +3,23 @@ defmodule Ascii.MermaidTest do
 
   alias Ascii.{Diagram, Mermaid}
 
+  test "flowchart labels wrap at word boundaries before rendering" do
+    source = """
+    flowchart LR
+    A[Start] --> B[Parse request] --> C[Run agent loop] --> D[Render response] --> E[Done]
+    """
+
+    assert {:ok, layout} = Mermaid.compile(source, label_width: 12)
+    assert layout.nodes["B"].lines == ["Parse", "request"]
+    assert layout.nodes["C"].lines == ["Run agent", "loop"]
+    assert layout.nodes["D"].lines == ["Render", "response"]
+    assert {:ok, frame} = Diagram.Layout.frame(layout)
+
+    for word <- ~w(Start Parse request Run agent loop Render response Done) do
+      assert frame.text =~ word
+    end
+  end
+
   test "flowchart text compiles to the same model as programmatic input" do
     source = "flowchart LR\n%% comment\nA[Request] -->|send| B(Worker); B --> A"
     assert {:ok, parsed} = Mermaid.parse(source)

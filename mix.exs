@@ -4,7 +4,7 @@ defmodule Ascii.MixProject do
   def project do
     [
       app: :ascii,
-      version: "0.4.0",
+      version: "0.4.1",
       elixir: "~> 1.18",
       elixirc_paths: elixirc_paths(Mix.env()),
       test_ignore_filters: [&String.starts_with?(&1, "test/fixtures/")],

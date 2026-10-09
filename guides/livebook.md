@@ -8,7 +8,7 @@ written against Kino 0.19.
 # needs: a notebook's setup cell
 Mix.install([
   {:kino, "~> 0.19"},
-  {:ascii, "~> 0.4.0"}
+  {:ascii, "~> 0.4.1"}
 ])
 ```
 
